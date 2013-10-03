@@ -5,6 +5,16 @@ class Chef
     class EcRestore < Chef::Knife
       banner "knife ec restore"
 
+      option :concurrency,
+        :long => '--concurrency THREADS',
+        :description => 'Maximum number of simultaneous requests to send (default: 10)'
+
+      option :overwrite_pivotal,
+        :long => '--overwrite-pivotal',
+        :boolean => true,
+        :default => false,
+        :description => "Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key."
+
       deps do
         require 'chef/json_compat'
         require 'chef_fs/config'
@@ -14,6 +24,12 @@ class Chef
         require 'chef_fs/data_handler/acl_data_handler'
         require 'securerandom'
         require 'chef_fs/parallelizer'
+      end
+
+      def configure_chef
+        super
+        Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
+        ::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
       end
 
       def run
@@ -36,8 +52,15 @@ class Chef
         Dir.foreach("#{dest_dir}/users") do |filename|
           next if filename !~ /(.+)\.json/
           name = $1
+          if name == 'pivotal' && !config[:overwrite_pivotal]
+            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.  Once pivotal is updated, you will need to modify #{Chef::Config.client_key} to be the corresponding private key.")
+            next
+          end
+
+          # Update user object
           user = JSONCompat.from_json(IO.read("#{dest_dir}/users/#{name}.json"))
           begin
+            # Supply password for new user
             user_with_password = user.dup
             user_with_password['password'] = SecureRandom.hex
             rest.post_rest('users', user_with_password)
@@ -48,7 +71,9 @@ class Chef
               raise
             end
           end
-          # Doesn't work at present
+
+          # Update user acl
+          # Doesn't work at present due to server
           #user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
           #put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
         end

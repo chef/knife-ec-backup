@@ -5,10 +5,21 @@ class Chef
     class EcBackup < Chef::Knife
       banner "knife ec backup"
 
+      option :concurrency,
+        :long => '--concurrency THREADS',
+        :description => 'Maximum number of simultaneous requests to send (default: 10)'
+
       deps do
         require 'chef_fs/config'
         require 'chef_fs/file_system'
         require 'chef_fs/file_pattern'
+        require 'chef_fs/parallelizer'
+      end
+
+      def configure_chef
+        super
+        Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
+        ::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
       end
 
       def run
