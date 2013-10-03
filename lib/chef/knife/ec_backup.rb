@@ -21,15 +21,22 @@ class Chef
         webui_key = name_args[1]
         rest = Chef::REST.new(Chef::Config.chef_server_url)
         if name_args.length >= 3
-          user_acl_rest = Chef::REST.new(name_args[3])
+          user_acl_rest = Chef::REST.new(name_args[2])
+        else
+          user_acl_rest = rest
         end
-        # Grab users
-        ensure_dir("#{dest_dir}/users")
 
+        # Grab users
         puts "Grabbing users ..."
+        ensure_dir("#{dest_dir}/users")
+        ensure_dir("#{dest_dir}/user_acls")
+
         rest.get_rest('/users').each_pair do |name, url|
           File.open("#{dest_dir}/users/#{name}.json", 'w') do |file|
             file.write(rest.get_rest(url).to_json)
+          end
+          File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
+            file.write(user_acl_rest.get_rest("users/#{name}/_acl").to_json)
           end
         end
 
@@ -74,6 +81,7 @@ class Chef
           Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
+          rest = Chef::REST.new(Chef::Config.chef_server_url)
           admin_users = rest.get_rest('groups/admins')['users']
           org_members = rest.get_rest('users').map { |user| user['user']['username'] }
           admin_users.delete_if { |user| !org_members.include?(user) }
@@ -83,9 +91,9 @@ class Chef
 
           # Do the download
           ensure_dir(Chef::Config.chef_repo_path)
-          @chef_fs_config ||= ::ChefFS::Config.new
+          chef_fs_config ||= ::ChefFS::Config.new
           root_pattern = ::ChefFS::FilePattern.new('/')
-          if ::ChefFS::FileSystem.copy_to(root_pattern, @chef_fs_config.chef_fs, @chef_fs_config.local_fs, nil, config, ui, proc { |entry| @chef_fs_config.format_path(entry) })
+          if ::ChefFS::FileSystem.copy_to(root_pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
         ensure
