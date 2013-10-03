@@ -8,7 +8,7 @@ gemspec
 # variables, thus allowing us to to have Travis support
 
 # Examples you can use in Gemfile.local
-# gem 'chef', '~> 10.8.12'
+# gem 'chef', '~> 10.28'
 # gem 'chef' # latest
 # gem 'chef', git: 'git://github.com/mal/chef.git', branch: 'CHEF-3307'
 

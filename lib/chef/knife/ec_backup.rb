@@ -2,8 +2,8 @@ require 'chef/knife'
 
 class Chef
   class Knife
-    class OpcBackup < Chef::Knife
-      banner "knife opc backup"
+    class EcBackup < Chef::Knife
+      banner "knife ec backup"
 
       deps do
         require 'chef_fs/config'

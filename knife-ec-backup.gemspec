@@ -1,13 +1,13 @@
 $:.unshift(File.dirname(__FILE__) + '/lib')
-require 'knife_opc_backup/version'
+require 'knife_ec_backup/version'
 
 Gem::Specification.new do |s|
-  s.name = "knife-opc-backup"
-  s.version = KnifeOPCBackup::VERSION
+  s.name = "knife-ec-backup"
+  s.version = KnifeECBackup::VERSION
   s.license = 'Apache 2.0'
   s.platform = Gem::Platform::RUBY
   s.extra_rdoc_files = ["README.md", "LICENSE"]
-  s.summary = "Backup and Restore of OPC"
+  s.summary = "Backup and Restore of Enterprise Chef"
   s.description = s.summary
   s.author = "John Keiser"
   s.email = "jkeiser@opscode.com"
