@@ -99,9 +99,9 @@ class Chef
           # Do the upload
           chef_fs_config ||= ::ChefFS::Config.new
           root_pattern = ::ChefFS::FilePattern.new('/')
-          #if ::ChefFS::FileSystem.copy_to(root_pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-          #  @error = true
-          #end
+          if ::ChefFS::FileSystem.copy_to(root_pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            @error = true
+          end
         ensure
           CONFIG_VARS.each do |key|
             Chef::Config[key] = old_config[key]
