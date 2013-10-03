@@ -33,10 +33,10 @@ class Chef
 
         rest.get_rest('/users').each_pair do |name, url|
           File.open("#{dest_dir}/users/#{name}.json", 'w') do |file|
-            file.write(rest.get_rest(url).to_json)
+            file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest(url)))
           end
           File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
-            file.write(user_acl_rest.get_rest("users/#{name}/_acl").to_json)
+            file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
           end
         end
 
@@ -46,10 +46,17 @@ class Chef
           org = rest.get_rest(url)
           if org['assigned_at']
             puts "Grabbing organization #{name} ..."
-            File.open("#{dest_dir}/organizations/#{name}.json", 'w') do |file|
-              file.write(org.to_json)
-            end
+            ensure_dir("#{dest_dir}/organizations/#{name}")
             download_org(dest_dir, webui_key, name)
+            File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
+              file.write(Chef::JSONCompat.to_json_pretty(org))
+            end
+            File.open("#{dest_dir}/organizations/#{name}/members.json", 'w') do |file|
+              file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("#{url}/users")))
+            end
+            File.open("#{dest_dir}/organizations/#{name}/invitations.json", 'w') do |file|
+              file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("#{url}/association_requests")))
+            end
           end
         end
 

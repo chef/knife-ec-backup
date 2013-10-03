@@ -49,11 +49,12 @@ class Chef
         end
 
         # Restore organizations
-        Dir.foreach("#{dest_dir}/organizations") do |filename|
-          next if filename !~ /(.+)\.json/
-          name = $1
+        Dir.foreach("#{dest_dir}/organizations") do |name|
+          next if name == '..' || name == '.' || !File.directory?("#{dest_dir}/organizations/#{name}")
           puts "Restoring org #{name} ..."
-          org = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}.json"))
+
+          # Create organization
+          org = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/org.json"))
           begin
             rest.post_rest('organizations', org)
           rescue Net::HTTPServerException => e
@@ -63,6 +64,35 @@ class Chef
               raise
             end
           end
+
+          # Restore open invitations
+          invitations = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/invitations.json"))
+          invitations.each do |invitation|
+            begin
+              rest.post_rest("organizations/#{name}/association_requests", { 'user' => invitation['username'] })
+            rescue Net::HTTPServerException => e
+              if e.response.code != "409"
+                raise
+              end
+            end
+          end
+
+          # Repopulate org members
+          members = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/members.json"))
+          members.each do |member|
+            username = member['user']['username']
+            begin
+              response = rest.post_rest("organizations/#{name}/association_requests", { 'user' => username })
+              association_id = response["uri"]
+              rest.put_rest(response["uri"], { 'response' => 'accept' })
+            rescue Net::HTTPServerException => e
+              if e.response.code != "409"
+                raise
+              end
+            end
+          end
+
+          # Upload org data
           upload_org(dest_dir, webui_key, name)
         end
 
