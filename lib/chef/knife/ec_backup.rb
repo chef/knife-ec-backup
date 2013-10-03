@@ -87,6 +87,17 @@ class Chef
 
           Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
 
+          ensure_dir(Chef::Config.chef_repo_path)
+
+          # Download the billing-admins acls as pivotal
+          chef_fs_config = ::ChefFS::Config.new
+          %w(/acls/groups/billing-admins.json).each do |name|
+            pattern = ::ChefFS::FilePattern.new(name) 
+            if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+              @error = true
+            end
+          end
+
           # Figure out who the admin is so we can spoof him and retrieve his stuff
           rest = Chef::REST.new(Chef::Config.chef_server_url)
           admin_users = rest.get_rest('groups/admins')['users']
@@ -97,8 +108,7 @@ class Chef
           Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
 
           # Do the download
-          ensure_dir(Chef::Config.chef_repo_path)
-          chef_fs_config ||= ::ChefFS::Config.new
+          chef_fs_config = ::ChefFS::Config.new
           root_pattern = ::ChefFS::FilePattern.new('/')
           if ::ChefFS::FileSystem.copy_to(root_pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true

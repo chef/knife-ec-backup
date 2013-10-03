@@ -12,6 +12,8 @@ class Chef
         require 'chef_fs/file_pattern'
         require 'chef_fs/file_system/acl_entry'
         require 'chef_fs/data_handler/acl_data_handler'
+        require 'securerandom'
+        require 'chef_fs/parallelizer'
       end
 
       def run
@@ -36,7 +38,9 @@ class Chef
           name = $1
           user = JSONCompat.from_json(IO.read("#{dest_dir}/users/#{name}.json"))
           begin
-            rest.post_rest('users', user)
+            user_with_password = user.dup
+            user_with_password['password'] = SecureRandom.hex
+            rest.post_rest('users', user_with_password)
           rescue Net::HTTPServerException => e
             if e.response.code == "409"
               rest.put_rest("users/#{name}", user)
@@ -44,8 +48,9 @@ class Chef
               raise
             end
           end
-          user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
-          put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
+          # Doesn't work at present
+          #user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
+          #put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
         end
 
         # Restore organizations
@@ -67,7 +72,7 @@ class Chef
 
           # Restore open invitations
           invitations = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/invitations.json"))
-          invitations.each do |invitation|
+          parallelize(invitations) do |invitation|
             begin
               rest.post_rest("organizations/#{name}/association_requests", { 'user' => invitation['username'] })
             rescue Net::HTTPServerException => e
@@ -79,12 +84,12 @@ class Chef
 
           # Repopulate org members
           members = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/members.json"))
-          members.each do |member|
+          parallelize(members) do |member|
             username = member['user']['username']
             begin
               response = rest.post_rest("organizations/#{name}/association_requests", { 'user' => username })
-              association_id = response["uri"]
-              rest.put_rest(response["uri"], { 'response' => 'accept' })
+              association_id = response["uri"].split("/").last
+              rest.put_rest("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
             rescue Net::HTTPServerException => e
               if e.response.code != "409"
                 raise
@@ -117,6 +122,15 @@ class Chef
 
           Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
 
+          # Upload the admins group and billing-admins acls
+          chef_fs_config = ::ChefFS::Config.new
+          %w(/groups/admins.json /groups/billing-admins.json /acls/groups/billing-admins.json).each do |name|
+            pattern = ::ChefFS::FilePattern.new(name)
+            if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+              @error = true
+            end
+          end
+
           # Figure out who the admin is so we can spoof him and retrieve his stuff
           rest = Chef::REST.new(Chef::Config.chef_server_url)
           admin_users = rest.get_rest('groups/admins')['users']
@@ -126,10 +140,24 @@ class Chef
           Chef::Config.client_key = webui_key
           Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
 
-          # Do the upload
-          chef_fs_config ||= ::ChefFS::Config.new
-          root_pattern = ::ChefFS::FilePattern.new('/')
-          if ::ChefFS::FileSystem.copy_to(root_pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+          # Do the upload.
+          chef_fs_config = ::ChefFS::Config.new
+          # groups and acls come last.
+          children = chef_fs_config.chef_fs.children.map { |child| child.name }
+          children.delete('acls')
+          children.delete('groups')
+          parallelize(children) do |child_name|
+            pattern = ::ChefFS::FilePattern.new("/#{child_name}") 
+            if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+              @error = true
+            end
+          end
+          pattern = ::ChefFS::FilePattern.new("/groups") 
+          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            @error = true
+          end
+          pattern = ::ChefFS::FilePattern.new("/acls") 
+          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
         ensure
@@ -137,6 +165,10 @@ class Chef
             Chef::Config[key] = old_config[key]
           end
         end
+      end
+
+      def parallelize(entries, options = {}, &block)
+        ::ChefFS::Parallelizer.parallelize(entries, options, &block)
       end
 
       def put_acl(rest, url, acls)
