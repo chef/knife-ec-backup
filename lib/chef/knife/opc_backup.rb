@@ -20,20 +20,23 @@ class Chef
         dest_dir = name_args[0]
         webui_key = name_args[1]
         rest = Chef::REST.new(Chef::Config.chef_server_url)
+        if name_args.length >= 3
+          user_acl_rest = Chef::REST.new(name_args[3])
+        end
         # Grab users
         ensure_dir("#{dest_dir}/users")
 
         puts "Grabbing users ..."
-        rest.get('/users').each_pair do |name, url|
+        rest.get_rest('/users').each_pair do |name, url|
           File.open("#{dest_dir}/users/#{name}.json", 'w') do |file|
-            file.write(rest.get(url).to_json)
+            file.write(rest.get_rest(url).to_json)
           end
         end
 
         # Download organizations
         ensure_dir("#{dest_dir}/organizations")
-        rest.get('/organizations').each_pair do |name, url|
-          org = rest.get(url)
+        rest.get_rest('/organizations').each_pair do |name, url|
+          org = rest.get_rest(url)
           if org['assigned_at']
             puts "Grabbing organization #{name} ..."
             File.open("#{dest_dir}/organizations/#{name}.json", 'w') do |file|
@@ -65,10 +68,9 @@ class Chef
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
-          admin_users = rest.get('groups/admins')['users']
-          org_members = rest.get('users').map { |user| user['user']['username'] }
+          admin_users = rest.get_rest('groups/admins')['users']
+          org_members = rest.get_rest('users').map { |user| user['user']['username'] }
           admin_users.delete_if { |user| !org_members.include?(user) }
-          admin = admin_users[0]
           Chef::Config.node_name = admin_users[0]
           Chef::Config.client_key = webui_key
           Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
