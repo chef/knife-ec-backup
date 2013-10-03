@@ -57,15 +57,21 @@ class Chef
         end
       end
 
+      PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
+      CONFIG_VARS = %w(chef_server_url custom_http_headers node_name client_key) + PATHS
       def download_org(dest_dir, webui_key, name)
-        @old_chef_server_url = Chef::Config.chef_server_url
-        @old_chef_repo_path = Chef::Config.chef_repo_path
-        @old_node_name = Chef::Config.node_name
-        @old_custom_http_headers = Chef::Config.custom_http_headers
-        @old_client_key = Chef::Config.client_key
+        old_config = {}
+        CONFIG_VARS.each do |key|
+          old_config[key] = Chef::Config[key]
+        end
         begin
-          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
+          # Clear out paths
+          PATHS.each do |path_var|
+            Chef::Config[path_var] = nil
+          end
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
+
+          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
           admin_users = rest.get_rest('groups/admins')['users']
@@ -83,11 +89,9 @@ class Chef
             @error = true
           end
         ensure
-          Chef::Config.chef_server_url = @old_chef_server_url
-          Chef::Config.chef_repo_path = @old_chef_repo_path
-          Chef::Config.node_name = @old_node_name
-          Chef::Config.custom_http_headers = @old_custom_http_headers
-          Chef::Config.client_key = @old_client_key
+          CONFIG_VARS.each do |key|
+            Chef::Config[key] = old_config[key]
+          end
         end
       end
     end
