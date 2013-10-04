@@ -87,12 +87,12 @@ class Chef
       def download_org(dest_dir, webui_key, name)
         old_config = {}
         CONFIG_VARS.each do |key|
-          old_config[key] = Chef::Config[key]
+          old_config[key] = Chef::Config[key.to_sym]
         end
         begin
           # Clear out paths
           PATHS.each do |path_var|
-            Chef::Config[path_var] = nil
+            Chef::Config[path_var.to_sym] = nil
           end
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
 
@@ -126,7 +126,7 @@ class Chef
           end
         ensure
           CONFIG_VARS.each do |key|
-            Chef::Config[key] = old_config[key]
+            Chef::Config[key.to_sym] = old_config[key]
           end
         end
       end
