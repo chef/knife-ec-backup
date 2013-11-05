@@ -83,7 +83,7 @@ class Chef
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      CONFIG_VARS = %w(chef_server_url custom_http_headers node_name client_key) + PATHS
+      CONFIG_VARS = %w(chef_server_url custom_http_headers node_name client_key versioned_cookbooks) + PATHS
       def download_org(dest_dir, webui_key, name)
         old_config = {}
         CONFIG_VARS.each do |key|
@@ -95,6 +95,7 @@ class Chef
             Chef::Config[path_var.to_sym] = nil
           end
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
+          Chef::Config.versioned_cookbooks = true
 
           Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
 
