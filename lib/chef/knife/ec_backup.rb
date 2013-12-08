@@ -30,7 +30,7 @@ class Chef
 
         dest_dir = name_args[0]
         webui_key = name_args[1]
-        rest = Chef::REST.new(Chef::Config.chef_server_url)
+        rest = Chef::REST.new(Chef::Config.chef_server_root)
         if name_args.length >= 3
           user_acl_rest = Chef::REST.new(name_args[2])
         else
@@ -101,17 +101,16 @@ class Chef
 
           ensure_dir(Chef::Config.chef_repo_path)
 
+          rest = Chef::REST.new(Chef::Config.chef_server_url)
+
           # Download the billing-admins acls as pivotal
-          chef_fs_config = ::ChefFS::Config.new
-          %w(/acls/groups/billing-admins.json).each do |name|
-            pattern = ::ChefFS::FilePattern.new(name) 
-            if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-              @error = true
-            end
+          ensure_dir("#{Chef::Config.chef_repo_path}/acls")
+          ensure_dir("#{Chef::Config.chef_repo_path}/acls/groups")
+          File.open("#{Chef::Config.chef_repo_path}/acls/groups/billing-admins.json", 'w') do |file|
+            file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("/groups/billing-admins/_acl")))
           end
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
-          rest = Chef::REST.new(Chef::Config.chef_server_url)
           admin_users = rest.get_rest('groups/admins')['users']
           org_members = rest.get_rest('users').map { |user| user['user']['username'] }
           admin_users.delete_if { |user| !org_members.include?(user) }
