@@ -40,7 +40,7 @@ class Chef
 
         dest_dir = name_args[0]
         webui_key = name_args[1]
-        rest = Chef::REST.new(Chef::Config.chef_server_url)
+        rest = Chef::REST.new(Chef::Config.chef_server_root)
         if name_args.length >= 3
           user_acl_rest = Chef::REST.new(name_args[2])
         else
@@ -132,7 +132,7 @@ class Chef
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      CONFIG_VARS = %w(chef_server_url custom_http_headers node_name client_key versioned_cookbooks) + PATHS
+      CONFIG_VARS = %w(chef_server_url chef_server_root custom_http_headers node_name client_key versioned_cookbooks) + PATHS
       def upload_org(dest_dir, webui_key, name)
         old_config = {}
         CONFIG_VARS.each do |key|
@@ -146,7 +146,7 @@ class Chef
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
 
-          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
+          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_root}/organizations/#{name}"
 
           # Upload the admins group and billing-admins acls
           chef_fs_config = ::ChefFS::Config.new
