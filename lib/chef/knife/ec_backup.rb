@@ -9,6 +9,12 @@ class Chef
         :long => '--concurrency THREADS',
         :description => 'Maximum number of simultaneous requests to send (default: 10)'
 
+      option :skip_useracl,
+        :long => '--skip-useracl',
+        :boolean => true,
+        :default => false,
+        :description => "Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower"
+
       deps do
         require 'chef_fs/config'
         require 'chef_fs/file_system'
@@ -46,6 +52,12 @@ class Chef
           File.open("#{dest_dir}/users/#{name}.json", 'w') do |file|
             file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest(url)))
           end
+
+          if config[:skip_useracl]
+            ui.warn("Skipping user ACL download for #{name}. To download this ACL, remove --skip-useracl.")
+            next
+          end
+
           File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
             file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
           end

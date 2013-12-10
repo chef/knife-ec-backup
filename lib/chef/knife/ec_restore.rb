@@ -15,6 +15,13 @@ class Chef
         :default => false,
         :description => "Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key."
 
+      option :skip_useracl,
+        :long => '--skip-useracl',
+        :boolean => true,
+        :default => false,
+        :description => "Whether to skip restoring User ACLs.  This is required for EC 11.0.2 and lower"
+
+
       deps do
         require 'chef/json_compat'
         require 'chef_fs/config'
@@ -72,10 +79,6 @@ class Chef
             end
           end
 
-          # Update user acl
-          # Doesn't work at present due to server
-          #user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
-          #put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
         end
 
         # Restore organizations
@@ -126,18 +129,21 @@ class Chef
           upload_org(dest_dir, webui_key, name)
         end
 
-        # Restore users
-        puts "Restoring users ..."
+        # Restore user ACLs
+        puts "Restoring user ACLs ..."
         Dir.foreach("#{dest_dir}/users") do |filename|
           next if filename !~ /(.+)\.json/
           name = $1
+          if config[:skip_useracl]
+            ui.warn("Skipping user ACL update for #{name}. To update this ACL, remove --skip-useracl.")
+            next
+          end
           if name == 'pivotal' && !config[:overwrite_pivotal]
             ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.  Once pivotal is updated, you will need to modify #{Chef::Config.client_key} to be the corresponding private key.")
             next
           end
 
           # Update user acl
-          # Doesn't work at present due to server
           user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)          
         end

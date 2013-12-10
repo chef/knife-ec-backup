@@ -35,6 +35,8 @@ Note that most users in an EC installation lack the permissions to pull most of 
 
   * `--concurrency`:
     Maximum number of simultaneous requests to send (default: 10)
+  * `--skip-useracl`:
+    Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower (default: false)
 
 Creates a repository of an entire Enterprise Chef / Private Chef server.
 
@@ -96,6 +98,8 @@ This compares very closely with the "knife download /" from an OSC server:
     Maximum number of simultaneous requests to send (default: 10)
   * `--overwrite-pivotal`:
     Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key (default: false)
+  * `--skip-useracl`:
+    Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower (default: false)
 
 Restores all data from a repository to an Enterprise Chef / Private Chef server.
 
