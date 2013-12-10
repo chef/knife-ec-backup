@@ -29,7 +29,7 @@ Note that most users in an EC installation lack the permissions to pull most of 
 
 # Subcommands
 
-## knife ec backup DEST_DIR WEBUI_KEY [USER_ACL_REST] (options)
+## knife ec backup DEST_DIR WEBUI_KEY \[USER_ACL_REST\] (options)
 
 *Options*
 
@@ -88,7 +88,7 @@ This compares very closely with the "knife download /" from an OSC server:
     users
       <name>.json>
 
-## knife ec restore DEST_DIR WEBUI_KEY [USER_ACL_REST] (options)
+## knife ec restore DEST_DIR WEBUI_KEY \[USER_ACL_REST\] (options)
 
 *Options*
 
