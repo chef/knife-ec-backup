@@ -15,6 +15,13 @@ class Chef
         :default => false,
         :description => "Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key."
 
+      option :skip_useracl,
+        :long => '--skip-useracl',
+        :boolean => true,
+        :default => false,
+        :description => "Whether to skip restoring User ACLs.  This is required for EC 11.0.2 and lower"
+
+
       deps do
         require 'chef/json_compat'
         require 'chef_fs/config'
@@ -40,7 +47,7 @@ class Chef
 
         dest_dir = name_args[0]
         webui_key = name_args[1]
-        rest = Chef::REST.new(Chef::Config.chef_server_url)
+        rest = Chef::REST.new(Chef::Config.chef_server_root)
         if name_args.length >= 3
           user_acl_rest = Chef::REST.new(name_args[2])
         else
@@ -72,10 +79,6 @@ class Chef
             end
           end
 
-          # Update user acl
-          # Doesn't work at present due to server
-          #user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
-          #put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
         end
 
         # Restore organizations
@@ -126,13 +129,33 @@ class Chef
           upload_org(dest_dir, webui_key, name)
         end
 
+        # Restore user ACLs
+        puts "Restoring user ACLs ..."
+        Dir.foreach("#{dest_dir}/users") do |filename|
+          next if filename !~ /(.+)\.json/
+          name = $1
+          if config[:skip_useracl]
+            ui.warn("Skipping user ACL update for #{name}. To update this ACL, remove --skip-useracl.")
+            next
+          end
+          if name == 'pivotal' && !config[:overwrite_pivotal]
+            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.  Once pivotal is updated, you will need to modify #{Chef::Config.client_key} to be the corresponding private key.")
+            next
+          end
+
+          # Update user acl
+          user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
+          put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)          
+        end
+
+
         if @error
           exit 1
         end
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      CONFIG_VARS = %w(chef_server_url custom_http_headers node_name client_key versioned_cookbooks) + PATHS
+      CONFIG_VARS = %w(chef_server_url chef_server_root custom_http_headers node_name client_key versioned_cookbooks) + PATHS
       def upload_org(dest_dir, webui_key, name)
         old_config = {}
         CONFIG_VARS.each do |key|
@@ -146,7 +169,7 @@ class Chef
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
 
-          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
+          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_root}/organizations/#{name}"
 
           # Upload the admins group and billing-admins acls
           chef_fs_config = ::ChefFS::Config.new

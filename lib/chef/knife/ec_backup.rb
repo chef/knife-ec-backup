@@ -9,6 +9,12 @@ class Chef
         :long => '--concurrency THREADS',
         :description => 'Maximum number of simultaneous requests to send (default: 10)'
 
+      option :skip_useracl,
+        :long => '--skip-useracl',
+        :boolean => true,
+        :default => false,
+        :description => "Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower"
+
       deps do
         require 'chef_fs/config'
         require 'chef_fs/file_system'
@@ -30,7 +36,7 @@ class Chef
 
         dest_dir = name_args[0]
         webui_key = name_args[1]
-        rest = Chef::REST.new(Chef::Config.chef_server_url)
+        rest = Chef::REST.new(Chef::Config.chef_server_root)
         if name_args.length >= 3
           user_acl_rest = Chef::REST.new(name_args[2])
         else
@@ -46,6 +52,12 @@ class Chef
           File.open("#{dest_dir}/users/#{name}.json", 'w') do |file|
             file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest(url)))
           end
+
+          if config[:skip_useracl]
+            ui.warn("Skipping user ACL download for #{name}. To download this ACL, remove --skip-useracl.")
+            next
+          end
+
           File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
             file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
           end
@@ -83,7 +95,7 @@ class Chef
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      CONFIG_VARS = %w(chef_server_url custom_http_headers node_name client_key versioned_cookbooks) + PATHS
+      CONFIG_VARS = %w(chef_server_url chef_server_root custom_http_headers node_name client_key versioned_cookbooks) + PATHS
       def download_org(dest_dir, webui_key, name)
         old_config = {}
         CONFIG_VARS.each do |key|
@@ -97,17 +109,15 @@ class Chef
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
 
-          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
+          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_root}/organizations/#{name}"
 
           ensure_dir(Chef::Config.chef_repo_path)
 
           # Download the billing-admins acls as pivotal
           chef_fs_config = ::ChefFS::Config.new
-          %w(/acls/groups/billing-admins.json).each do |name|
-            pattern = ::ChefFS::FilePattern.new(name) 
-            if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-              @error = true
-            end
+          pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json') 
+          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            @error = true
           end
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
