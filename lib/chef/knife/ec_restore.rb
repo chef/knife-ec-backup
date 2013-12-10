@@ -126,6 +126,23 @@ class Chef
           upload_org(dest_dir, webui_key, name)
         end
 
+        # Restore users
+        puts "Restoring users ..."
+        Dir.foreach("#{dest_dir}/users") do |filename|
+          next if filename !~ /(.+)\.json/
+          name = $1
+          if name == 'pivotal' && !config[:overwrite_pivotal]
+            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.  Once pivotal is updated, you will need to modify #{Chef::Config.client_key} to be the corresponding private key.")
+            next
+          end
+
+          # Update user acl
+          # Doesn't work at present due to server
+          user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
+          put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)          
+        end
+
+
         if @error
           exit 1
         end
