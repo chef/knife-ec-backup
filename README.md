@@ -105,4 +105,4 @@ Restores all data from a repository to an Enterprise Chef / Private Chef server.
 
 # TODO
 
-* Enable restoration of custom user ACLs.
+* Prevent 403 error for Billing Admins ACL as it is downloaded in another method.
