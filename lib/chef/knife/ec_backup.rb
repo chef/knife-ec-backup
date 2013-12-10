@@ -109,20 +109,19 @@ class Chef
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
 
-          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_url}/organizations/#{name}"
+          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_root}/organizations/#{name}"
 
           ensure_dir(Chef::Config.chef_repo_path)
 
-          rest = Chef::REST.new(Chef::Config.chef_server_url)
-
           # Download the billing-admins acls as pivotal
-          ensure_dir("#{Chef::Config.chef_repo_path}/acls")
-          ensure_dir("#{Chef::Config.chef_repo_path}/acls/groups")
-          File.open("#{Chef::Config.chef_repo_path}/acls/groups/billing-admins.json", 'w') do |file|
-            file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("/groups/billing-admins/_acl")))
+          chef_fs_config = ::ChefFS::Config.new
+          pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json') 
+          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            @error = true
           end
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
+          rest = Chef::REST.new(Chef::Config.chef_server_url)
           admin_users = rest.get_rest('groups/admins')['users']
           org_members = rest.get_rest('users').map { |user| user['user']['username'] }
           admin_users.delete_if { |user| !org_members.include?(user) }
