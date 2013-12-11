@@ -14,6 +14,12 @@ git repository and run the following:
 
 # Configuration
 
+## Permissions
+Note that users in an EC installation lack the permissions to pull all of the data from all organizations and other users.
+This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Server
+If you are not running this from the Chef Server, you can use --user and --key to pass the pivotal information along.
+
+
 ## knife.rb
 Unlike other knife subcommands the subcommands in the knife-ec-backup plugin make API calls against the root of your EC installations API endpoint.
 
@@ -24,8 +30,6 @@ Typically the chef_server_url for your OPC installation may look like this:
 To configure knife-ec-backup, set the `chef_server_root` option to the root of your OPC installation:
 
     chef_server_root https://chef.yourdomain.com/
-
-Note that most users in an EC installation lack the permissions to pull most of the data from all organizations and other users.
 
 # Subcommands
 
@@ -105,4 +109,5 @@ Restores all data from a repository to an Enterprise Chef / Private Chef server.
 
 # TODO
 
-* Prevent 403 error for Billing Admins ACL as it is downloaded in another method.
+* Prevent 403 error for Billing Admins ACL as it is downloaded beforehand as pivotal.
+* This plugin does **NOT** currently backup user passwords.  **They will have to be reset after a restore.**
