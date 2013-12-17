@@ -142,12 +142,17 @@ class Chef
           Chef::Config.client_key = webui_key
           Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
 
-          # Do the download
+          # Download the entire org skipping the billing admins group ACL
           chef_fs_config = ::ChefFS::Config.new
-          root_pattern = ::ChefFS::FilePattern.new('/')
-          if ::ChefFS::FileSystem.copy_to(root_pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-            @error = true
+          top_level_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/*')).select { |entry| entry.name != 'acls' }.map { |entry| entry.path }
+          group_acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          other_acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
+          (top_level_paths + group_acl_paths + other_acl_paths).each do |path|
+            if path != "/"
+              ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            end
           end
+
         ensure
           CONFIG_VARS.each do |key|
             Chef::Config[key.to_sym] = old_config[key]
