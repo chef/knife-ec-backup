@@ -4,13 +4,19 @@
 
 This is an UNOFFICIAL and EXPERIMENTAL knife plugin intended to back up and restore an entire Enterprise Chef / Private Chef server, preserving the data in an intermediate, editable text format.
 
+# Requirements
+
+This knife plugin currently requires the Knife-Essentials gem to be installed in the same gemset. This requirement is currently hosted here:
+
+    https://github.com/jkeiser/knife-essentials
+
 # Installation
 
 This knife plugin is packaged as a gem.  To install it, clone the
 git repository and run the following:
 
     gem build knife-ec-backup.gemspec
-    gem install knife-ec-backup-0.9.6.gem
+    gem install knife-ec-backup-1.0.0.gem
 
 # Configuration
 
@@ -18,7 +24,6 @@ git repository and run the following:
 Note that users in an EC installation lack the permissions to pull all of the data from all organizations and other users.
 This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Server
 If you are not running this from the Chef Server, you can use --user and --key to pass the pivotal information along.
-
 
 ## knife.rb
 Unlike other knife subcommands the subcommands in the knife-ec-backup plugin make API calls against the root of your EC installations API endpoint.
@@ -110,4 +115,6 @@ Restores all data from a repository to an Enterprise Chef / Private Chef server.
 # TODO
 
 * Prevent 403 error for Billing Admins ACL as it is downloaded beforehand as pivotal.
+* Remove requirement for Knife Essentials gem to be installed.
+* Auto detect Chef Server version and auto apply necessary options (with option to disable auto check+auto apply)
 * This plugin does **NOT** currently backup user passwords.  **They will have to be reset after a restore.**
