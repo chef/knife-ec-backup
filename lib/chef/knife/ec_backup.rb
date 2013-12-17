@@ -35,6 +35,18 @@ class Chef
           exit 1
         end
 
+        #Check for pivotal user and key
+        node_name = Chef::Config.node_name
+        client_key = Chef::Config.client_key
+        if node_name != "pivotal"
+          if !File.exist?("/etc/opscode/pivotal.pem")
+            ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recomended that you run this plugin from your Chef server.")
+            exit 1
+          end
+          the_node_name = 'pivotal'
+          the_client_key = '/etc/opscode/pivotal.pem'
+        end
+
         dest_dir = name_args[0]
         webui_key = name_args[1]
         rest = Chef::REST.new(Chef::Config.chef_server_root)
