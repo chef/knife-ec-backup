@@ -40,8 +40,9 @@ class Chef
       end
 
       def run
-        if name_args.length == 0
-          ui.error("Must specify backup directory as argument.")
+        #Check arguments
+        if name_args.length <= 1
+          ui.error("Must specify backup directory and WebUI key as arguments.")
           exit 1
         end
 
