@@ -85,9 +85,7 @@ class Chef
 
         # Grab Chef Server version number so that we can auto set options
         uri = URI.parse("#{Chef::Config.chef_server_root}/version")
-        version_manifest = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE})
-        server_version = version_manifest.grep(/private-chef /).first.split(' ').last
-
+        server_version = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first.split(' ').last
         server_version_parts = server_version.split('.')
 
         if server_version_parts.count == 3
