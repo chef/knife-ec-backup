@@ -47,6 +47,14 @@ class Chef
           Chef::Config.client_key = '/etc/opscode/pivotal.pem'
         end
 
+        #Set the server root
+        server_root = Chef::Config.chef_server_root
+        if server_root == nil
+          server_root = Chef::Config.chef_server_url.gsub(/\/organizations\/+[^\/]+\/*$/, '')
+          ui.warn("chef_server_root not found in knife configuration. Setting root to: #{server_root}")
+          Chef::Config.chef_server_root = server_root
+        end
+
         dest_dir = name_args[0]
         webui_key = name_args[1]
         rest = Chef::REST.new(Chef::Config.chef_server_root)

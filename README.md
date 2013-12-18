@@ -21,20 +21,9 @@ git repository and run the following:
 # Configuration
 
 ## Permissions
-Note that users in an EC installation lack the permissions to pull all of the data from all organizations and other users.
-This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Server
-If you are not running this from the Chef Server, you can use --user and --key to pass the pivotal information along.
-
-## knife.rb
-Unlike other knife subcommands the subcommands in the knife-ec-backup plugin make API calls against the root of your EC installations API endpoint.
-
-Typically the chef_server_url for your OPC installation may look like this:
-
-    chef_server_url https://chef.yourdomain.com/organizations/ORGNAME
-
-To configure knife-ec-backup, set the `chef_server_root` option to the root of your OPC installation:
-
-    chef_server_root https://chef.yourdomain.com/
+Note that most users in an EC installation lack the permissions to pull all of the data from all organizations and other users.
+This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Server.
+It is recommended that you run this from a frontend Enterprise Chef Server, you can use --user and --key to pass the pivotal information along.
 
 # Subcommands
 
