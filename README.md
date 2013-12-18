@@ -43,6 +43,8 @@ It is recommended that you run this from a frontend Enterprise Chef Server, you 
     Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
   * `--skip-useracl`:
     Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower (default: false)
+  * `--skip-version-check'`:
+    Whether to skip checking the Chef Server version.  This will also skip any auto-configured options (default: false)
 
 Creates a repository of an entire Enterprise Chef / Private Chef server.
 
@@ -108,6 +110,8 @@ This compares very closely with the "knife download /" from an OSC server:
     Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key (default: false)
   * `--skip-useracl`:
     Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower (default: false)
+  * `--skip-version-check'`:
+    Whether to skip checking the Chef Server version.  This will also skip any auto-configured options (default: false)
 
 Restores all data from a repository to an Enterprise Chef / Private Chef server.
 
