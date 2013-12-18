@@ -22,7 +22,7 @@ This will install the plugin directly on the Chef Server:
 Clone the git repository and run the following from inside:
 
     gem build knife-ec-backup.gemspec
-    gem install knife-ec-backup-1.1.1.gem
+    gem install knife-ec-backup-1.1.2.gem
 
 # Configuration
 
