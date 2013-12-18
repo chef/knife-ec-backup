@@ -49,10 +49,10 @@ class Chef
 
         #Set the server root
         server_root = Chef::Config.chef_server_root
-        server_url = Chef::Config.chef_server_url
         if server_root == nil
-          ui.warn("chef_server_root not found in knife configuration. Setting root to: #{server_url.split("organizations")[0]}")
-          Chef::Config.chef_server_root = server_url.split("organizations")[0]
+          server_root = Chef::Config.chef_server_url.gsub(/\/organizations\/+[^\/]+\/*$/, '')
+          ui.warn("chef_server_root not found in knife configuration. Setting root to: #{server_root}")
+          Chef::Config.chef_server_root = server_root
         end
 
         dest_dir = name_args[0]
