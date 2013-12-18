@@ -46,7 +46,7 @@ class Chef
         client_key = Chef::Config.client_key
         if node_name != "pivotal"
           if !File.exist?("/etc/opscode/pivotal.pem")
-            ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recomended that you run this plugin from your Chef server.")
+            ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
             exit 1
           end
           Chef::Config.node_name = 'pivotal'
@@ -56,7 +56,7 @@ class Chef
         #Check for WebUI Key
         if config[:webui_key] == nil
           if !File.exist?("/etc/opscode/webui_priv.pem")
-            ui.error("WebUI not specified and /etc/opscode/webui_priv.pem does not exist.  It is recomended that you run this plugin from your Chef server.")
+            ui.error("WebUI not specified and /etc/opscode/webui_priv.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
             exit 1
           end
           ui.warn("WebUI not specified. Using /etc/opscode/webui_priv.pem")
