@@ -73,25 +73,54 @@ class Chef
           Chef::Config.chef_server_root = server_root
         end
 
+        rest = Chef::REST.new(Chef::Config.chef_server_root)
+        user_acl_rest = Chef::REST.new("http://127.0.0.1:9465")
+
+        # Grab Chef Server version number so that we can auto set options
+        uri = URI.parse("#{Chef::Config.chef_server_root}/version")
+        version_manifest = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE})
+        server_version = version_manifest.grep(/private-chef /).first.split(' ').last
+
+        server_version_parts = server_version.split('.')
+
+        if server_version_parts.count == 3
+          puts "Detected Enterprise Chef Server version: #{server_version}"
+
+          # All versions of Chef Server below 11.0.1 are missing the GET User ACL helper in nginx
+          if server_version_parts[0] < 11 || (server_version_parts[0] == 11 && server_version_parts[1] == 0 && server_version_parts[0] < 1)
+            #Check to see if Opscode-Account can be directly from the local machine  
+            begin
+              user_acl_rest.get('users')
+              ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Using local connection to backup")
+            rescue
+              ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Setting skip-useracl to TRUE")
+              config[:skip_useracl] = true
+              user_acl_rest = nil
+            end
+          end
+
+        else
+          ui.warn("Unable to detect Chef Server version.")
+        end
+
         # Grab users
         puts "Grabbing users ..."
 
         ensure_dir("#{dest_dir}/users")
         ensure_dir("#{dest_dir}/user_acls")
 
-        rest = Chef::REST.new(Chef::Config.chef_server_root)
         rest.get_rest('/users').each_pair do |name, url|
           File.open("#{dest_dir}/users/#{name}.json", 'w') do |file|
             file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest(url)))
           end
 
           if config[:skip_useracl]
-            ui.warn("Skipping user ACL download for #{name}. To download this ACL, remove --skip-useracl.")
+            ui.warn("Skipping user ACL download for #{name}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
             next
           end
 
           File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
-            file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("users/#{name}/_acl")))
+            file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
           end
         end
 

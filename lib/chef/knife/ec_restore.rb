@@ -83,6 +83,24 @@ class Chef
           Chef::Config.chef_server_root = server_root
         end
 
+        # Grab Chef Server version number so that we can auto set options
+        uri = URI.parse("#{Chef::Config.chef_server_root}/version")
+        version_manifest = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE})
+        server_version = version_manifest.grep(/private-chef /).first.split(' ').last
+
+        server_version_parts = server_version.split('.')
+
+        if server_version_parts.count == 3
+          puts "Detected Enterprise Chef Server version: #{server_version}"
+
+          # All versions of Chef Server below 11.0.X are unable to update user acls
+          if server_version_parts[0] < 11 || (server_version_parts[0] == 11 && server_version_parts[1] == 0)
+            ui.warn("Your version of Enterprise Chef Server does not support the updating of User ACLs.  Setting skip-useracl to TRUE")
+            config[:skip_useracl] = true
+          end
+        else
+          ui.warn("Unable to detect Chef Server version.")
+        end
 
         # Restore users
         puts "Restoring users ..."
@@ -168,7 +186,7 @@ class Chef
           next if filename !~ /(.+)\.json/
           name = $1
           if config[:skip_useracl]
-            ui.warn("Skipping user ACL update for #{name}. To update this ACL, remove --skip-useracl.")
+            ui.warn("Skipping user ACL update for #{name}. To update this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
             next
           end
           if name == 'pivotal' && !config[:overwrite_pivotal]

@@ -109,5 +109,4 @@ Restores all data from a repository to an Enterprise Chef / Private Chef server.
 
 * Ensure easy installation into embedded ruby gemset on Chef Server.
 * Remove requirement for Knife Essentials gem to be installed.
-* Auto detect Chef Server version and auto apply necessary options (with option to disable auto check+auto apply)
 * This plugin does **NOT** currently backup user passwords.  **They will have to be reset after a restore.**
