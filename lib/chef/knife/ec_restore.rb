@@ -103,7 +103,7 @@ class Chef
             puts "Detected Enterprise Chef Server version: #{server_version}"
 
             # All versions of Chef Server below 11.0.X are unable to update user acls
-            if server_version_parts[0] < 11 || (server_version_parts[0] == 11 && server_version_parts[1] == 0)
+            if server_version_parts[0].to_i < 11 || (server_version_parts[0].to_i == 11 && server_version_parts[1].to_i == 0)
               ui.warn("Your version of Enterprise Chef Server does not support the updating of User ACLs.  Setting skip-useracl to TRUE")
               config[:skip_useracl] = true
             end

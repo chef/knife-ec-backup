@@ -96,7 +96,7 @@ class Chef
             puts "Detected Enterprise Chef Server version: #{server_version}"
 
             # All versions of Chef Server below 11.0.1 are missing the GET User ACL helper in nginx
-            if server_version_parts[0] < 11 || (server_version_parts[0] == 11 && server_version_parts[1] == 0 && server_version_parts[0] < 1)
+            if server_version_parts[0].to_i < 11 || (server_version_parts[0].to_i == 11 && server_version_parts[1].to_i == 0 && server_version_parts[0].to_i < 1)
               #Check to see if Opscode-Account can be directly from the local machine  
               begin
                 user_acl_rest.get('users')
