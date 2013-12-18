@@ -12,11 +12,17 @@ This knife plugin currently requires the Knife-Essentials gem to be installed in
 
 # Installation
 
-This knife plugin is packaged as a gem.  To install it, clone the
-git repository and run the following:
+## Chef Server Install (Recommended)
+This will install the plugin directly on the Chef Server:
+
+    /opt/opscode/embedded/bin/gem install knife-ec-backup
+    /opt/opscode/embedded/bin/gem install knife-ec-backup
+
+## Build from source
+Clone the git repository and run the following from inside:
 
     gem build knife-ec-backup.gemspec
-    gem install knife-ec-backup-1.0.0.gem
+    gem install knife-ec-backup-1.1.1.gem
 
 # Configuration
 
