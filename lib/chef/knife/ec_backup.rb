@@ -73,6 +73,26 @@ class Chef
           Chef::Config.chef_server_root = server_root
         end
 
+        # Grab Chef Server version number so that we can auto set options
+        uri = URI.parse("#{Chef::Config.chef_server_root}/version")
+        version_manifest = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE})
+        server_version = version_manifest.grep(/private-chef /).first.split(' ').last
+        if server_version.split('.').count == 3
+          puts "Detected Enterprise Chef Server version: #{server_version}"
+
+          server_version_major = server_version.split('.')[0].to_i
+          server_version_minor = server_version.split('.')[1].to_i
+          server_version_patch = server_version.split('.')[2].to_i
+
+          # All versions of Chef Server below 11.0.1 are missing the GET User ACL helper in nginx
+          if server_version_major < 11 || (server_version_major == 11 && server_version_minor == 0 && server_version_patch < 1)
+            ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Setting skip-useracl to TRUE")
+            config[:skip_useracl] = true
+          end
+        else
+          ui.warn("Unable to detect Chef Server version.")
+        end
+
         # Grab users
         puts "Grabbing users ..."
 
@@ -86,7 +106,7 @@ class Chef
           end
 
           if config[:skip_useracl]
-            ui.warn("Skipping user ACL download for #{name}. To download this ACL, remove --skip-useracl.")
+            ui.warn("Skipping user ACL download for #{name}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
             next
           end
 
