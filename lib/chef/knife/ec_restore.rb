@@ -87,15 +87,14 @@ class Chef
         uri = URI.parse("#{Chef::Config.chef_server_root}/version")
         version_manifest = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE})
         server_version = version_manifest.grep(/private-chef /).first.split(' ').last
-        if server_version.split('.').count == 3
+
+        server_version_parts = server_version.split('.')
+
+        if server_version_parts.count == 3
           puts "Detected Enterprise Chef Server version: #{server_version}"
 
-          server_version_major = server_version.split('.')[0].to_i
-          server_version_minor = server_version.split('.')[1].to_i
-          server_version_patch = server_version.split('.')[2].to_i
-
           # All versions of Chef Server below 11.0.X are unable to update user acls
-          if server_version_major < 11 || (server_version_major == 11 && server_version_minor == 0)
+          if server_version_parts[0] < 11 || (server_version_parts[0] == 11 && server_version_parts[1] == 0)
             ui.warn("Your version of Enterprise Chef Server does not support the updating of User ACLs.  Setting skip-useracl to TRUE")
             config[:skip_useracl] = true
           end
