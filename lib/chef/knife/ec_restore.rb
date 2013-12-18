@@ -25,6 +25,11 @@ class Chef
         :default => false,
         :description => "Whether to skip restoring User ACLs.  This is required for EC 11.0.2 and lower"
 
+      option :skip_version,
+        :long => '--skip-version-check',
+        :boolean => true,
+        :default => false,
+        :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
 
       deps do
         require 'chef/json_compat'
@@ -83,23 +88,28 @@ class Chef
           Chef::Config.chef_server_root = server_root
         end
 
-        # Grab Chef Server version number so that we can auto set options
-        uri = URI.parse("#{Chef::Config.chef_server_root}/version")
-        version_manifest = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE})
-        server_version = version_manifest.grep(/private-chef /).first.split(' ').last
+        if config[:skip_version] && config[:skip_useracl]
+          ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
+          user_acl_rest = nil
+        elsif config[:skip_version] && !config[:skip_useracl]
+          ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
+          user_acl_rest = rest
+        else # Grab Chef Server version number so that we can auto set options
+          uri = URI.parse("#{Chef::Config.chef_server_root}/version")
+          server_version = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first.split(' ').last
+          server_version_parts = server_version.split('.')
 
-        server_version_parts = server_version.split('.')
+          if server_version_parts.count == 3
+            puts "Detected Enterprise Chef Server version: #{server_version}"
 
-        if server_version_parts.count == 3
-          puts "Detected Enterprise Chef Server version: #{server_version}"
-
-          # All versions of Chef Server below 11.0.X are unable to update user acls
-          if server_version_parts[0] < 11 || (server_version_parts[0] == 11 && server_version_parts[1] == 0)
-            ui.warn("Your version of Enterprise Chef Server does not support the updating of User ACLs.  Setting skip-useracl to TRUE")
-            config[:skip_useracl] = true
+            # All versions of Chef Server below 11.0.X are unable to update user acls
+            if server_version_parts[0] < 11 || (server_version_parts[0] == 11 && server_version_parts[1] == 0)
+              ui.warn("Your version of Enterprise Chef Server does not support the updating of User ACLs.  Setting skip-useracl to TRUE")
+              config[:skip_useracl] = true
+            end
+          else
+            ui.warn("Unable to detect Chef Server version.")
           end
-        else
-          ui.warn("Unable to detect Chef Server version.")
         end
 
         # Restore users
