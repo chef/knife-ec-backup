@@ -9,6 +9,10 @@ class Chef
         :long => '--concurrency THREADS',
         :description => 'Maximum number of simultaneous requests to send (default: 10)'
 
+      option :webui_key,
+        :long => '--webui-key KEYPATH',
+        :description => 'Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)'
+
       option :overwrite_pivotal,
         :long => '--overwrite-pivotal',
         :boolean => true,
@@ -40,11 +44,12 @@ class Chef
       end
 
       def run
-        #Check arguments
-        if name_args.length <= 1
-          ui.error("Must specify backup directory and WebUI key as arguments.")
+        #Check for destination directory argument
+        if name_args.length <= 0
+          ui.error("Must specify backup directory as an argument.")
           exit 1
         end
+        dest_dir = name_args[0]
 
         #Check for pivotal user and key
         node_name = Chef::Config.node_name
@@ -58,6 +63,18 @@ class Chef
           the_client_key = '/etc/opscode/pivotal.pem'
         end
 
+        #Check for WebUI Key
+        if config[:webui_key] == nil
+          if !File.exist?("/etc/opscode/webui_priv.pem")
+            ui.error("WebUI not specified and /etc/opscode/webui_priv.pem does not exist.  It is recomended that you run this plugin from your Chef server.")
+            exit 1
+          end
+          ui.warn("WebUI not specified. Using /etc/opscode/webui_priv.pem")
+          webui_key = '/etc/opscode/webui_priv.pem'
+        else
+          webui_key = config[:webui_key]
+        end
+
         #Set the server root
         server_root = Chef::Config.chef_server_root
         if server_root == nil
@@ -66,17 +83,12 @@ class Chef
           Chef::Config.chef_server_root = server_root
         end
 
-        dest_dir = name_args[0]
-        webui_key = name_args[1]
-        rest = Chef::REST.new(Chef::Config.chef_server_root)
-        if name_args.length >= 3
-          user_acl_rest = Chef::REST.new(name_args[2])
-        else
-          user_acl_rest = rest
-        end
 
         # Restore users
         puts "Restoring users ..."
+
+        rest = Chef::REST.new(Chef::Config.chef_server_root)
+
         Dir.foreach("#{dest_dir}/users") do |filename|
           next if filename !~ /(.+)\.json/
           name = $1
@@ -166,7 +178,7 @@ class Chef
 
           # Update user acl
           user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
-          put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)          
+          put_acl(rest, "users/#{name}/_acl", user_acl)          
         end
 
 
