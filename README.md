@@ -27,12 +27,14 @@ It is recommended that you run this from a frontend Enterprise Chef Server, you 
 
 # Subcommands
 
-## knife ec backup DEST_DIR WEBUI_KEY \[USER_ACL_REST\] (options)
+## knife ec backup DEST_DIR (options)
 
 *Options*
 
   * `--concurrency`:
     Maximum number of simultaneous requests to send (default: 10)
+  * `--webui-key`:
+    Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
   * `--skip-useracl`:
     Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower (default: false)
 
@@ -88,12 +90,14 @@ This compares very closely with the "knife download /" from an OSC server:
     users
       <name>.json>
 
-## knife ec restore DEST_DIR WEBUI_KEY \[USER_ACL_REST\] (options)
+## knife ec restore DEST_DIR (options)
 
 *Options*
 
   * `--concurrency`:
     Maximum number of simultaneous requests to send (default: 10)
+  * `--webui-key`:
+    Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
   * `--overwrite-pivotal`:
     Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key (default: false)
   * `--skip-useracl`:
@@ -106,5 +110,4 @@ Restores all data from a repository to an Enterprise Chef / Private Chef server.
 * Ensure easy installation into embedded ruby gemset on Chef Server.
 * Remove requirement for Knife Essentials gem to be installed.
 * Auto detect Chef Server version and auto apply necessary options (with option to disable auto check+auto apply)
-* Check if /etc/opscode/webui_priv.pem is present
 * This plugin does **NOT** currently backup user passwords.  **They will have to be reset after a restore.**
