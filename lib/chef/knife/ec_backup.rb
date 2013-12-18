@@ -96,7 +96,9 @@ class Chef
             rescue
               successful = false
             end
-            if successful == false
+            if successful == true
+              ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Using local connection to backup")
+            else
               ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Setting skip-useracl to TRUE")
               config[:skip_useracl] = true
               user_acl_rest = rest
