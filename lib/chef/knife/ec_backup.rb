@@ -74,6 +74,7 @@ class Chef
         end
 
         rest = Chef::REST.new(Chef::Config.chef_server_root)
+        user_acl_rest = Chef::REST.new("http://127.0.0.1:9465")
 
         # Grab Chef Server version number so that we can auto set options
         uri = URI.parse("#{Chef::Config.chef_server_root}/version")
@@ -89,7 +90,6 @@ class Chef
           # All versions of Chef Server below 11.0.1 are missing the GET User ACL helper in nginx
           if server_version_major < 11 || (server_version_major == 11 && server_version_minor == 0 && server_version_patch < 1)
             #Check to see if Opscode-Account can be directly from the local machine  
-            user_acl_rest = Chef::REST.new("http://127.0.0.1:9465")
             begin
               user_acl_rest.get('users')
               successful = true
