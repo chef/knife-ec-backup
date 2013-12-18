@@ -19,6 +19,12 @@ class Chef
         :default => false,
         :description => "Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower"
 
+      option :skip_version,
+        :long => '--skip-version-check',
+        :boolean => true,
+        :default => false,
+        :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
+
       deps do
         require 'chef_fs/config'
         require 'chef_fs/file_system'
@@ -74,31 +80,38 @@ class Chef
         end
 
         rest = Chef::REST.new(Chef::Config.chef_server_root)
-        user_acl_rest = Chef::REST.new("http://127.0.0.1:9465")
+       
+        if config[:skip_version] && config[:skip_useracl]
+          ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
+          user_acl_rest = nil
+        elsif config[:skip_version] && !config[:skip_useracl]
+          ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
+          user_acl_rest = rest
+        else # Grab Chef Server version number so that we can auto set options
+          uri = URI.parse("#{Chef::Config.chef_server_root}/version")
+          server_version = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first.split(' ').last
+          server_version_parts = server_version.split('.')
 
-        # Grab Chef Server version number so that we can auto set options
-        uri = URI.parse("#{Chef::Config.chef_server_root}/version")
-        server_version = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first.split(' ').last
-        server_version_parts = server_version.split('.')
+          if server_version_parts.count == 3
+            puts "Detected Enterprise Chef Server version: #{server_version}"
 
-        if server_version_parts.count == 3
-          puts "Detected Enterprise Chef Server version: #{server_version}"
-
-          # All versions of Chef Server below 11.0.1 are missing the GET User ACL helper in nginx
-          if server_version_parts[0] < 11 || (server_version_parts[0] == 11 && server_version_parts[1] == 0 && server_version_parts[0] < 1)
-            #Check to see if Opscode-Account can be directly from the local machine  
-            begin
-              user_acl_rest.get('users')
-              ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Using local connection to backup")
-            rescue
-              ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Setting skip-useracl to TRUE")
-              config[:skip_useracl] = true
-              user_acl_rest = nil
+            # All versions of Chef Server below 11.0.1 are missing the GET User ACL helper in nginx
+            if server_version_parts[0] < 11 || (server_version_parts[0] == 11 && server_version_parts[1] == 0 && server_version_parts[0] < 1)
+              #Check to see if Opscode-Account can be directly from the local machine  
+              begin
+                user_acl_rest.get('users')
+                ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Using local connection to backup")
+                user_acl_rest = Chef::REST.new("http://127.0.0.1:9465")
+              rescue
+                ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Setting skip-useracl to TRUE")
+                config[:skip_useracl] = true
+                user_acl_rest = nil
+              end
             end
-          end
 
-        else
-          ui.warn("Unable to detect Chef Server version.")
+          else
+            ui.warn("Unable to detect Chef Server version.")
+          end
         end
 
         # Grab users
