@@ -100,7 +100,7 @@ class Chef
             else
               ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Setting skip-useracl to TRUE")
               config[:skip_useracl] = true
-              user_acl_rest = rest
+              user_acl_rest = nil
             end
           end
 
