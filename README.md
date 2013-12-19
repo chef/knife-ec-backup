@@ -22,7 +22,7 @@ This will install the plugin directly on the Chef Server:
 Clone the git repository and run the following from inside:
 
     gem build knife-ec-backup.gemspec
-    gem install knife-ec-backup-1.1.2.gem
+    gem install knife-ec-backup-1.1.3.gem
 
 # Configuration
 
@@ -120,3 +120,4 @@ Restores all data from a repository to an Enterprise Chef / Private Chef server.
 * Ensure easy installation into embedded ruby gemset on Chef Server.
 * Remove requirement for Knife Essentials gem to be installed.
 * This plugin does **NOT** currently backup user passwords.  **They will have to be reset after a restore.**
+* This plugin does **NOT** currently restore custom user ACLs.  **It will revert back to default ACLs on a restore.**
