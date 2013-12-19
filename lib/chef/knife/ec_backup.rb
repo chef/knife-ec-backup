@@ -107,6 +107,8 @@ class Chef
                 config[:skip_useracl] = true
                 user_acl_rest = nil
               end
+            else
+              user_acl_rest = rest
             end
 
           else
