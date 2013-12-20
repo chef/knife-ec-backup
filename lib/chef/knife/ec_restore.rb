@@ -64,8 +64,8 @@ class Chef
             ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
             exit 1
           end
-          the_node_name = 'pivotal'
-          the_client_key = '/etc/opscode/pivotal.pem'
+          Chef::Config.node_name = 'pivotal'
+          Chef::Config.client_key = '/etc/opscode/pivotal.pem'
         end
 
         #Check for WebUI Key
@@ -103,7 +103,7 @@ class Chef
             puts "Detected Enterprise Chef Server version: #{server_version}"
 
             # All versions of Chef Server below 11.0.X are unable to update user acls
-            if server_version_parts[0].to_i < 11 || (server_version_parts[0].to_i == 11 && server_version_parts[1].to_i == 0)
+            if server_version_parts[0].to_i < 11 || (server_version_parts[0].to_i == 11 && server_version_parts[1].to_i == 0 && server_version_parts[2].to_i == 0)
               ui.warn("Your version of Enterprise Chef Server does not support the updating of User ACLs.  Setting skip-useracl to TRUE")
               config[:skip_useracl] = true
               user_acl_rest = nil
@@ -289,6 +289,7 @@ class Chef
         old_acls = ::ChefFS::DataHandler::AclDataHandler.new.normalize(old_acls, nil)
         acls = ::ChefFS::DataHandler::AclDataHandler.new.normalize(acls, nil)
         if acls != old_acls
+          ui.warn("ACL for #{url} does not need to change, skipping.")
           ::ChefFS::FileSystem::AclEntry::PERMISSIONS.each do |permission|
             rest.put_rest("#{url}/#{permission}", { permission => acls[permission] })
           end
