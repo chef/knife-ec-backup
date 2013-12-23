@@ -187,7 +187,7 @@ class Chef
 
           ensure_dir(Chef::Config.chef_repo_path)
 
-          # Download the billing-admins acl and group as pivotal
+          # Download the billing-admins ACL and group as pivotal
           chef_fs_config = ::ChefFS::Config.new
           pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json') 
           if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
