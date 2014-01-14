@@ -119,5 +119,7 @@ Restores all data from a repository to an Enterprise Chef / Private Chef server.
 
 * Ensure easy installation into embedded ruby gemset on Chef Server.
 * Remove requirement for Knife Essentials gem to be installed.
+* Single org backups.
 * This plugin does **NOT** currently backup user passwords.  **They will have to be reset after a restore.**
+* This plugin does **NOT** currently restore user public keys.  **Private keys will have to be reset after a restore.**
 * This plugin does **NOT** currently restore custom user ACLs.  **It will revert back to default ACLs on a restore.**

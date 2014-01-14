@@ -124,7 +124,7 @@ class Chef
           next if filename !~ /(.+)\.json/
           name = $1
           if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.  Once pivotal is updated, you will need to modify #{Chef::Config.client_key} to be the corresponding private key.")
+            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.")
             next
           end
 
@@ -203,7 +203,7 @@ class Chef
             next
           end
           if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.  Once pivotal is updated, you will need to modify #{Chef::Config.client_key} to be the corresponding private key.")
+            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.")
             next
           end
 
