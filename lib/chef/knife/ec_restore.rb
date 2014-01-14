@@ -250,7 +250,6 @@ class Chef
           org_admins = rest.get_rest('groups/admins')['users']
           org_members = rest.get_rest('users').map { |user| user['user']['username'] }
           org_admins.delete_if { |user| !org_members.include?(user) }
-          org_admins.delete_if { |user| !org_members.include?(user) }
           if org_admins[0] != nil
             # Using an org admin already on the destination server
             Chef::Config.node_name = org_admins[0]
@@ -271,7 +270,6 @@ class Chef
           (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
             ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
-
          ensure
           CONFIG_VARS.each do |key|
             Chef::Config[key.to_sym] = old_config[key]
