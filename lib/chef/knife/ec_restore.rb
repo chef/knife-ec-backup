@@ -261,28 +261,18 @@ class Chef
           end
           Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
 
-          # Do the upload.
+          # Restore the entire org skipping the admin data and restoring groups and acls last
           puts "Restoring the rest of the org"
           chef_fs_config = ::ChefFS::Config.new
-          # groups and acls come last.
-          children = chef_fs_config.chef_fs.children.map { |child| child.name }
-          children.delete('acls')
-          children.delete('groups')
-          parallelize(children) do |child_name|
-            pattern = ::ChefFS::FilePattern.new("/#{child_name}") 
-            if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-              @error = true
-            end
+          top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
+          acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
+          group_acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          group_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
+            ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
-          pattern = ::ChefFS::FilePattern.new("/groups") 
-          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-            @error = true
-          end
-          pattern = ::ChefFS::FilePattern.new("/acls") 
-          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-            @error = true
-          end
-        ensure
+
+         ensure
           CONFIG_VARS.each do |key|
             Chef::Config[key.to_sym] = old_config[key]
           end
