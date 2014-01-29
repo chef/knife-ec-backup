@@ -250,6 +250,7 @@ class Chef
           org_admins = rest.get_rest('groups/admins')['users']
           org_members = rest.get_rest('users').map { |user| user['user']['username'] }
           org_admins.delete_if { |user| !org_members.include?(user) }
+          org_admins.delete_if { |user| user == 'pivotal' }
           if org_admins[0] != nil
             # Using an org admin already on the destination server
             Chef::Config.node_name = org_admins[0]
