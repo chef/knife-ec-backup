@@ -37,8 +37,6 @@ It is recommended that you run this from a frontend Enterprise Chef Server, you 
 
 *Options*
 
-  * `--concurrency`:
-    Maximum number of simultaneous requests to send (default: 10)
   * `--webui-key`:
     Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
   * `--skip-useracl`:
@@ -102,8 +100,6 @@ This compares very closely with the "knife download /" from an OSC server:
 
 *Options*
 
-  * `--concurrency`:
-    Maximum number of simultaneous requests to send (default: 10)
   * `--webui-key`:
     Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
   * `--overwrite-pivotal`:

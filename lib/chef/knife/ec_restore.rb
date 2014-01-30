@@ -164,7 +164,7 @@ class Chef
 
           # Restore open invitations
           invitations = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/invitations.json"))
-          parallelize(invitations) do |invitation|
+          invitations.each do |invitation|
             begin
               rest.post_rest("organizations/#{name}/association_requests", { 'user' => invitation['username'] })
             rescue Net::HTTPServerException => e
@@ -176,7 +176,7 @@ class Chef
 
           # Repopulate org members
           members = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/members.json"))
-          parallelize(members) do |member|
+          members.each do |member|
             username = member['user']['username']
             begin
               response = rest.post_rest("organizations/#{name}/association_requests", { 'user' => username })
@@ -249,7 +249,7 @@ class Chef
           rest = Chef::REST.new(Chef::Config.chef_server_url)
           org_admins = rest.get_rest('groups/admins')['users']
           org_members = rest.get_rest('users').map { |user| user['user']['username'] }
-          org_admins.delete_if { |user| !org_members.include?(user) }
+          org_admins.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
           if org_admins[0] != nil
             # Using an org admin already on the destination server
             Chef::Config.node_name = org_admins[0]
