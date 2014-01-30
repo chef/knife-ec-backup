@@ -32,21 +32,21 @@ class Chef
 
           option :sql_host,
           :long => '--sql-host HOSTNAME',
-          :descrption => 'Postgresql database hostname (default: localhost)',
+          :description => 'Postgresql database hostname (default: localhost)',
           :default => "localhost"
 
           option :sql_port,
-          :long => '--sql-host HOSTNAME',
-          :descrption => 'Postgresql database port (default: 5432)',
+          :long => '--sql-port PORT',
+          :description => 'Postgresql database port (default: 5432)',
           :default => 5432
 
           option :sql_user,
           :long => "--sql-user USERNAME",
-          :descrption => 'User used to connect to the postgresql database.'
+          :description => 'User used to connect to the postgresql database.'
 
           option :sql_password,
-          :long => "--sql-user USERNAME",
-          :descrption => 'User used to connect to the postgresql database'
+          :long => "--sql-password PASSWORD",
+          :description => 'User used to connect to the postgresql database'
         end
       end
 
