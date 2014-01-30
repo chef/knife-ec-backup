@@ -164,7 +164,7 @@ class Chef
 
           # Restore open invitations
           invitations = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/invitations.json"))
-          parallelize(invitations) do |invitation|
+          invitations.each do |invitation|
             begin
               rest.post_rest("organizations/#{name}/association_requests", { 'user' => invitation['username'] })
             rescue Net::HTTPServerException => e
@@ -176,7 +176,7 @@ class Chef
 
           # Repopulate org members
           members = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/members.json"))
-          parallelize(members) do |member|
+          members.each do |member|
             username = member['user']['username']
             begin
               response = rest.post_rest("organizations/#{name}/association_requests", { 'user' => username })
