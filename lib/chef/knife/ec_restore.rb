@@ -253,9 +253,9 @@ class Chef
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
           rest = Chef::REST.new(Chef::Config.chef_server_url)
-          org_admins = rest.get_rest('groups/admins')['users'] - ['pivotal']
+          org_admins = rest.get_rest('groups/admins')['users']
           org_members = rest.get_rest('users').map { |user| user['user']['username'] }
-          org_admins.delete_if { |user| !org_members.include?(user) }
+          org_admins.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
           if org_admins[0] != nil
             # Using an org admin already on the destination server
             Chef::Config.node_name = org_admins[0]
@@ -291,25 +291,27 @@ class Chef
         includes[:users] = true unless includes.key? :users
         includes[:clients] = true unless includes.key? :clients
       
-        ::ChefFS::FileSystem.resolve_path(
+        group = ::ChefFS::FileSystem.resolve_path(
           chef_fs_config.chef_fs,
           "/groups/#{group_name}.json"
-        ).write(
-          JSON.parse(
-            ::ChefFS::FileSystem.resolve_path(
-              chef_fs_config.local_fs,
-              "/groups/#{group_name}.json"
-            ).read
-          ).select do |member|
-            if includes[:users] and includes[:clients]
-              member
-            elsif includes[:users]
-              member == 'users'
-            elsif includes[:clients]
-              member == 'clients'
-            end
-          end.to_json
         )
+
+        members_json = ::ChefFS::FileSystem.resolve_path(
+          chef_fs_config.local_fs,
+          "/groups/#{group_name}.json"
+        ).read
+
+        members = JSON.parse(members_json).select do |member|
+          if includes[:users] and includes[:clients]
+            member
+          elsif includes[:users]
+            member == 'users'
+          elsif includes[:clients]
+            member == 'clients'
+          end
+        end
+        
+        group.write(members.to_json)
       end
 
       def parallelize(entries, options = {}, &block)
