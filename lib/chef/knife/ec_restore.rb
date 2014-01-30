@@ -244,11 +244,9 @@ class Chef
             restore_group(chef_fs_config, group, :clients => false)
           end
 
-          %w(/acls/groups/billing-admins.json /memebers.json).each do |name|
-            pattern = ::ChefFS::FilePattern.new(name)
-            if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-              @error = true
-            end
+          pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
+          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            @error = true
           end
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
