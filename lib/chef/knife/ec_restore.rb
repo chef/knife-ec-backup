@@ -238,11 +238,15 @@ class Chef
           # Upload the admins group and billing-admins acls
           puts "Restoring the org admin data"
           chef_fs_config = ::ChefFS::Config.new
-          %w(/groups/admins.json /groups/billing-admins.json /acls/groups/billing-admins.json).each do |name|
-            pattern = ::ChefFS::FilePattern.new(name)
-            if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-              @error = true
-            end
+
+          # Restore users w/o clients (which don't exist yet)
+          ['admins', 'billing-admins'].each do |group|
+            restore_group(chef_fs_config, group, :clients => false)
+          end
+
+          pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
+          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            @error = true
           end
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
@@ -270,11 +274,42 @@ class Chef
           (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
             ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
+          # restore clients to groups
+          ['admins', 'billing-admins'].each do |group|
+            restore_group(chef_fs_config, group, :users => false)
+          end
          ensure
           CONFIG_VARS.each do |key|
             Chef::Config[key.to_sym] = old_config[key]
           end
         end
+      end
+
+      def restore_group(chef_fs_config, group_name, includes = {:users => true, :clients => true})
+        includes[:users] = true unless includes.key? :users
+        includes[:clients] = true unless includes.key? :clients
+      
+        group = ::ChefFS::FileSystem.resolve_path(
+          chef_fs_config.chef_fs,
+          "/groups/#{group_name}.json"
+        )
+
+        members_json = ::ChefFS::FileSystem.resolve_path(
+          chef_fs_config.local_fs,
+          "/groups/#{group_name}.json"
+        ).read
+
+        members = JSON.parse(members_json).select do |member|
+          if includes[:users] and includes[:clients]
+            member
+          elsif includes[:users]
+            member == 'users'
+          elsif includes[:clients]
+            member == 'clients'
+          end
+        end
+        
+        group.write(members.to_json)
       end
 
       def parallelize(entries, options = {}, &block)
