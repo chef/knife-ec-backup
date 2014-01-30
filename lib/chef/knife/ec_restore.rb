@@ -249,8 +249,7 @@ class Chef
           rest = Chef::REST.new(Chef::Config.chef_server_url)
           org_admins = rest.get_rest('groups/admins')['users']
           org_members = rest.get_rest('users').map { |user| user['user']['username'] }
-          org_admins.delete_if { |user| !org_members.include?(user) }
-          org_admins.delete_if { |user| user == 'pivotal' }
+          org_admins.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
           if org_admins[0] != nil
             # Using an org admin already on the destination server
             Chef::Config.node_name = org_admins[0]
