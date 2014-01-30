@@ -238,7 +238,7 @@ class Chef
           # Upload the admins group and billing-admins acls
           puts "Restoring the org admin data"
           chef_fs_config = ::ChefFS::Config.new
-          %w(/groups/admins.json /groups/billing-admins.json /acls/groups/billing-admins.json).each do |name|
+          %w(/groups/admins.json /groups/billing-admins.json /acls/groups/billing-admins.json /memebers.json).each do |name|
             pattern = ::ChefFS::FilePattern.new(name)
             if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
               @error = true
