@@ -274,9 +274,12 @@ class Chef
           (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
             ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
-          # restore clients to groups
+          # restore clients to groups, using the pivotal key again
+          Chef::Config[:node_name] = old_config['node_name']
+          Chef::Config[:client_key] = old_config['client_key'] 
+          Chef::Config.custom_http_headers = {}
           ['admins', 'billing-admins'].each do |group|
-            restore_group(chef_fs_config, group, :users => false)
+            restore_group(::ChefFS::Config.new, group, :users => false)
           end
          ensure
           CONFIG_VARS.each do |key|
