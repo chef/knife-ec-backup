@@ -46,7 +46,7 @@ class Chef
 
           option :sql_password,
           :long => "--sql-password PASSWORD",
-          :description => 'User used to connect to the postgresql database'
+          :description => 'Password used to connect to the postgresql database'
         end
       end
 
