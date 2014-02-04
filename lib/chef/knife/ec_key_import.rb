@@ -55,6 +55,7 @@ class Chef
           users_to_update = db[:users].where(:username => username)
           if users_to_update.count != 1
             ui.warn "Wrong number of users to update for #{username}. Skipping"
+            next
           else
             users_to_update.update(:public_key => key, :pubkey_version => version)
           end
