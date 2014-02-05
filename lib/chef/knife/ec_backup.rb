@@ -20,20 +20,9 @@ class Chef
           ui.error("Must specify backup directory as an argument.")
           exit 1
         end
+
         dest_dir = name_args[0]
-
-
-        #Check for pivotal user and key
-        node_name = Chef::Config.node_name
-        client_key = Chef::Config.client_key
-        if node_name != "pivotal"
-          if !File.exist?("/etc/opscode/pivotal.pem")
-            ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
-            exit 1
-          end
-          Chef::Config.node_name = 'pivotal'
-          Chef::Config.client_key = '/etc/opscode/pivotal.pem'
-        end
+        set_client_config!
 
         #Check for WebUI Key
         if config[:webui_key] == nil

@@ -51,6 +51,20 @@ class Chef
         Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
         ::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
       end
+
+      # Mutates Chef::Config to use pivotal key
+      # Assumes that if the user set node_name to "pivotal"
+      # already, they know what they are doing
+      def set_client_config!
+        if Chef::Config.node_name != "pivotal"
+          if !File.exist?("/etc/opscode/pivotal.pem")
+            ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
+            exit 1
+          end
+          Chef::Config.node_name = 'pivotal'
+          Chef::Config.client_key = '/etc/opscode/pivotal.pem'
+        end
+      end
     end
   end
 end
