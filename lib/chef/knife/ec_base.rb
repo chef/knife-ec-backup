@@ -78,6 +78,41 @@ class Chef
           exit 1
         end
       end
+
+      # Returns true for 11.0.1 and above.
+      def nginx_supports_acls?(version)
+        major, minor, patch = server_version.split('.').map(&:to_i)
+        ! (major < 11 || major == 11 && minor == 0 && patch <= 1)
+      end
+
+      def account_api_available?
+        Chef::REST.new("http://127.0.0.1:9465").get("users")
+        true
+      rescue
+        false
+      end
+
+      def setup_user_acl_rest!
+        if config[:skip_version]
+          ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
+          Chef::Rest.new(Chef::Config.chef_server_root)
+        elsif nginx_supports_acls?(server_version)
+          Chef::Rest.new(Chef::Config.chef_server_root)
+        elsif account_api_available?
+          Chef::REST.new("http://127.0.0.1:9465")
+        else
+          ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Setting skip-useracl to TRUE")
+          config[:skip_useracl] = true
+        end
+      end
+
+
+      def server_version(server_url=Chef::Config.chef_server_root)
+        @server_version ||= begin
+                              uri = URI.parse("#{server_url}/version")
+                              server_version = open(uri, { :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE}).each_line.first.split(' ').last
+                            end
+      end
     end
   end
 end

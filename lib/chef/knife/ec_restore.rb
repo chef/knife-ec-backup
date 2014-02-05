@@ -40,31 +40,8 @@ class Chef
 
         rest = Chef::REST.new(Chef::Config.chef_server_root)
 
-        if config[:skip_version] && config[:skip_useracl]
-          ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
-          user_acl_rest = nil
-        elsif config[:skip_version] && !config[:skip_useracl]
-          ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
-          user_acl_rest = rest
-        else # Grab Chef Server version number so that we can auto set options
-          uri = URI.parse("#{Chef::Config.chef_server_root}/version")
-          server_version = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first.split(' ').last
-          server_version_parts = server_version.split('.')
-
-          if server_version_parts.count == 3
-            puts "Detected Enterprise Chef Server version: #{server_version}"
-
-            # All versions of Chef Server below 11.0.X are unable to update user acls
-            if server_version_parts[0].to_i < 11 || (server_version_parts[0].to_i == 11 && server_version_parts[1].to_i == 0)
-              ui.warn("Your version of Enterprise Chef Server does not support the updating of User ACLs.  Setting skip-useracl to TRUE")
-              config[:skip_useracl] = true
-              user_acl_rest = nil
-            else
-              user_acl_rest = rest
-            end
-          else
-            ui.warn("Unable to detect Chef Server version.")
-          end
+        unless config[:skip_useracl]
+          user_acl_rest = setup_user_acl_rest!
         end
 
         # Restore users
