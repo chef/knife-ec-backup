@@ -55,13 +55,12 @@ class Chef
 
         # Download organizations
         ensure_dir("#{dest_dir}/organizations")
-        error = false
         rest.get_rest('/organizations').each_pair do |name, url|
           org = rest.get_rest(url)
           if org['assigned_at']
             ui.msg "Grabbing organization #{name} ..."
             ensure_dir("#{dest_dir}/organizations/#{name}")
-            error = download_org(dest_dir, webui_key, name) || error
+            download_org(dest_dir, webui_key, name)
             File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
               file.write(Chef::JSONCompat.to_json_pretty(org))
             end
@@ -73,8 +72,6 @@ class Chef
             end
           end
         end
-
-        exit 1 if error
       end
 
       def ensure_dir(dir)
@@ -93,7 +90,7 @@ class Chef
           chef_fs_config = ::ChefFS::Config.new
           ['/acls/groups/billing-admins.json', '/groups/billing-admins.json', '/groups/admins.json'].each do |path|
             pattern = ::ChefFS::FilePattern.new(path)
-            error = ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) }) || error
+            ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
 
           ::ChefConfigMutator.config_for_auth_as!(org_admin)
@@ -107,9 +104,8 @@ class Chef
           group_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
 
           (top_level_paths + group_acl_paths + acl_paths + group_paths).each do |path|
-            error = ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) }) || error
+            ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
-          error
         ensure
           ::ChefConfigMutator.restore_config!
         end

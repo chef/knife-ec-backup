@@ -74,7 +74,6 @@ class Chef
         end
 
         # Restore organizations
-        error = false
         Dir.foreach("#{dest_dir}/organizations") do |name|
           next if name == '..' || name == '.' || !File.directory?("#{dest_dir}/organizations/#{name}")
           ui.msg "Restoring org #{name} ..."
@@ -114,8 +113,7 @@ class Chef
             end
           end
 
-          # Upload org data
-          error = upload_org(dest_dir, webui_key, name) || error
+          upload_org(dest_dir, webui_key, name)
         end
 
         # Restore user ACLs
@@ -136,12 +134,9 @@ class Chef
           user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
         end
-
-        exit 1 if error
       end
 
       def upload_org(dest_dir, webui_key, name)
-        error = false
         ::ChefConfigMutator.save_config!
         begin
           ::ChefConfigMutator.set_config_for_org!(name, dest_dir)
@@ -156,7 +151,7 @@ class Chef
           end
 
           pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
-          error = ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) }) || error
+          ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
 
           admin = org_admin
           ::ChefConfigMutator.config_for_auth_as!(admin)
@@ -169,7 +164,7 @@ class Chef
           group_acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
           group_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
           (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
-            error = ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) }) || error
+            ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
 
           # restore clients to groups, using the pivotal key again
@@ -177,7 +172,6 @@ class Chef
           ['admins', 'billing-admins'].each do |group|
             restore_group(::ChefFS::Config.new, group, :users => false)
           end
-          error
         ensure
           ::ChefConfigMutator.restore_config!
         end
