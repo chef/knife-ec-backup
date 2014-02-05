@@ -21,18 +21,19 @@ require 'chef/knife/ec_key_base'
 
 class Chef
   class Knife
+    # EcKeyExport reads user keys directly from the Chef Server database
+    # and write them to a file on disk
     class EcKeyExport < Chef::Knife
-
       include Knife::EcKeyBase
 
-      banner "knife ec key export [PATH]"
+      banner 'knife ec key export [PATH]'
 
       def run
         if config[:sql_user].nil? || config[:sql_password].nil?
           load_config_from_file!
         end
 
-        path = @name_args[0] || "key_dump.json"
+        path = @name_args[0] || 'key_dump.json'
         export(path)
       end
 

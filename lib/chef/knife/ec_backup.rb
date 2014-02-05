@@ -3,7 +3,7 @@ require 'chef/knife'
 class Chef
   class Knife
     class EcBackup < Chef::Knife
-      banner "knife ec backup"
+      banner 'knife ec backup'
 
       include Knife::EcBase
 
@@ -15,9 +15,9 @@ class Chef
       end
 
       def run
-        #Check for destination directory argument
+        # Check for destination directory argument
         if name_args.length <= 0
-          ui.error("Must specify backup directory as an argument.")
+          ui.error('Must specify backup directory as an argument.')
           exit 1
         end
 
@@ -29,12 +29,10 @@ class Chef
 
         rest = Chef::REST.new(Chef::Config.chef_server_root)
 
-        unless config[:skip_useracl]
-          user_acl_rest = setup_user_acl_rest!
-        end
+        user_acl_rest = setup_user_acl_rest! unless config[:skip_useracl]
 
         # Grab users
-        puts "Grabbing users ..."
+        ui.msg 'Grabbing users ...'
 
         ensure_dir("#{dest_dir}/users")
         ensure_dir("#{dest_dir}/user_acls")
@@ -60,7 +58,7 @@ class Chef
         rest.get_rest('/organizations').each_pair do |name, url|
           org = rest.get_rest(url)
           if org['assigned_at']
-            puts "Grabbing organization #{name} ..."
+            ui.msg 'Grabbing organization #{name} ...'
             ensure_dir("#{dest_dir}/organizations/#{name}")
             error = download_org(dest_dir, webui_key, name) || error
             File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
@@ -75,15 +73,11 @@ class Chef
           end
         end
 
-        if error
-          exit 1
-        end
+        exit 1 if error
       end
 
       def ensure_dir(dir)
-        if !File.exist?(dir)
-          Dir.mkdir(dir)
-        end
+        Dir.mkdir(dir) unless File.exist?(dir)
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
@@ -120,7 +114,7 @@ class Chef
           admin_users.delete_if { |user| !org_members.include?(user) }
           Chef::Config.node_name = admin_users[0]
           Chef::Config.client_key = webui_key
-          Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
+          Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge('x-ops-request-source' => 'web')
 
           # Download the entire org skipping the billing admins group ACL and the group itself
           chef_fs_config = ::ChefFS::Config.new

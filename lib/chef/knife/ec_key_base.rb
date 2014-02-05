@@ -20,8 +20,9 @@ require 'chef/knife'
 
 class Chef
   class Knife
+    # EcKeyBase contains shared data and functions used by
+    # EcKeyImport and EcKeyExport
     module EcKeyBase
-
       def self.included(includer)
         includer.class_eval do
 
@@ -33,7 +34,7 @@ class Chef
           option :sql_host,
           :long => '--sql-host HOSTNAME',
           :description => 'Postgresql database hostname (default: localhost)',
-          :default => "localhost"
+          :default => 'localhost'
 
           option :sql_port,
           :long => '--sql-port PORT',
@@ -41,11 +42,11 @@ class Chef
           :default => 5432
 
           option :sql_user,
-          :long => "--sql-user USERNAME",
+          :long => '--sql-user USERNAME',
           :description => 'User used to connect to the postgresql database.'
 
           option :sql_password,
-          :long => "--sql-password PASSWORD",
+          :long => '--sql-password PASSWORD',
           :description => 'Password used to connect to the postgresql database'
         end
       end
@@ -60,11 +61,11 @@ class Chef
       # Loads SQL user and password from running config if not passed
       # as a command line option
       def load_config_from_file!
-        if ! File.exists?("/etc/opscode/chef-server-running.json")
-          ui.fatal "SQL User or Password not provided as option and running config cannot be found!"
+        if !File.exists?('/etc/opscode/chef-server-running.json')
+          ui.fatal 'SQL User or Password not provided as option and running config cannot be found!'
           exit 1
         else
-          running_config ||= JSON.parse(File.read("/etc/opscode/chef-server-running.json"))
+          running_config ||= JSON.parse(File.read('/etc/opscode/chef-server-running.json'))
           config[:sql_user] ||= running_config['private_chef']['postgresql']['sql_user']
           config[:sql_password] ||= running_config['private_chef']['postgresql']['sql_password']
         end
