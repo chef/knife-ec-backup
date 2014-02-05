@@ -1,35 +1,18 @@
 require 'chef/knife'
+require 'chef/knife/ec_base'
 
 class Chef
   class Knife
     class EcRestore < Chef::Knife
       banner "knife ec restore"
 
-      option :concurrency,
-        :long => '--concurrency THREADS',
-        :description => 'Maximum number of simultaneous requests to send (default: 10)'
-
-      option :webui_key,
-        :long => '--webui-key KEYPATH',
-        :description => 'Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)'
+      include Knife::EcBase
 
       option :overwrite_pivotal,
         :long => '--overwrite-pivotal',
         :boolean => true,
         :default => false,
         :description => "Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key."
-
-      option :skip_useracl,
-        :long => '--skip-useracl',
-        :boolean => true,
-        :default => false,
-        :description => "Whether to skip restoring User ACLs.  This is required for EC 11.0.2 and lower"
-
-      option :skip_version,
-        :long => '--skip-version-check',
-        :boolean => true,
-        :default => false,
-        :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
 
       deps do
         require 'chef/json_compat'
@@ -40,12 +23,6 @@ class Chef
         require 'chef_fs/data_handler/acl_data_handler'
         require 'securerandom'
         require 'chef_fs/parallelizer'
-      end
-
-      def configure_chef
-        super
-        Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
-        ::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
       end
 
       def run

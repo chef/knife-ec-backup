@@ -5,37 +5,13 @@ class Chef
     class EcBackup < Chef::Knife
       banner "knife ec backup"
 
-      option :concurrency,
-        :long => '--concurrency THREADS',
-        :description => 'Maximum number of simultaneous requests to send (default: 10)'
-
-      option :webui_key,
-        :long => '--webui-key KEYPATH',
-        :description => 'Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)'
-
-      option :skip_useracl,
-        :long => '--skip-useracl',
-        :boolean => true,
-        :default => false,
-        :description => "Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower"
-
-      option :skip_version,
-        :long => '--skip-version-check',
-        :boolean => true,
-        :default => false,
-        :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
+      include Knife::EcBase
 
       deps do
         require 'chef_fs/config'
         require 'chef_fs/file_system'
         require 'chef_fs/file_pattern'
         require 'chef_fs/parallelizer'
-      end
-
-      def configure_chef
-        super
-        Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
-        ::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
       end
 
       def run
