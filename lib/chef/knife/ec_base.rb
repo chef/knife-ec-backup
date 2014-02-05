@@ -55,25 +55,6 @@ class Chef
         ::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
       end
 
-      # Mutates Chef::Config to use pivotal key
-      # Assumes that if the user set node_name to "pivotal"
-      # already, they know what they are doing
-      def set_client_config!
-        if Chef::Config.node_name != 'pivotal'
-          unless File.exist?('/etc/opscode/pivotal.pem')
-            ui.error('Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.')
-            exit 1
-          end
-          Chef::Config.node_name = 'pivotal'
-          Chef::Config.client_key = '/etc/opscode/pivotal.pem'
-        end
-
-        if Chef::Config.chef_server_root.nil?
-          Chef::Config.chef_server_root = Chef::Config.chef_server_url.gsub(%r{/organizations/+[^\/]+/*$}, '')
-          ui.warn "chef_server_root not found in knife configuration. Setting root #{Chef::Config.chef_server_root}"
-        end
-      end
-
       def assert_exists!(path)
         unless File.exist?(path)
           ui.error "#{path} does not exist!"
@@ -114,6 +95,14 @@ class Chef
                               response = open(uri, :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE)
                               response.each_line.first.split(' ').last
                             end
+      end
+
+      def org_admin
+        rest = Chef::REST.new(Chef::Config.chef_server_url)
+        org_admins = rest.get_rest('groups/admins')['users']
+        org_members = rest.get_rest('users').map { |user| user['user']['username'] }
+        org_admins.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
+        org_admins[0]
       end
     end
   end

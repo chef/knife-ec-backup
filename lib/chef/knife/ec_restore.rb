@@ -23,6 +23,7 @@ class Chef
         require 'chef_fs/data_handler/acl_data_handler'
         require 'securerandom'
         require 'chef_fs/parallelizer'
+        require 'knife_ec_backup/mutator'
       end
 
       def run
@@ -33,9 +34,9 @@ class Chef
         end
 
         dest_dir = name_args[0]
-        set_client_config!
 
         webui_key = config[:webui_key]
+        ::ChefConfigMutator.set_initial_client_config!(webui_key)
         assert_exists!(webui_key)
 
         rest = Chef::REST.new(Chef::Config.chef_server_root)
@@ -139,23 +140,11 @@ class Chef
         exit 1 if error
       end
 
-      PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      CONFIG_VARS = %w(chef_server_url chef_server_root custom_http_headers node_name client_key versioned_cookbooks) + PATHS
       def upload_org(dest_dir, webui_key, name)
         error = false
-        old_config = {}
-        CONFIG_VARS.each do |key|
-          old_config[key] = Chef::Config[key.to_sym]
-        end
+        ::ChefConfigMutator.save_config!
         begin
-          # Clear out paths
-          PATHS.each do |path_var|
-            Chef::Config[path_var.to_sym] = nil
-          end
-          Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
-          Chef::Config.versioned_cookbooks = true
-
-          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_root}/organizations/#{name}"
+          ::ChefConfigMutator.set_config_for_org!(name, dest_dir)
 
           # Upload the admins group and billing-admins acls
           puts 'Restoring the org admin data'
@@ -169,20 +158,8 @@ class Chef
           pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
           error = ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) }) || error
 
-          # Figure out who the admin is so we can spoof him and retrieve his stuff
-          rest = Chef::REST.new(Chef::Config.chef_server_url)
-          org_admins = rest.get_rest('groups/admins')['users']
-          org_members = rest.get_rest('users').map { |user| user['user']['username'] }
-          org_admins.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
-          if !org_admins[0].nil?
-            # Using an org admin already on the destination server
-            Chef::Config.node_name = org_admins[0]
-            Chef::Config.client_key = webui_key
-          else
-            # No suitable org admins found, defaulting to pivotal
-            ui.warn('No suitable Organizational Admins found.  Defaulting to pivotal for org creation')
-          end
-          Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge('x-ops-request-source' => 'web')
+          admin = org_admin
+          ::ChefConfigMutator.config_for_auth_as!(admin)
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
           ui.msg 'Restoring the rest of the org'
@@ -196,17 +173,13 @@ class Chef
           end
 
           # restore clients to groups, using the pivotal key again
-          Chef::Config[:node_name] = old_config['node_name']
-          Chef::Config[:client_key] = old_config['client_key']
-          Chef::Config.custom_http_headers = {}
+          ::ChefConfigMutator.config_for_auth_as!('pivotal')
           ['admins', 'billing-admins'].each do |group|
             restore_group(::ChefFS::Config.new, group, :users => false)
           end
           error
-         ensure
-          CONFIG_VARS.each do |key|
-            Chef::Config[key.to_sym] = old_config[key]
-          end
+        ensure
+          ::ChefConfigMutator.restore_config!
         end
       end
 
