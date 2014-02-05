@@ -279,7 +279,7 @@ class Chef
           Chef::Config[:client_key] = old_config['client_key'] 
           Chef::Config.custom_http_headers = {}
           ['admins', 'billing-admins'].each do |group|
-            restore_group(::ChefFS::Config.new, group, :users => false)
+            restore_group(::ChefFS::Config.new, group)
           end
          ensure
           CONFIG_VARS.each do |key|
