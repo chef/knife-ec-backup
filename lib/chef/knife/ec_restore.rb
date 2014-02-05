@@ -143,9 +143,8 @@ class Chef
           ::ChefConfigMutator.set_config_for_org!(name, dest_dir)
 
           # Upload the admins group and billing-admins acls
-          puts 'Restoring the org admin data'
+          ui.msg 'Restoring the org admin data'
           chef_fs_config = ::ChefFS::Config.new
-
           # Restore users w/o clients (which don't exist yet)
           ['admins', 'billing-admins'].each do |group|
             restore_group(chef_fs_config, group, :clients => false)
@@ -171,7 +170,7 @@ class Chef
           # restore clients to groups, using the pivotal key again
           ::ChefConfigMutator.config_for_auth_as!('pivotal')
           ['admins', 'billing-admins'].each do |group|
-            restore_group(::ChefFS::Config.new, group, :users => false)
+            restore_group(::ChefFS::Config.new, group)
           end
         ensure
           ::ChefConfigMutator.restore_config!
