@@ -21,25 +21,26 @@ require 'chef/knife/ec_key_base'
 
 class Chef
   class Knife
+    # EcKeyImport imports user keys directly into the Chef Server
+    # database.  The keys are read from a file on disk that can be
+    # created with EcKeyExport
     class EcKeyImport < Chef::Knife
-
       include Knife::EcKeyBase
 
-      banner "knife ec key import [PATH]"
+      banner 'knife ec key import [PATH]'
 
       option :no_skip_pivotal,
-        :long => "--no-skip-pivotal",
-        :description => "Upload pivotal key.  By default the pivotal key is not uploaded."
+        :long => '--no-skip-pivotal',
+        :description => 'Upload pivotal key.  By default the pivotal key is not uploaded.'
 
       def run
         if config[:sql_user].nil? || config[:sql_password].nil?
           load_config_from_file!
         end
 
-        path = @name_args[0] || "key_dump.json"
+        path = @name_args[0] || 'key_dump.json'
         import(path)
       end
-
 
       def import(path)
         key_data = JSON.parse(File.read(path))
@@ -48,7 +49,7 @@ class Chef
           key = d['public_key']
           version = d['pubkey_version']
           if username == 'pivotal' && !config[:no_skip_pivotal]
-            ui.warn "Skipping pivotal user."
+            ui.warn 'Skipping pivotal user.'
             next
           end
           ui.msg "Updating key for #{username}"
