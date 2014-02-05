@@ -24,17 +24,8 @@ class Chef
         dest_dir = name_args[0]
         set_client_config!
 
-        #Check for WebUI Key
-        if config[:webui_key] == nil
-          if !File.exist?("/etc/opscode/webui_priv.pem")
-            ui.error("WebUI not specified and /etc/opscode/webui_priv.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
-            exit 1
-          end
-          ui.warn("WebUI not specified. Using /etc/opscode/webui_priv.pem")
-          webui_key = '/etc/opscode/webui_priv.pem'
-        else
-          webui_key = config[:webui_key]
-        end
+        webui_key = config[:webui_key]
+        assert_exists!(webui_key)
 
         #Set the server root
         server_root = Chef::Config.chef_server_root

@@ -30,7 +30,8 @@ class Chef
 
           option :webui_key,
             :long => '--webui-key KEYPATH',
-            :description => 'Path to the WebUI Key (default: /etc/opscode/webui_priv.pem)'
+            :description => 'Path to the WebUI Key (default: /etc/opscode/webui_priv.pem)',
+            :default => '/etc/opscode/webui_priv.pem'
 
           option :skip_useracl,
             :long => '--skip-useracl',
@@ -63,6 +64,13 @@ class Chef
           end
           Chef::Config.node_name = 'pivotal'
           Chef::Config.client_key = '/etc/opscode/pivotal.pem'
+        end
+      end
+
+      def assert_exists!(path)
+        if ! File.exist?(path)
+          ui.error "#{path} does not exist!"
+          exit 1
         end
       end
     end
