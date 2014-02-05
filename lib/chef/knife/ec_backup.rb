@@ -56,7 +56,7 @@ class Chef
         end
 
         rest = Chef::REST.new(Chef::Config.chef_server_root)
-       
+
         if config[:skip_version] && config[:skip_useracl]
           ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
           user_acl_rest = nil
@@ -73,7 +73,7 @@ class Chef
 
             # All versions of Chef Server below 11.0.1 are missing the GET User ACL helper in nginx
             if server_version_parts[0].to_i < 11 || (server_version_parts[0].to_i == 11 && server_version_parts[1].to_i == 0 && server_version_parts[0].to_i < 1)
-              #Check to see if Opscode-Account can be directly from the local machine  
+              #Check to see if Opscode-Account can be directly from the local machine
               begin
                 user_acl_rest.get('users')
                 ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Using local connection to backup")
@@ -165,15 +165,15 @@ class Chef
 
           # Download the billing-admins ACL and group as pivotal
           chef_fs_config = ::ChefFS::Config.new
-          pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json') 
+          pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
           if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
-          pattern = ::ChefFS::FilePattern.new('/groups/billing-admins.json') 
+          pattern = ::ChefFS::FilePattern.new('/groups/billing-admins.json')
           if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
-          pattern = ::ChefFS::FilePattern.new('/groups/admins.json') 
+          pattern = ::ChefFS::FilePattern.new('/groups/admins.json')
           if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end

@@ -85,8 +85,8 @@ class Chef
               config[:skip_useracl] = true
               user_acl_rest = nil
             else
-              user_acl_rest = rest 
-            end             
+              user_acl_rest = rest
+            end
           else
             ui.warn("Unable to detect Chef Server version.")
           end
@@ -186,7 +186,7 @@ class Chef
 
           # Update user acl
           user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
-          put_acl(rest, "users/#{name}/_acl", user_acl)          
+          put_acl(rest, "users/#{name}/_acl", user_acl)
         end
 
 
@@ -253,7 +253,7 @@ class Chef
           end
           # restore clients to groups, using the pivotal key again
           Chef::Config[:node_name] = old_config['node_name']
-          Chef::Config[:client_key] = old_config['client_key'] 
+          Chef::Config[:client_key] = old_config['client_key']
           Chef::Config.custom_http_headers = {}
           ['admins', 'billing-admins'].each do |group|
             restore_group(::ChefFS::Config.new, group, :users => false)
@@ -268,7 +268,7 @@ class Chef
       def restore_group(chef_fs_config, group_name, includes = {:users => true, :clients => true})
         includes[:users] = true unless includes.key? :users
         includes[:clients] = true unless includes.key? :clients
-      
+
         group = ::ChefFS::FileSystem.resolve_path(
           chef_fs_config.chef_fs,
           "/groups/#{group_name}.json"
@@ -288,7 +288,7 @@ class Chef
             member == 'clients'
           end
         end
-        
+
         group.write(members.to_json)
       end
 
