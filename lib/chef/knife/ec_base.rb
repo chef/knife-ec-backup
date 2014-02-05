@@ -65,6 +65,11 @@ class Chef
           Chef::Config.node_name = 'pivotal'
           Chef::Config.client_key = '/etc/opscode/pivotal.pem'
         end
+
+        if Chef::Config.chef_server_root.nil?
+          Chef::Config.chef_server_root = Chef::Config.chef_server_url.gsub(/\/organizations\/+[^\/]+\/*$/, '')
+          ui.warn "chef_server_root not found in knife configuration. Setting root #{Chef::Config.chef_server_root}"
+        end
       end
 
       def assert_exists!(path)

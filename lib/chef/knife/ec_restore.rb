@@ -38,13 +38,7 @@ class Chef
         webui_key = config[:webui_key]
         assert_exists!(webui_key)
 
-        #Set the server root
-        server_root = Chef::Config.chef_server_root
-        if server_root == nil
-          server_root = Chef::Config.chef_server_url.gsub(/\/organizations\/+[^\/]+\/*$/, '')
-          ui.warn("chef_server_root not found in knife configuration. Setting root to: #{server_root}")
-          Chef::Config.chef_server_root = server_root
-        end
+        rest = Chef::REST.new(Chef::Config.chef_server_root)
 
         if config[:skip_version] && config[:skip_useracl]
           ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
