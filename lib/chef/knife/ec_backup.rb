@@ -56,12 +56,13 @@ class Chef
 
         # Download organizations
         ensure_dir("#{dest_dir}/organizations")
+        error = false
         rest.get_rest('/organizations').each_pair do |name, url|
           org = rest.get_rest(url)
           if org['assigned_at']
             puts "Grabbing organization #{name} ..."
             ensure_dir("#{dest_dir}/organizations/#{name}")
-            download_org(dest_dir, webui_key, name)
+            error = download_org(dest_dir, webui_key, name) || error
             File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
               file.write(Chef::JSONCompat.to_json_pretty(org))
             end
@@ -74,7 +75,7 @@ class Chef
           end
         end
 
-        if @error
+        if error
           exit 1
         end
       end
@@ -89,6 +90,7 @@ class Chef
       CONFIG_VARS = %w(chef_server_url chef_server_root custom_http_headers node_name client_key versioned_cookbooks) + PATHS
       def download_org(dest_dir, webui_key, name)
         old_config = {}
+        error = false
         CONFIG_VARS.each do |key|
           old_config[key] = Chef::Config[key.to_sym]
         end
@@ -106,17 +108,9 @@ class Chef
 
           # Download the billing-admins ACL and group as pivotal
           chef_fs_config = ::ChefFS::Config.new
-          pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
-          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-            @error = true
-          end
-          pattern = ::ChefFS::FilePattern.new('/groups/billing-admins.json')
-          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-            @error = true
-          end
-          pattern = ::ChefFS::FilePattern.new('/groups/admins.json')
-          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-            @error = true
+          ['/acls/groups/billing-admins.json', '/groups/billing-admins.json', '/groups/admins.json'].each do |path|
+            pattern = ::ChefFS::FilePattern.new(path)
+            error = ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) }) || error
           end
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
@@ -134,10 +128,11 @@ class Chef
           acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
           group_acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
           group_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
-          (top_level_paths + group_acl_paths + acl_paths + group_paths).each do |path|
-            ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-          end
 
+          (top_level_paths + group_acl_paths + acl_paths + group_paths).each do |path|
+            error = ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) }) || error
+          end
+          error
         ensure
           CONFIG_VARS.each do |key|
             Chef::Config[key.to_sym] = old_config[key]
