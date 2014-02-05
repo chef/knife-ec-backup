@@ -16,7 +16,6 @@ class Chef
       end
 
       def run
-        # Check for destination directory argument
         if name_args.length <= 0
           ui.error('Must specify backup directory as an argument.')
           exit 1
@@ -25,40 +24,49 @@ class Chef
         dest_dir = name_args[0]
         webui_key = config[:webui_key]
         ::ChefConfigMutator.set_initial_client_config!(webui_key)
-
-
         assert_exists!(webui_key)
 
         rest = Chef::REST.new(Chef::Config.chef_server_root)
-
         user_acl_rest = setup_user_acl_rest! unless config[:skip_useracl]
 
-        # Grab users
-        ui.msg 'Grabbing users ...'
+        ui.msg 'Backing up users..'
+        backup_users(dest_dir, rest)
+        unless config[:skip_useracl]
+          ui.msg 'Backing up user acls...'
+          backup_user_acls(dest_dir, user_acl_rest)
+        end
+        ui.msg 'Backing up organizations...'
+        backup_orgs(dest_dir, rest, webui_key)
+      end
 
+      def backup_users(dest_dir, rest)
         ensure_dir("#{dest_dir}/users")
-        ensure_dir("#{dest_dir}/user_acls")
-
         rest.get_rest('/users').each_pair do |name, url|
           File.open("#{dest_dir}/users/#{name}.json", 'w') do |file|
             file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest(url)))
           end
+        end
+      end
 
-          if config[:skip_useracl]
-            ui.warn("Skipping user ACL download for #{name}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
-          else
-            File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
-              file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
-            end
+      def backup_user_acls(dest_dir, user_acl_rest)
+        ensure_dir("#{dest_dir}/user_acls")
+        rest.get_rest('/users').each_pair do |name, url|
+          File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
+            file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
           end
         end
+      end
 
-        # Download organizations
+      def ensure_dir(dir)
+        Dir.mkdir(dir) unless File.exist?(dir)
+      end
+
+      def backup_orgs(dest_dir, rest, webui_key)
         ensure_dir("#{dest_dir}/organizations")
         rest.get_rest('/organizations').each_pair do |name, url|
           org = rest.get_rest(url)
           if org['assigned_at']
-            ui.msg "Grabbing organization #{name} ..."
+            ui.msg "Downloading organization #{name} ..."
             ensure_dir("#{dest_dir}/organizations/#{name}")
             download_org(dest_dir, webui_key, name)
             File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
@@ -72,10 +80,6 @@ class Chef
             end
           end
         end
-      end
-
-      def ensure_dir(dir)
-        Dir.mkdir(dir) unless File.exist?(dir)
       end
 
       def download_org(dest_dir, webui_key, name)

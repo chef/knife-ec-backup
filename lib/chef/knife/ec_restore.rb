@@ -27,116 +27,117 @@ class Chef
       end
 
       def run
-        # Check for destination directory argument
         if name_args.length <= 0
           ui.error('Must specify backup directory as an argument.')
           exit 1
         end
 
         dest_dir = name_args[0]
-
         webui_key = config[:webui_key]
+
         ::ChefConfigMutator.set_initial_client_config!(webui_key)
         assert_exists!(webui_key)
 
         rest = Chef::REST.new(Chef::Config.chef_server_root)
-
         user_acl_rest = setup_user_acl_rest! unless config[:skip_useracl]
 
-        # Restore users
-        ui.msg 'Restoring users ...'
-
-        rest = Chef::REST.new(Chef::Config.chef_server_root)
-
-        Dir.foreach("#{dest_dir}/users") do |filename|
-          next if filename !~ /(.+)\.json/
-          name = Regexp.last_match[1]
-          if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn('Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.')
-            next
-          end
-
-          # Update user object
-          user = JSONCompat.from_json(IO.read("#{dest_dir}/users/#{name}.json"))
-          begin
-            # Supply password for new user
-            user_with_password = user.dup
-            user_with_password['password'] = SecureRandom.hex
-            rest.post_rest('users', user_with_password)
-          rescue Net::HTTPServerException => e
-            if e.response.code == '409'
-              rest.put_rest("users/#{name}", user)
-            else
-              raise
-            end
-          end
-
-        end
-
-        # Restore organizations
-        Dir.foreach("#{dest_dir}/organizations") do |name|
-          next if name == '..' || name == '.' || !File.directory?("#{dest_dir}/organizations/#{name}")
-          ui.msg "Restoring org #{name} ..."
-
-          # Create organization
-          org = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/org.json"))
-          begin
-            rest.post_rest('organizations', org)
-          rescue Net::HTTPServerException => e
-            if e.response.code == '409'
-              rest.put_rest("organizations/#{name}", org)
-            else
-              raise
-            end
-          end
-
-          # Restore open invitations
-          invitations = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/invitations.json"))
-          invitations.each do |invitation|
-            begin
-              rest.post_rest("organizations/#{name}/association_requests", 'user' => invitation['username'])
-            rescue Net::HTTPServerException => e
-              raise if e.response.code != '409'
-            end
-          end
-
-          # Repopulate org members
-          members = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/members.json"))
-          members.each do |member|
-            username = member['user']['username']
-            begin
-              response = rest.post_rest("organizations/#{name}/association_requests", 'user' => username)
-              association_id = response['uri'].split('/').last
-              rest.put_rest("users/#{username}/association_requests/#{association_id}", 'response' => 'accept')
-            rescue Net::HTTPServerException => e
-              raise if e.response.code != '409'
-            end
-          end
-
-          upload_org(dest_dir, webui_key, name)
-        end
-
-        # Restore user ACLs
-        ui.msg 'Restoring user ACLs ...'
-        Dir.foreach("#{dest_dir}/users") do |filename|
-          next if filename !~ /(.+)\.json/
-          name = Regexp.last_match[1]
-          if config[:skip_useracl]
-            ui.warn("Skipping user ACL update for #{name}. To update this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
-            next
-          end
-          if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn('Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.')
-            next
-          end
-
-          # Update user acl
-          user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
-          put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
+        ui.msg 'Restoring users...'
+        restore_users(dest_dir, rest)
+        ui.msg 'Restoring orgs...'
+        restore_orgs(dest_dir, rest, webui_key)
+        unless config[:skip_useracls]
+          ui.msg 'Restoring user_acls'
+          restore_user_acls(dest_dir, user_acl_rest)
         end
       end
 
-      def upload_org(dest_dir, webui_key, name)
+      def restore_users(dest_dir, rest)
+        Dir.glob("#{dest_dir}/users/*.json") do |filename|
+          name = ::File.basename(filename).gsub('.json', '')
+          if name == 'pivotal' && !config[:overwrite_pivotal]
+            ui.warn('Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.')
+          else
+            # Update user object
+            user = JSONCompat.from_json(IO.read(filename))
+            begin
+              # Supply password for new user
+              user_with_password = user.dup
+              user_with_password['password'] = SecureRandom.hex
+              rest.post_rest('users', user_with_password)
+            rescue Net::HTTPServerException => e
+              if e.response.code == '409'
+                rest.put_rest("users/#{name}", user)
+              else
+                raise
+              end
+            end
+          end
+        end
+      end
+
+      def restore_orgs(dest_dir, rest, webui_key)
+        Dir.glob("#{dest_dir}/organizations/*/").map {|p| p.split('/').last }.each do |name|
+          ui.msg "Restoring org #{name} ..."
+          create_org(dest_dir, rest, name)
+          restore_invitations(dest_dir, rest, name)
+          reassociate_users(dest_dir, rest, name)
+          upload_org(dest_dir, webui_key, rest, name)
+        end
+      end
+
+      def create_org(dest_dir, rest, name)
+        org = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/org.json"))
+        begin
+          rest.post_rest('organizations', org)
+        rescue Net::HTTPServerException => e
+          if e.response.code == '409'
+            rest.put_rest("organizations/#{name}", org)
+          else
+            raise
+          end
+        end
+      end
+
+      def restore_invitations(dest_dir, rest, name)
+        invitations = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/invitations.json"))
+        invitations.each do |invitation|
+          begin
+            rest.post_rest("organizations/#{name}/association_requests", 'user' => invitation['username'])
+          rescue Net::HTTPServerException => e
+            raise if e.response.code != '409'
+          end
+        end
+      end
+
+      def reassociate_users(dest_dir, rest, name)
+        members = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/members.json"))
+        members.each do |member|
+          username = member['user']['username']
+          begin
+            response = rest.post_rest("organizations/#{name}/association_requests", 'user' => username)
+            association_id = response['uri'].split('/').last
+            rest.put_rest("users/#{username}/association_requests/#{association_id}", 'response' => 'accept')
+          rescue Net::HTTPServerException => e
+            raise if e.response.code != '409'
+          end
+        end
+      end
+
+      def restore_user_acls(dest_dir, user_acl_rest)
+        ui.msg 'Restoring user ACLs ...'
+        Dir.glob("#{dest_dir}/users/*.json") do |filename|
+          name = ::File.basename(filename).gsub('.json', '')
+          if name == 'pivotal' && !config[:overwrite_pivotal]
+            ui.warn('Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.')
+          else
+            # Update user acl
+            user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
+            put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
+          end
+        end
+      end
+
+      def upload_org(dest_dir, webui_key, rest, name)
         ::ChefConfigMutator.save_config!
         begin
           ::ChefConfigMutator.set_config_for_org!(name, dest_dir)

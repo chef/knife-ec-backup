@@ -22,11 +22,12 @@ class ChefConfigMutator
   end
 
   def self.config_for_auth_as!(user = 'pivotal')
-    Chef::Config.node_name = user
     if user == "pivotal" || user.nil?
+      Chef::Config.node_name = 'pivotal'
       Chef::Config.client_key = @@old_config['client_key']
       Chef::Config.custom_http_headers = @@old_config['custom_http_headers']
     else
+      Chef::Config.node_name = user
       Chef::Config.client_key = Chef::Config[:webui_key]
       Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge('x-ops-request-source' => 'web')
     end
@@ -44,7 +45,7 @@ class ChefConfigMutator
   def self.set_initial_client_config!(webui_key)
     if Chef::Config.node_name != 'pivotal'
       unless File.exist?('/etc/opscode/pivotal.pem')
-        ui.error('Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.')
+        puts 'Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.'
         exit 1
       end
       Chef::Config.node_name = 'pivotal'
@@ -53,7 +54,7 @@ class ChefConfigMutator
 
     if Chef::Config.chef_server_root.nil?
       Chef::Config.chef_server_root = Chef::Config.chef_server_url.gsub(%r{/organizations/+[^\/]+/*$}, '')
-      ui.warn "chef_server_root not found in knife configuration. Setting root #{Chef::Config.chef_server_root}"
+      puts "chef_server_root not found in knife configuration. Setting root #{Chef::Config.chef_server_root}"
     end
     Chef::Config.webui_key = webui_key
   end
