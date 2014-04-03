@@ -3,7 +3,7 @@ require 'chef/knife'
 class Chef
   class Knife
     class EcRestore < Chef::Knife
-      banner "knife ec restore"
+      banner "knife ec restore DIRECTORY"
 
       option :concurrency,
         :long => '--concurrency THREADS',
