@@ -219,18 +219,13 @@ class Chef
         end
       end
 
-      PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      CONFIG_VARS = %w(chef_server_url chef_server_root custom_http_headers node_name client_key versioned_cookbooks) + PATHS
+      CONFIG_VARS = %w(chef_server_url chef_server_root custom_http_headers node_name client_key versioned_cookbooks)
       def upload_org(dest_dir, webui_key, name)
         old_config = {}
         CONFIG_VARS.each do |key|
           old_config[key] = Chef::Config[key.to_sym]
         end
         begin
-          # Clear out paths
-          PATHS.each do |path_var|
-            Chef::Config[path_var.to_sym] = nil
-          end
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
 
