@@ -33,20 +33,20 @@ class Chef
 
       deps do
         require 'chef/json_compat'
-        require 'chef_fs/config'
-        require 'chef_fs/file_system'
-        require 'chef_fs/file_pattern'
-        require 'chef_fs/file_system/acl_entry'
-        require 'chef_fs/data_handler/acl_data_handler'
+        require 'chef/chef_fs/config'
+        require 'chef/chef_fs/file_system'
+        require 'chef/chef_fs/file_pattern'
+        require 'chef/chef_fs/file_system/acl_entry'
+        require 'chef/chef_fs/data_handler/acl_data_handler'
         require 'securerandom'
-        require 'chef_fs/parallelizer'
+        require 'chef/chef_fs/parallelizer'
         require 'chef/tsorter'
       end
 
       def configure_chef
         super
         Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
-        ::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
+        Chef::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
       end
 
       def run
@@ -109,8 +109,8 @@ class Chef
               config[:skip_useracl] = true
               user_acl_rest = nil
             else
-              user_acl_rest = rest 
-            end             
+              user_acl_rest = rest
+            end
           else
             ui.warn("Unable to detect Chef Server version.")
           end
@@ -210,7 +210,7 @@ class Chef
 
           # Update user acl
           user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
-          put_acl(rest, "users/#{name}/_acl", user_acl)          
+          put_acl(rest, "users/#{name}/_acl", user_acl)
         end
 
 
@@ -238,15 +238,15 @@ class Chef
 
           # Upload the admins group and billing-admins acls
           puts "Restoring the org admin data"
-          chef_fs_config = ::ChefFS::Config.new
+          chef_fs_config = Chef::ChefFS::Config.new
 
           # Restore users w/o clients (which don't exist yet)
           ['admins', 'billing-admins'].each do |group|
             restore_group(chef_fs_config, group, :clients => false)
           end
 
-          pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
-          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+          pattern = Chef::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
+          if Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
 
@@ -267,25 +267,25 @@ class Chef
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
           puts "Restoring the rest of the org"
-          chef_fs_config = ::ChefFS::Config.new
+          chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
 
           # Topologically sort groups for upload
-          unsorted_groups = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| JSON.parse(entry.read) }
+          unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| JSON.parse(entry.read) }
           group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
 
-          group_acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
-          acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
+          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
 
           (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
-            ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
           # restore clients to groups, using the pivotal key again
           Chef::Config[:node_name] = old_config['node_name']
-          Chef::Config[:client_key] = old_config['client_key'] 
+          Chef::Config[:client_key] = old_config['client_key']
           Chef::Config.custom_http_headers = {}
           ['admins', 'billing-admins'].each do |group|
-            restore_group(::ChefFS::Config.new, group)
+            restore_group(Chef::ChefFS::Config.new, group)
           end
          ensure
           CONFIG_VARS.each do |key|
@@ -316,13 +316,13 @@ class Chef
       def restore_group(chef_fs_config, group_name, includes = {:users => true, :clients => true})
         includes[:users] = true unless includes.key? :users
         includes[:clients] = true unless includes.key? :clients
-      
-        group = ::ChefFS::FileSystem.resolve_path(
+
+        group = Chef::ChefFS::FileSystem.resolve_path(
           chef_fs_config.chef_fs,
           "/groups/#{group_name}.json"
         )
 
-        members_json = ::ChefFS::FileSystem.resolve_path(
+        members_json = Chef::ChefFS::FileSystem.resolve_path(
           chef_fs_config.local_fs,
           "/groups/#{group_name}.json"
         ).read
@@ -336,20 +336,20 @@ class Chef
             member == 'clients'
           end
         end
-        
+
         group.write(members.to_json)
       end
 
       def parallelize(entries, options = {}, &block)
-        ::ChefFS::Parallelizer.parallelize(entries, options, &block)
+        Chef::ChefFS::Parallelizer.parallelize(entries, options, &block)
       end
 
       def put_acl(rest, url, acls)
         old_acls = rest.get_rest(url)
-        old_acls = ::ChefFS::DataHandler::AclDataHandler.new.normalize(old_acls, nil)
-        acls = ::ChefFS::DataHandler::AclDataHandler.new.normalize(acls, nil)
+        old_acls = Chef::ChefFS::DataHandler::AclDataHandler.new.normalize(old_acls, nil)
+        acls = Chef::ChefFS::DataHandler::AclDataHandler.new.normalize(acls, nil)
         if acls != old_acls
-          ::ChefFS::FileSystem::AclEntry::PERMISSIONS.each do |permission|
+          Chef::ChefFS::FileSystem::AclEntry::PERMISSIONS.each do |permission|
             rest.put_rest("#{url}/#{permission}", { permission => acls[permission] })
           end
         end
