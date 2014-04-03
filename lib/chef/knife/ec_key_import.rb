@@ -49,16 +49,25 @@ class Chef
           username = d['username']
           key = d['public_key']
           version = d['pubkey_version']
+          hashed_password = d['hashed_password']
+          hash_type = d['hash_type']
+          salt = d['salt']
+
           if username == 'pivotal' && config[:skip_pivotal]
             ui.warn "Skipping pivotal user."
             next
           end
+
           ui.msg "Updating key for #{username}"
           users_to_update = db[:users].where(:username => username)
           if users_to_update.count != 1
             ui.warn "Wrong number of users to update for #{username}. Skipping"
           else
-            users_to_update.update(:public_key => key, :pubkey_version => version)
+            users_to_update.update(:public_key => key,
+                                   :pubkey_version => version,
+                                   :salt => salt,
+                                   :hashed_password => hashed_password,
+                                   :hash_type => hash_type)
           end
         end
       end
