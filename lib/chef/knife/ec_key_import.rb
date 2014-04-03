@@ -27,8 +27,10 @@ class Chef
 
       banner "knife ec key import [PATH]"
 
-      option :no_skip_pivotal,
-        :long => "--no-skip-pivotal",
+      option :skip_pivotal,
+        :long => "--[no-]skip-pivotal",
+        :default => true,
+        :boolean => true,
         :description => "Upload pivotal key.  By default the pivotal key is not uploaded."
 
       def run
@@ -47,7 +49,7 @@ class Chef
           username = d['username']
           key = d['public_key']
           version = d['pubkey_version']
-          if username == 'pivotal' && !config[:no_skip_pivotal]
+          if username == 'pivotal' && config[:skip_pivotal]
             ui.warn "Skipping pivotal user."
             next
           end
