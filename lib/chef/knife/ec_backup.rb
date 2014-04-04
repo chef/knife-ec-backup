@@ -139,12 +139,12 @@ class Chef
           File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
             file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
           end
-        end unless config[:org]
+        end
 
         # Download organizations
         ensure_dir("#{dest_dir}/organizations")
         rest.get_rest('/organizations').each_pair do |name, url|
-          do_org = true if (config[:org] == nil or config[:org] == name)
+          do_org = (config[:org].nil? || config[:org] == name)
           org = rest.get_rest(url)
           if org['assigned_at'] and do_org
             puts "Grabbing organization #{name} ..."
