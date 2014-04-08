@@ -219,12 +219,15 @@ class Chef
         end
       end
 
-      CONFIG_VARS = %w(chef_server_url chef_server_root custom_http_headers node_name client_key versioned_cookbooks)
+      PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
       def upload_org(dest_dir, webui_key, name)
-        old_config = {}
-        CONFIG_VARS.each do |key|
-          old_config[key] = Chef::Config[key.to_sym]
+        old_config = Chef::Config.save
+
+        # Clear out paths
+        PATHS.each do |path|
+          Chef::Config.delete(path.to_sym)
         end
+
         begin
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
@@ -283,9 +286,7 @@ class Chef
             restore_group(Chef::ChefFS::Config.new, group)
           end
          ensure
-          CONFIG_VARS.each do |key|
-            Chef::Config[key.to_sym] = old_config[key]
-          end
+          Chef::Config.restore(old_config)
         end
       end
 
