@@ -223,12 +223,12 @@ class Chef
       def upload_org(dest_dir, webui_key, name)
         old_config = Chef::Config.save
 
-        # Clear out paths
-        PATHS.each do |path|
-          Chef::Config.delete(path.to_sym)
-        end
-
         begin
+          # Clear out paths
+          PATHS.each do |path|
+            Chef::Config.delete(path.to_sym)
+          end
+
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
 
