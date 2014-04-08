@@ -1,4 +1,16 @@
 require 'chef/knife'
+require 'tsort'
+
+# Monkey-patch Hash to include
+# Tsort.  Used below in
+# Chef::Knife::EcRestore#sort_groups_for_upload/1
+class Hash
+  include TSort
+  alias tsort_each_node each_key
+  def tsort_each_child(node, &block)
+    fetch(node).each(&block)
+  end
+end
 
 class Chef
   class Knife
@@ -268,9 +280,14 @@ class Chef
           puts "Restoring the rest of the org"
           chef_fs_config = ::ChefFS::Config.new
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
-          acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
+
+          # Topologically sort groups for upload
+          unsorted_groups = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| JSON.parse(entry.read) }
+          group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
+
           group_acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
-          group_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.local_fs, ::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
+
           (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
             ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
@@ -286,6 +303,25 @@ class Chef
             Chef::Config[key.to_sym] = old_config[key]
           end
         end
+      end
+
+      # Takes an array of group objects
+      # and topologically sorts them
+      def sort_groups_for_upload(groups)
+        group_array_to_sortable_hash(groups).tsort
+      end
+
+      def group_array_to_sortable_hash(groups)
+        ret = {}
+        groups.each do |group|
+          name = group["name"]
+          ret[name] = if group.key?("groups")
+                        group["groups"]
+                      else
+                        []
+          end
+        end
+        ret
       end
 
       def restore_group(chef_fs_config, group_name, includes = {:users => true, :clients => true})
