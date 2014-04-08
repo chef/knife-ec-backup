@@ -25,6 +25,10 @@ class Chef
         :default => false,
         :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
 
+      option :org,
+        :long => '--only-org ORGNAME',
+        :description => "Only back up objects in the named organization (default: all orgs)"
+
       deps do
         require 'chef_fs/config'
         require 'chef_fs/file_system'
@@ -140,8 +144,9 @@ class Chef
         # Download organizations
         ensure_dir("#{dest_dir}/organizations")
         rest.get_rest('/organizations').each_pair do |name, url|
+          do_org = (config[:org].nil? || config[:org] == name)
           org = rest.get_rest(url)
-          if org['assigned_at']
+          if org['assigned_at'] and do_org
             puts "Grabbing organization #{name} ..."
             ensure_dir("#{dest_dir}/organizations/#{name}")
             download_org(dest_dir, webui_key, name)
