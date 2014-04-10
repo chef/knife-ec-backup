@@ -1,16 +1,4 @@
 require 'chef/knife'
-require 'tsort'
-
-# Monkey-patch Hash to include
-# Tsort.  Used below in
-# Chef::Knife::EcRestore#sort_groups_for_upload/1
-class Hash
-  include TSort
-  alias tsort_each_node each_key
-  def tsort_each_child(node, &block)
-    fetch(node).each(&block)
-  end
-end
 
 class Chef
   class Knife
@@ -52,6 +40,7 @@ class Chef
         require 'chef_fs/data_handler/acl_data_handler'
         require 'securerandom'
         require 'chef_fs/parallelizer'
+        require 'chef/tsorter'
       end
 
       def configure_chef
@@ -308,7 +297,7 @@ class Chef
       # Takes an array of group objects
       # and topologically sorts them
       def sort_groups_for_upload(groups)
-        group_array_to_sortable_hash(groups).tsort
+        Chef::Tsorter.new(group_array_to_sortable_hash(groups)).tsort
       end
 
       def group_array_to_sortable_hash(groups)
@@ -319,7 +308,7 @@ class Chef
                         group["groups"]
                       else
                         []
-          end
+                      end
         end
         ret
       end
