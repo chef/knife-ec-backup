@@ -36,6 +36,8 @@ class Chef
         require 'chef/chef_fs/config'
         require 'chef/chef_fs/file_system'
         require 'chef/chef_fs/file_pattern'
+        # Work around bug in chef_fs
+        require 'chef/chef_fs/command_line'
         require 'chef/chef_fs/file_system/acl_entry'
         require 'chef/chef_fs/data_handler/acl_data_handler'
         require 'securerandom'
