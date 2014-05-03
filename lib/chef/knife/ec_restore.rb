@@ -177,7 +177,7 @@ class Chef
               rest.post_rest("organizations/#{name}/association_requests", { 'user' => invitation['username'] })
             rescue Net::HTTPServerException => e
               if e.response.code != "409"
-                raise
+                ui.error("Cannot create invitation #{invitation['id']}")
               end
             end
           end
