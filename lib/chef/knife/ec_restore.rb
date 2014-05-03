@@ -31,6 +31,10 @@ class Chef
         :default => false,
         :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
 
+      option :org,
+        :long => "--only-org ORG",
+        :description => "Only back up objects in the named organization (default: all orgs)"
+
       deps do
         require 'chef/json_compat'
         require 'chef/chef_fs/config'
@@ -151,6 +155,7 @@ class Chef
         # Restore organizations
         Dir.foreach("#{dest_dir}/organizations") do |name|
           next if name == '..' || name == '.' || !File.directory?("#{dest_dir}/organizations/#{name}")
+          next unless (config[:org].nil? || config[:org] == name)
           puts "Restoring org #{name} ..."
 
           # Create organization
