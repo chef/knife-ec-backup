@@ -33,7 +33,11 @@ class Chef
 
       option :org,
         :long => "--only-org ORG",
-        :description => "Only back up objects in the named organization (default: all orgs)"
+        :description => "Only restore objects in the named organization (default: all orgs)"
+
+      option :skip_users,
+        :long => "--skip-users",
+        :description => "Skip restoring users"
 
       deps do
         require 'chef/json_compat'
@@ -122,35 +126,9 @@ class Chef
           end
         end
 
-        # Restore users
-        puts "Restoring users ..."
-
         rest = Chef::REST.new(Chef::Config.chef_server_root)
-
-        Dir.foreach("#{dest_dir}/users") do |filename|
-          next if filename !~ /(.+)\.json/
-          name = $1
-          if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.")
-            next
-          end
-
-          # Update user object
-          user = JSONCompat.from_json(IO.read("#{dest_dir}/users/#{name}.json"))
-          begin
-            # Supply password for new user
-            user_with_password = user.dup
-            user_with_password['password'] = SecureRandom.hex
-            rest.post_rest('users', user_with_password)
-          rescue Net::HTTPServerException => e
-            if e.response.code == "409"
-              rest.put_rest("users/#{name}", user)
-            else
-              raise
-            end
-          end
-
-        end
+        # Restore users
+        restore_users(dest_dir, rest) unless config[:skip_users]
 
         # Restore organizations
         Dir.foreach("#{dest_dir}/organizations") do |name|
@@ -223,6 +201,33 @@ class Chef
 
         if @error
           exit 1
+        end
+      end
+
+      def restore_users(dest_dir, rest)
+        puts "Restoring users ..."
+        Dir.foreach("#{dest_dir}/users") do |filename|
+          next if filename !~ /(.+)\.json/
+          name = $1
+          if name == 'pivotal' && !config[:overwrite_pivotal]
+            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.")
+            next
+          end
+          
+          # Update user object
+          user = JSONCompat.from_json(IO.read("#{dest_dir}/users/#{name}.json"))
+          begin
+            # Supply password for new user
+            user_with_password = user.dup
+            user_with_password['password'] = SecureRandom.hex
+            rest.post_rest('users', user_with_password)
+          rescue Net::HTTPServerException => e
+            if e.response.code == "409"
+              rest.put_rest("users/#{name}", user)
+            else
+              raise
+            end
+          end
         end
       end
 
