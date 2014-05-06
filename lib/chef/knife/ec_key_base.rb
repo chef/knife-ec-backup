@@ -52,8 +52,9 @@ class Chef
 
       def db
         @db ||= begin
+                  require 'sequel'
                   server_string = "#{config[:sql_user]}:#{config[:sql_password]}@#{config[:sql_host]}:#{config[:sql_port]}/opscode_chef"
-                  Sequel.connect("postgres://#{server_string}")
+                  ::Sequel.connect("postgres://#{server_string}")
                 end
       end
 
