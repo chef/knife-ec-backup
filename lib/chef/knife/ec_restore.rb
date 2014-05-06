@@ -241,6 +241,7 @@ class Chef
         k = Chef::Knife::EcKeyImport.new
         k.name_args = ["#{dest_dir}/key_dump.json"]
         k.config[:skip_pivotal] = true
+        k.config[:skip_ids] = false
         k.config[:sql_host] = "localhost"
         k.config[:sql_port] = 5432
         k.run

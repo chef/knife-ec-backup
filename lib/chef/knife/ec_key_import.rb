@@ -33,6 +33,12 @@ class Chef
         :boolean => true,
         :description => "Upload pivotal key.  By default the pivotal key is not uploaded."
 
+      option :skip_ids,
+        :long => "--[no-]skip-user-ids",
+        :default => true,
+        :boolean => true,
+        :description => "Upload user ids."
+
       def run
         if config[:sql_user].nil? || config[:sql_password].nil?
           load_config_from_file!
@@ -64,12 +70,14 @@ class Chef
           if users_to_update.count != 1
             ui.warn "Wrong number of users to update for #{username}. Skipping"
           else
-            users_to_update.update(:id => id,
-                                   :public_key => key,
-                                   :pubkey_version => version,
-                                   :salt => salt,
-                                   :hashed_password => hashed_password,
-                                   :hash_type => hash_type)
+            data = { :public_key => key,
+              :pubkey_version => version,
+              :salt => salt,
+              :hashed_password => hashed_password,
+              :hash_type => hash_type
+            }
+            data[:id] = id unless config[:skip_ids]
+            users_to_update.update(data)
           end
         end
       end
