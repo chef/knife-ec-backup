@@ -46,6 +46,7 @@ class Chef
       def import(path)
         key_data = JSON.parse(File.read(path))
         key_data.each do |d|
+          id = d['id']
           username = d['username']
           key = d['public_key']
           version = d['pubkey_version']
@@ -63,7 +64,8 @@ class Chef
           if users_to_update.count != 1
             ui.warn "Wrong number of users to update for #{username}. Skipping"
           else
-            users_to_update.update(:public_key => key,
+            users_to_update.update(:id => id,
+                                   :public_key => key,
                                    :pubkey_version => version,
                                    :salt => salt,
                                    :hashed_password => hashed_password,

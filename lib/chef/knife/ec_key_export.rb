@@ -37,7 +37,7 @@ class Chef
       end
 
       def export(path)
-        users = db.select(:username, :public_key, :pubkey_version, :hashed_password, :salt, :hash_type).from(:users)
+        users = db.select(:username, :id, :public_key, :pubkey_version, :hashed_password, :salt, :hash_type).from(:users)
         File.open(path, 'w') { |file| file.write(users.all.to_json) }
       end
     end

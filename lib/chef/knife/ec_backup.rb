@@ -25,6 +25,10 @@ class Chef
         :default => false,
         :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
 
+      option :with_user_sql,
+        :long => '--with-user-sql',
+        :description => 'Whether to try direct data base access for user export.  Required to properly handle passwords, keys, and USAGs'
+
       option :org,
         :long => '--only-org ORGNAME',
         :description => "Only back up objects in the named organization (default: all orgs)"
@@ -122,7 +126,6 @@ class Chef
 
         # Grab users
         puts "Grabbing users ..."
-
         ensure_dir("#{dest_dir}/users")
         ensure_dir("#{dest_dir}/user_acls")
 
@@ -139,6 +142,16 @@ class Chef
           File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
             file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
           end
+        end
+
+        if config[:with_user_sql]
+          require 'chef/knife/ec_key_export'
+          Chef::Knife::EcKeyExport.deps
+          k = Chef::Knife::EcKeyExport.new
+          k.name_args = ["#{dest_dir}/key_dump.json"]
+          k.config[:sql_host] = "localhost"
+          k.config[:sql_port] = 5432
+          k.run
         end
 
         # Download organizations

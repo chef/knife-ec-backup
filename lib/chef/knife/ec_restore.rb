@@ -39,6 +39,10 @@ class Chef
         :long => "--skip-users",
         :description => "Skip restoring users"
 
+      option :with_user_sql,
+        :long => "--with-user-sql",
+        :description => "Restore user id's, passwords, and keys from sql export"
+
       deps do
         require 'chef/json_compat'
         require 'chef/chef_fs/config'
@@ -129,6 +133,7 @@ class Chef
         rest = Chef::REST.new(Chef::Config.chef_server_root)
         # Restore users
         restore_users(dest_dir, rest) unless config[:skip_users]
+        restore_user_sql(dest_dir) if config[:with_user_sql]
 
         # Restore organizations
         Dir.foreach("#{dest_dir}/organizations") do |name|
@@ -229,6 +234,16 @@ class Chef
             end
           end
         end
+      end
+
+      def restore_user_sql(dest_dir)
+        require 'chef/knife/ec_key_import'
+        k = Chef::Knife::EcKeyImport.new
+        k.name_args = ["#{dest_dir}/key_dump.json"]
+        k.config[:skip_pivotal] = true
+        k.config[:sql_host] = "localhost"
+        k.config[:sql_port] = 5432
+        k.run
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
