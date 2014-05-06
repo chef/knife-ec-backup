@@ -65,8 +65,8 @@ class Chef
             ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
             exit 1
           end
-          node_name = 'pivotal'
-          client_key = '/etc/opscode/pivotal.pem'
+          Chef::Config.node_name = 'pivotal'
+          Chef::Config.client_key = '/etc/opscode/pivotal.pem'
         end
 
         #Check for WebUI Key
