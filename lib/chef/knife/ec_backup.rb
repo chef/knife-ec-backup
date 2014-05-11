@@ -25,21 +25,25 @@ class Chef
         :default => false,
         :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
 
+      option :with_user_sql,
+        :long => '--with-user-sql',
+        :description => 'Whether to try direct data base access for user export.  Required to properly handle passwords, keys, and USAGs'
+
       option :org,
         :long => '--only-org ORGNAME',
         :description => "Only back up objects in the named organization (default: all orgs)"
 
       deps do
-        require 'chef_fs/config'
-        require 'chef_fs/file_system'
-        require 'chef_fs/file_pattern'
-        require 'chef_fs/parallelizer'
+        require 'chef/chef_fs/config'
+        require 'chef/chef_fs/file_system'
+        require 'chef/chef_fs/file_pattern'
+        require 'chef/chef_fs/parallelizer'
       end
 
       def configure_chef
         super
         Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
-        ::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
+        Chef::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
       end
 
       def run
@@ -122,7 +126,6 @@ class Chef
 
         # Grab users
         puts "Grabbing users ..."
-
         ensure_dir("#{dest_dir}/users")
         ensure_dir("#{dest_dir}/user_acls")
 
@@ -139,6 +142,16 @@ class Chef
           File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
             file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
           end
+        end
+
+        if config[:with_user_sql]
+          require 'chef/knife/ec_key_export'
+          Chef::Knife::EcKeyExport.deps
+          k = Chef::Knife::EcKeyExport.new
+          k.name_args = ["#{dest_dir}/key_dump.json"]
+          k.config[:sql_host] = "localhost"
+          k.config[:sql_port] = 5432
+          k.run
         end
 
         # Download organizations
@@ -174,16 +187,13 @@ class Chef
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      CONFIG_VARS = %w(chef_server_url chef_server_root custom_http_headers node_name client_key versioned_cookbooks) + PATHS
       def download_org(dest_dir, webui_key, name)
-        old_config = {}
-        CONFIG_VARS.each do |key|
-          old_config[key] = Chef::Config[key.to_sym]
-        end
+        old_config = Chef::Config.save
+
         begin
           # Clear out paths
-          PATHS.each do |path_var|
-            Chef::Config[path_var.to_sym] = nil
+          PATHS.each do |path|
+            Chef::Config.delete(path.to_sym)
           end
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
@@ -193,17 +203,17 @@ class Chef
           ensure_dir(Chef::Config.chef_repo_path)
 
           # Download the billing-admins ACL and group as pivotal
-          chef_fs_config = ::ChefFS::Config.new
-          pattern = ::ChefFS::FilePattern.new('/acls/groups/billing-admins.json') 
-          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+          chef_fs_config = Chef::ChefFS::Config.new
+          pattern = Chef::ChefFS::FilePattern.new('/acls/groups/billing-admins.json') 
+          if Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
-          pattern = ::ChefFS::FilePattern.new('/groups/billing-admins.json') 
-          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+          pattern = Chef::ChefFS::FilePattern.new('/groups/billing-admins.json') 
+          if Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
-          pattern = ::ChefFS::FilePattern.new('/groups/admins.json') 
-          if ::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+          pattern = Chef::ChefFS::FilePattern.new('/groups/admins.json') 
+          if Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
 
@@ -217,19 +227,17 @@ class Chef
           Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
 
           # Download the entire org skipping the billing admins group ACL and the group itself
-          chef_fs_config = ::ChefFS::Config.new
+          chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.chef_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
-          acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
-          group_acl_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
-          group_paths = ::ChefFS::FileSystem.list(chef_fs_config.chef_fs, ::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
+          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          group_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, Chef::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
           (top_level_paths + group_acl_paths + acl_paths + group_paths).each do |path|
-            ::ChefFS::FileSystem.copy_to(::ChefFS::FilePattern.new(path), chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
 
         ensure
-          CONFIG_VARS.each do |key|
-            Chef::Config[key.to_sym] = old_config[key]
-          end
+          Chef::Config.restore(old_config)
         end
       end
     end
