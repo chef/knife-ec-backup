@@ -6,16 +6,18 @@ This is an UNOFFICIAL and EXPERIMENTAL knife plugin intended to back up and rest
 
 # Requirements
 
-This knife plugin currently requires the Knife-Essentials gem to be installed in the same gemset. This requirement is currently hosted here:
+This knife plugin requires Chef 11.8+.
 
-    https://github.com/jkeiser/knife-essentials
+## Chef 10
+
+Users who are still using Chef 10 can use the most recent 1.x version
+of this gem.  Version 1.x additionally depends on knife-essentials.
 
 # Installation
 
 ## Chef Server Install (Recommended)
 This will install the plugin directly on the Chef Server:
 
-    /opt/opscode/embedded/bin/gem install knife-ec-backup
     /opt/opscode/embedded/bin/gem install knife-ec-backup
 
 ## Build from source
