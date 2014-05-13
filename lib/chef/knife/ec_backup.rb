@@ -33,6 +33,25 @@ class Chef
         :long => '--only-org ORGNAME',
         :description => "Only back up objects in the named organization (default: all orgs)"
 
+      option :sql_host,
+        :long => '--sql-host HOSTNAME',
+        :description => 'Postgresql database hostname (default: localhost)',
+        :default => "localhost"
+
+      option :sql_port,
+        :long => '--sql-port PORT',
+        :description => 'Postgresql database port (default: 5432)',
+        :default => 5432
+
+      option :sql_user,
+        :long => "--sql-user USERNAME",
+        :description => 'User used to connect to the postgresql database.'
+
+      option :sql_password,
+        :long => "--sql-password PASSWORD",
+        :description => 'Password used to connect to the postgresql database'
+
+
       deps do
         require 'chef/chef_fs/config'
         require 'chef/chef_fs/file_system'
@@ -149,8 +168,10 @@ class Chef
           Chef::Knife::EcKeyExport.deps
           k = Chef::Knife::EcKeyExport.new
           k.name_args = ["#{dest_dir}/key_dump.json"]
-          k.config[:sql_host] = "localhost"
-          k.config[:sql_port] = 5432
+          k.config[:sql_host] = config[:sql_host]
+          k.config[:sql_port] = config[:sql_port]
+          k.config[:sql_user] = config[:sql_user]
+          k.config[:sql_password] = config[:sql_password]
           k.run
         end
 
