@@ -218,7 +218,7 @@ class Chef
             ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.")
             next
           end
-          
+
           # Update user object
           user = JSONCompat.from_json(IO.read("#{dest_dir}/users/#{name}.json"))
           begin
@@ -307,8 +307,8 @@ class Chef
             Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
           # restore clients to groups, using the pivotal key again
-          Chef::Config[:node_name] = old_config['node_name']
-          Chef::Config[:client_key] = old_config['client_key']
+          Chef::Config[:node_name] = old_config[:node_name]
+          Chef::Config[:client_key] = old_config[:client_key]
           Chef::Config.custom_http_headers = {}
           ['admins', 'billing-admins'].each do |group|
             restore_group(Chef::ChefFS::Config.new, group)
