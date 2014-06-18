@@ -52,32 +52,28 @@ class Chef
       def import(path)
         key_data = JSON.parse(File.read(path))
         key_data.each do |d|
-          id = d['id']
-          username = d['username']
-          key = d['public_key']
-          version = d['pubkey_version']
-          hashed_password = d['hashed_password']
-          hash_type = d['hash_type']
-          salt = d['salt']
-
-          if username == 'pivotal' && config[:skip_pivotal]
+          if d['username'] == 'pivotal' && config[:skip_pivotal]
             ui.warn "Skipping pivotal user."
             next
           end
 
-          ui.msg "Updating key for #{username}"
-          users_to_update = db[:users].where(:username => username)
+          ui.msg "Updating key for #{d['username']}"
+          users_to_update = db[:users].where(:username => d['username'])
+
           if users_to_update.count != 1
-            ui.warn "Wrong number of users to update for #{username}. Skipping"
+            ui.warn "Wrong number of users to update for #{d['username']}. Skipping"
           else
-            data = { :public_key => key,
-              :pubkey_version => version,
-              :salt => salt,
-              :hashed_password => hashed_password,
-              :hash_type => hash_type
-            }
-            data[:id] = id unless config[:skip_ids]
-            users_to_update.update(data)
+            d.delete('id') if :skip_ids
+            # If the hash_type in the export,
+            # we are dealing with a record where the password is still in the
+            # serialized_obejct.  Explictly setting these to nil ensures that the
+            # password set in the restore is wiped out.
+            unless d.has_key?('hash_type')
+              d['hash_type'] = nil
+              d['hashed_password'] = nil
+              d['salt'] = nil
+            end
+            users_to_update.update(d)
           end
         end
       end
