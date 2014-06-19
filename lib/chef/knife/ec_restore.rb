@@ -43,6 +43,24 @@ class Chef
         :long => "--with-user-sql",
         :description => "Restore user id's, passwords, and keys from sql export"
 
+      option :sql_host,
+        :long => '--sql-host HOSTNAME',
+        :description => 'Postgresql database hostname (default: localhost)',
+        :default => "localhost"
+
+      option :sql_port,
+        :long => '--sql-port PORT',
+        :description => 'Postgresql database port (default: 5432)',
+        :default => 5432
+
+      option :sql_user,
+        :long => "--sql-user USERNAME",
+        :description => 'User used to connect to the postgresql database.'
+
+      option :sql_password,
+        :long => "--sql-password PASSWORD",
+        :description => 'Password used to connect to the postgresql database'
+
       deps do
         require 'chef/json_compat'
         require 'chef/chef_fs/config'
@@ -242,8 +260,10 @@ class Chef
         k.name_args = ["#{dest_dir}/key_dump.json"]
         k.config[:skip_pivotal] = true
         k.config[:skip_ids] = false
-        k.config[:sql_host] = "localhost"
-        k.config[:sql_port] = 5432
+        k.config[:sql_host] = config[:sql_host]
+        k.config[:sql_port] = config[:sql_port]
+        k.config[:sql_user] = config[:sql_user]
+        k.config[:sql_password] = config[:sql_password]
         k.run
       end
 
