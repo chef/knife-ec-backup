@@ -63,6 +63,9 @@ class Chef
           if users_to_update.count != 1
             ui.warn "Wrong number of users to update for #{d['username']}. Skipping"
           else
+            # Remove authz id from import since this will no longer
+            # be valid.
+            d.delete('authz_id')
             d.delete('id') if config[:skip_ids]
             # If the hash_type in the export,
             # we are dealing with a record where the password is still in the
