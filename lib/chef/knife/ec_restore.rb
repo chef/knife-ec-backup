@@ -129,22 +129,23 @@ class Chef
           user_acl_rest = rest
         else # Grab Chef Server version number so that we can auto set options
           uri = URI.parse("#{Chef::Config.chef_server_root}/version")
-          server_version = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first.split(' ').last
-          server_version_parts = server_version.split('.')
+          server_version = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first
+          unless server_version.include?('private-chef')
+            raise "Invalid or missing version line, maybe not a Chef server?"
+          end
 
-          if server_version_parts.count == 3
-            puts "Detected Enterprise Chef Server version: #{server_version}"
+          server_version = server_version.split[1]
+          server_version_major, server_version_minor = server_version.split('.').map { |ver| ver.to_i }
 
-            # All versions of Chef Server below 11.0.X are unable to update user acls
-            if server_version_parts[0].to_i < 11 || (server_version_parts[0].to_i == 11 && server_version_parts[1].to_i == 0)
-              ui.warn("Your version of Enterprise Chef Server does not support the updating of User ACLs.  Setting skip-useracl to TRUE")
-              config[:skip_useracl] = true
-              user_acl_rest = nil
-            else
-              user_acl_rest = rest
-            end
+          puts "Detected Enterprise Chef Server version: #{server_version}"
+
+          # All versions of Chef Server below 11.0.X are unable to update user acls
+          if server_version_major < 11 || (server_version_major == 11 && server_version_minor == 0)
+            ui.warn("Your version of Enterprise Chef Server does not support the updating of User ACLs.  Setting skip-useracl to TRUE")
+            config[:skip_useracl] = true
+            user_acl_rest = nil
           else
-            ui.warn("Unable to detect Chef Server version.")
+            user_acl_rest = rest
           end
         end
 
