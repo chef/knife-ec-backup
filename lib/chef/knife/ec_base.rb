@@ -68,7 +68,7 @@ class Chef
             :description => 'Password used to connect to the postgresql database'
 
           option :with_user_sql,
-           :long => '--with-user-sql',
+            :long => '--with-user-sql',
             :description => 'Try direct data base access for user export/import.  Required to properly handle passwords, keys, and USAGs'
 
         end
