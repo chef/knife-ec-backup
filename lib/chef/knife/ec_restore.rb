@@ -3,15 +3,10 @@ require 'chef/knife'
 class Chef
   class Knife
     class EcRestore < Chef::Knife
+
+      include Knife::EcBase
+
       banner "knife ec restore DIRECTORY"
-
-      option :concurrency,
-        :long => '--concurrency THREADS',
-        :description => 'Maximum number of simultaneous requests to send (default: 10)'
-
-      option :webui_key,
-        :long => '--webui-key KEYPATH',
-        :description => 'Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)'
 
       option :overwrite_pivotal,
         :long => '--overwrite-pivotal',
@@ -19,47 +14,9 @@ class Chef
         :default => false,
         :description => "Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key."
 
-      option :skip_useracl,
-        :long => '--skip-useracl',
-        :boolean => true,
-        :default => false,
-        :description => "Whether to skip restoring User ACLs.  This is required for EC 11.0.2 and lower"
-
-      option :skip_version,
-        :long => '--skip-version-check',
-        :boolean => true,
-        :default => false,
-        :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
-
-      option :org,
-        :long => "--only-org ORG",
-        :description => "Only restore objects in the named organization (default: all orgs)"
-
       option :skip_users,
         :long => "--skip-users",
         :description => "Skip restoring users"
-
-      option :with_user_sql,
-        :long => "--with-user-sql",
-        :description => "Restore user id's, passwords, and keys from sql export"
-
-      option :sql_host,
-        :long => '--sql-host HOSTNAME',
-        :description => 'Postgresql database hostname (default: localhost)',
-        :default => "localhost"
-
-      option :sql_port,
-        :long => '--sql-port PORT',
-        :description => 'Postgresql database port (default: 5432)',
-        :default => 5432
-
-      option :sql_user,
-        :long => "--sql-user USERNAME",
-        :description => 'User used to connect to the postgresql database.'
-
-      option :sql_password,
-        :long => "--sql-password PASSWORD",
-        :description => 'Password used to connect to the postgresql database'
 
       deps do
         require 'chef/json_compat'

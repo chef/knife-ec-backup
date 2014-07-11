@@ -3,54 +3,10 @@ require 'chef/knife'
 class Chef
   class Knife
     class EcBackup < Chef::Knife
+
+      include Knife::EcBase
+
       banner "knife ec backup DIRECTORY"
-
-      option :concurrency,
-        :long => '--concurrency THREADS',
-        :description => 'Maximum number of simultaneous requests to send (default: 10)'
-
-      option :webui_key,
-        :long => '--webui-key KEYPATH',
-        :description => 'Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)'
-
-      option :skip_useracl,
-        :long => '--skip-useracl',
-        :boolean => true,
-        :default => false,
-        :description => "Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower"
-
-      option :skip_version,
-        :long => '--skip-version-check',
-        :boolean => true,
-        :default => false,
-        :description => "Whether to skip checking the Chef Server version.  This will also skip any auto-configured options"
-
-      option :with_user_sql,
-        :long => '--with-user-sql',
-        :description => 'Whether to try direct data base access for user export.  Required to properly handle passwords, keys, and USAGs'
-
-      option :org,
-        :long => '--only-org ORGNAME',
-        :description => "Only back up objects in the named organization (default: all orgs)"
-
-      option :sql_host,
-        :long => '--sql-host HOSTNAME',
-        :description => 'Postgresql database hostname (default: localhost)',
-        :default => "localhost"
-
-      option :sql_port,
-        :long => '--sql-port PORT',
-        :description => 'Postgresql database port (default: 5432)',
-        :default => 5432
-
-      option :sql_user,
-        :long => "--sql-user USERNAME",
-        :description => 'User used to connect to the postgresql database.'
-
-      option :sql_password,
-        :long => "--sql-password PASSWORD",
-        :description => 'Password used to connect to the postgresql database'
-
 
       deps do
         require 'chef/chef_fs/config'
