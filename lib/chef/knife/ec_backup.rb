@@ -57,6 +57,7 @@ class Chef
         require 'chef/chef_fs/file_system'
         require 'chef/chef_fs/file_pattern'
         require 'chef/chef_fs/parallelizer'
+        require 'chef/server'
       end
 
       def configure_chef
@@ -98,50 +99,21 @@ class Chef
           webui_key = config[:webui_key]
         end
 
-        #Set the server root
-        server_root = Chef::Config.chef_server_root
-        if server_root == nil
-          server_root = Chef::Config.chef_server_url.gsub(/\/organizations\/+[^\/]+\/*$/, '')
-          ui.warn("chef_server_root not found in knife configuration. Setting root to: #{server_root}")
-          Chef::Config.chef_server_root = server_root
-        end
+        @server = if Chef::Config.chef_server_root.nil?
+                    ui.warn("chef_server_root not found in knife configuration; using chef_server_url")
+                    Chef::Server.from_chef_server_url(Chef::Config.chef_server_url)
+                  else
+                    Chef::Server.new(Chef::Config.chef_server_root)
+                  end
 
-        rest = Chef::REST.new(Chef::Config.chef_server_root)
-       
-        if config[:skip_version] && config[:skip_useracl]
-          ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
-          user_acl_rest = nil
-        elsif config[:skip_version] && !config[:skip_useracl]
-          ui.warn("Skipping the Chef Server version check.  This will also skip any auto-configured options")
-          user_acl_rest = rest
-        else # Grab Chef Server version number so that we can auto set options
-          uri = URI.parse("#{Chef::Config.chef_server_root}/version")
-          server_version = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first.split(' ').last
-          server_version_parts = server_version.split('.')
-
-          if server_version_parts.count == 3
-            puts "Detected Enterprise Chef Server version: #{server_version}"
-
-            # All versions of Chef Server below 11.0.1 are missing the GET User ACL helper in nginx
-            if server_version_parts[0].to_i < 11 || (server_version_parts[0].to_i == 11 && server_version_parts[1].to_i == 0 && server_version_parts[0].to_i < 1)
-              #Check to see if Opscode-Account can be directly from the local machine  
-              begin
-                user_acl_rest.get('users')
-                ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Using local connection to backup")
-                user_acl_rest = Chef::REST.new("http://127.0.0.1:9465")
-              rescue
-                ui.warn("Your version of Enterprise Chef Server does not support the downloading of User ACLs.  Setting skip-useracl to TRUE")
-                config[:skip_useracl] = true
-                user_acl_rest = nil
-              end
-            else
-              user_acl_rest = rest
-            end
-
-          else
-            ui.warn("Unable to detect Chef Server version.")
-          end
-        end
+        rest = Chef::REST.new(@server.root_url)
+        user_acl_rest = if config[:skip_version]
+                          rest
+                        elsif @server.supports_user_acls?
+                          rest
+                        elsif @server.direct_account_access?
+                          Chef::REST.new("http://127.0.0.1:9465")
+                        end
 
         # Grab users
         puts "Grabbing users ..."
@@ -219,7 +191,7 @@ class Chef
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
 
-          Chef::Config.chef_server_url = "#{Chef::Config.chef_server_root}/organizations/#{name}"
+          Chef::Config.chef_server_url = "#{@server.root_url}/organizations/#{name}"
 
           ensure_dir(Chef::Config.chef_repo_path)
 
