@@ -4,7 +4,6 @@ require 'chef/rest'
 require 'stringio'
 
 describe Chef::Server do
-  let(:o) { mock('open') }
 
   it "infers root url from a Chef Server url" do
     s = Chef::Server.from_chef_server_url("http://api.example.com/organizations/foobar")
