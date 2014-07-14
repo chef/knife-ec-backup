@@ -221,19 +221,10 @@ class Chef
 
           Chef::Config.chef_server_url = "#{@server.root_url}/organizations/#{name}"
 
-          # Upload the admins group and billing-admins acls
           puts "Restoring the org admin data"
           chef_fs_config = Chef::ChefFS::Config.new
-
-          # Restore users w/o clients (which don't exist yet)
-          ['admins', 'billing-admins'].each do |group|
-            restore_group(chef_fs_config, group, :clients => false)
-          end
-
-          pattern = Chef::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
-          if Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-            @error = true
-          end
+          # Restore admins users w/o clients (which don't exist yet)
+          restore_group(chef_fs_config, 'admins', :clients => false)
 
           # Figure out who the admin is so we can spoof him and retrieve his stuff
           rest = Chef::REST.new(Chef::Config.chef_server_url)
@@ -248,31 +239,24 @@ class Chef
             # No suitable org admins found, defaulting to pivotal
             ui.warn("No suitable Organizational Admins found.  Defaulting to pivotal for org creation")
           end
-          Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
 
+          Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
           # Restore the entire org skipping the admin data and restoring groups and acls last
           puts "Restoring the rest of the org"
           chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
 
           # Topologically sort groups for upload
-          unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| JSON.parse(entry.read) }
+          unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).map { |entry| JSON.parse(entry.read) }
           group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
 
-          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).map { |entry| entry.path }
           acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
 
           (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
             Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
-          # restore clients to groups, using the pivotal key again
-          Chef::Config[:node_name] = old_config[:node_name]
-          Chef::Config[:client_key] = old_config[:client_key]
-          Chef::Config.custom_http_headers = {}
-          ['admins', 'billing-admins'].each do |group|
-            restore_group(Chef::ChefFS::Config.new, group)
-          end
-         ensure
+        ensure
           Chef::Config.restore(old_config)
         end
       end
