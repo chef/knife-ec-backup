@@ -1,4 +1,5 @@
 require 'chef/knife'
+require 'chef/knife/ec_base'
 
 class Chef
   class Knife
