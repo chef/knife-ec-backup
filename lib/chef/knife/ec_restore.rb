@@ -34,12 +34,6 @@ class Chef
         require 'chef/server'
       end
 
-      def configure_chef
-        super
-        Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
-        Chef::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
-      end
-
       def run
         #Check for destination directory argument
         if name_args.length <= 0

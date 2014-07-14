@@ -72,7 +72,12 @@ class Chef
           option :with_user_sql,
             :long => '--with-user-sql',
             :description => 'Try direct data base access for user export/import.  Required to properly handle passwords, keys, and USAGs'
+        end
 
+        def configure_chef
+          super
+          Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
+          Chef::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
         end
 
         def org_admin
