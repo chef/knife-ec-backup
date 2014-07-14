@@ -45,15 +45,9 @@ class Chef
         end
 
         #Check for WebUI Key
-        if config[:webui_key] == nil
-          if !File.exist?("/etc/opscode/webui_priv.pem")
-            ui.error("WebUI not specified and /etc/opscode/webui_priv.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
-            exit 1
-          end
-          ui.warn("WebUI not specified. Using /etc/opscode/webui_priv.pem")
-          webui_key = '/etc/opscode/webui_priv.pem'
-        else
-          webui_key = config[:webui_key]
+        if !File.exist?(config[:webui_key])
+          ui.error("Webui Key (#{config[:webui_key]}) does not exist.")
+          exit 1
         end
 
         @server = if Chef::Config.chef_server_root.nil?
@@ -112,7 +106,7 @@ class Chef
           if org['assigned_at'] and do_org
             puts "Grabbing organization #{name} ..."
             ensure_dir("#{dest_dir}/organizations/#{name}")
-            download_org(dest_dir, webui_key, name)
+            download_org(dest_dir, config[:webui_key], name)
             File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
               file.write(Chef::JSONCompat.to_json_pretty(org))
             end
@@ -154,15 +148,15 @@ class Chef
 
           # Download the billing-admins ACL and group as pivotal
           chef_fs_config = Chef::ChefFS::Config.new
-          pattern = Chef::ChefFS::FilePattern.new('/acls/groups/billing-admins.json') 
+          pattern = Chef::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
           if Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
-          pattern = Chef::ChefFS::FilePattern.new('/groups/billing-admins.json') 
+          pattern = Chef::ChefFS::FilePattern.new('/groups/billing-admins.json')
           if Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end
-          pattern = Chef::ChefFS::FilePattern.new('/groups/admins.json') 
+          pattern = Chef::ChefFS::FilePattern.new('/groups/admins.json')
           if Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
             @error = true
           end

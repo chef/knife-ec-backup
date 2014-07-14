@@ -61,15 +61,9 @@ class Chef
         end
 
         #Check for WebUI Key
-        if config[:webui_key] == nil
-          if !File.exist?("/etc/opscode/webui_priv.pem")
-            ui.error("WebUI not specified and /etc/opscode/webui_priv.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
-            exit 1
-          end
-          ui.warn("WebUI not specified. Using /etc/opscode/webui_priv.pem")
-          webui_key = '/etc/opscode/webui_priv.pem'
-        else
-          webui_key = config[:webui_key]
+        if !File.exist?(config[:webui_key])
+          ui.error("Webui Key (#{config[:webui_key]}) does not exist.")
+          exit 1
         end
 
         @server = if Chef::Config.chef_server_root.nil?
@@ -138,7 +132,7 @@ class Chef
           end
 
           # Upload org data
-          upload_org(dest_dir, webui_key, name)
+          upload_org(dest_dir, config[:webui_key], name)
         end
 
         # Restore user ACLs
