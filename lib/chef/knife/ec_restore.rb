@@ -229,20 +229,9 @@ class Chef
             @error = true
           end
 
-          # Figure out who the admin is so we can spoof him and retrieve his stuff
-          rest = Chef::REST.new(Chef::Config.chef_server_url)
-          org_admins = rest.get_rest('groups/admins')['users']
-          org_members = rest.get_rest('users').map { |user| user['user']['username'] }
-          org_admins.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
-          if org_admins[0] != nil
-            # Using an org admin already on the destination server
-            Chef::Config.node_name = org_admins[0]
-            Chef::Config.client_key = webui_key
-          else
-            # No suitable org admins found, defaulting to pivotal
-            ui.warn("No suitable Organizational Admins found.  Defaulting to pivotal for org creation")
-          end
+          Chef::Config.node_name = org_admin
           Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
+          Chef::Config.client_key = webui_key
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
           puts "Restoring the rest of the org"

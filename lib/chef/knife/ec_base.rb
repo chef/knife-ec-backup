@@ -21,6 +21,7 @@ require 'chef/knife'
 class Chef
   class Knife
     module EcBase
+      class NoAdminFound < Exception; end
 
       def self.included(includer)
         includer.class_eval do
@@ -72,6 +73,18 @@ class Chef
             :long => '--with-user-sql',
             :description => 'Try direct data base access for user export/import.  Required to properly handle passwords, keys, and USAGs'
 
+        end
+
+        def org_admin
+          rest = Chef::REST.new(Chef::Config.chef_server_url)
+          admin_users = rest.get_rest('groups/admins')['users']
+          org_members = rest.get_rest('users').map { |user| user['user']['username'] }
+          admin_users.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
+          if admin_users.empty?
+            raise Chef::Knife::EcBase::NoAdminFound
+          else
+            admin_users[0]
+          end
         end
       end
     end

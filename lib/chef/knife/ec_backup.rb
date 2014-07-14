@@ -161,12 +161,8 @@ class Chef
             @error = true
           end
 
-          # Figure out who the admin is so we can spoof him and retrieve his stuff
-          rest = Chef::REST.new(Chef::Config.chef_server_url)
-          admin_users = rest.get_rest('groups/admins')['users']
-          org_members = rest.get_rest('users').map { |user| user['user']['username'] }
-          admin_users.delete_if { |user| !org_members.include?(user) }
-          Chef::Config.node_name = admin_users[0]
+          # Set Chef::Config to use an organization administrator
+          Chef::Config.node_name = org_admin
           Chef::Config.client_key = webui_key
           Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
 
