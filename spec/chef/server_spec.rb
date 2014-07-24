@@ -28,20 +28,16 @@ describe Chef::Server do
 
   it "knows when account is directly accessible" do
     s = Chef::Server.new("http://api.example.com")
-    rest_class = double('rest_class')
     rest = double('rest')
-    stub_const("Chef::REST", rest_class)
-    allow(rest_class).to receive(:new).and_return(rest)
+    allow(Chef::REST).to receive(:new).and_return(rest)
     allow(rest).to receive(:get).and_return("")
     expect(s.direct_account_access?).to eq(true)
   end
 
   it "knows when account is not directly accessible" do
     s = Chef::Server.new("http://api.example.com")
-    rest_class = double('rest_class')
     rest = double('rest')
-    stub_const("Chef::REST", rest_class)
-    allow(rest_class).to receive(:new).and_return(rest)
+    allow(Chef::REST).to receive(:new).and_return(rest)
     allow(rest).to receive(:get).and_raise(Errno::ECONNREFUSED)
     expect(s.direct_account_access?).to eq(false)
   end
