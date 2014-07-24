@@ -74,6 +74,8 @@ class Chef
             :description => 'Try direct data base access for user export/import.  Required to properly handle passwords, keys, and USAGs'
         end
 
+        attr_accessor :dest_dir
+
         def configure_chef
           super
           Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
@@ -90,6 +92,56 @@ class Chef
           else
             admin_users[0]
           end
+        end
+      end
+
+      def server
+        @server ||= if Chef::Config.chef_server_root.nil?
+                      ui.warn("chef_server_root not found in knife configuration; using chef_server_url")
+                      Chef::Server.from_chef_server_url(Chef::Config.chef_server_url)
+                    else
+                      Chef::Server.new(Chef::Config.chef_server_root)
+                    end
+      end
+
+      def rest
+        @rest ||= Chef::REST.new(server.root_url)
+      end
+
+      def user_acl_rest
+        @user_acl_rest ||= if config[:skip_version]
+                             rest
+                           elsif server.supports_user_acls?
+                             rest
+                           elsif server.direct_account_access?
+                             Chef::REST.new("http://127.0.0.1:9465")
+                           end
+
+      end
+
+      def set_client_config!
+        if Chef::Config.node_name != "pivotal"
+          if !File.exist?("/etc/opscode/pivotal.pem")
+            ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
+            exit 1
+          end
+          Chef::Config.node_name = 'pivotal'
+          Chef::Config.client_key = '/etc/opscode/pivotal.pem'
+        end
+      end
+
+      def set_dest_dir_from_args!
+        if name_args.length <= 0
+          ui.error("Must specify backup directory as an argument.")
+          exit 1
+        end
+        @dest_dir = name_args[0]
+      end
+
+      def ensure_webui_key_exists!
+        if !File.exist?(config[:webui_key])
+          ui.error("Webui Key (#{config[:webui_key]}) does not exist.")
+          exit 1
         end
       end
     end
