@@ -34,53 +34,10 @@ class Chef
         require 'chef/server'
       end
 
-      def configure_chef
-        super
-        Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
-        Chef::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
-      end
-
       def run
-        #Check for destination directory argument
-        if name_args.length <= 0
-          ui.error("Must specify backup directory as an argument.")
-          exit 1
-        end
-        dest_dir = name_args[0]
-
-        #Check for pivotal user and key
-        node_name = Chef::Config.node_name
-        client_key = Chef::Config.client_key
-        if node_name != "pivotal"
-          if !File.exist?("/etc/opscode/pivotal.pem")
-            ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
-            exit 1
-          end
-          Chef::Config.node_name = 'pivotal'
-          Chef::Config.client_key = '/etc/opscode/pivotal.pem'
-        end
-
-        #Check for WebUI Key
-        if !File.exist?(config[:webui_key])
-          ui.error("Webui Key (#{config[:webui_key]}) does not exist.")
-          exit 1
-        end
-
-        @server = if Chef::Config.chef_server_root.nil?
-                    ui.warn("chef_server_root not found in knife configuration; using chef_server_url")
-                    Chef::Server.from_chef_server_url(Chef::Config.chef_server_url)
-                  else
-                    Chef::Server.new(Chef::Config.chef_server_root)
-                  end
-
-        rest = Chef::REST.new(@server.root_url)
-        user_acl_rest = if config[:skip_version]
-                          rest
-                        elsif @server.supports_user_acls?
-                          rest
-                        elsif @server.direct_account_access?
-                          Chef::REST.new("http://127.0.0.1:9465")
-                        end
+        set_dest_dir_from_args!
+        set_client_config!
+        ensure_webui_key_exists!
 
         # Restore users
         restore_users(dest_dir, rest) unless config[:skip_users]
@@ -213,7 +170,7 @@ class Chef
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
 
-          Chef::Config.chef_server_url = "#{@server.root_url}/organizations/#{name}"
+          Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
           # Upload the admins group and billing-admins acls
           puts "Restoring the org admin data"
@@ -229,20 +186,9 @@ class Chef
             @error = true
           end
 
-          # Figure out who the admin is so we can spoof him and retrieve his stuff
-          rest = Chef::REST.new(Chef::Config.chef_server_url)
-          org_admins = rest.get_rest('groups/admins')['users']
-          org_members = rest.get_rest('users').map { |user| user['user']['username'] }
-          org_admins.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
-          if org_admins[0] != nil
-            # Using an org admin already on the destination server
-            Chef::Config.node_name = org_admins[0]
-            Chef::Config.client_key = webui_key
-          else
-            # No suitable org admins found, defaulting to pivotal
-            ui.warn("No suitable Organizational Admins found.  Defaulting to pivotal for org creation")
-          end
+          Chef::Config.node_name = org_admin
           Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
+          Chef::Config.client_key = webui_key
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
           puts "Restoring the rest of the org"
