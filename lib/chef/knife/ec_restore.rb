@@ -176,7 +176,22 @@ class Chef
           puts "Restoring the org admin data"
           chef_fs_config = Chef::ChefFS::Config.new
 
-          # Restore users w/o clients (which don't exist yet)
+          # Handle Admins and Billing Admins seperately
+          #
+          # admins: We need to upload admins first so that we
+          # can upload all of the other objects as a user in the org
+          # rather than as pivotal.  Because the clients, and groups, don't
+          # exist yet, we first upload the group with only the users.
+          #
+          # billing-admins: The default permissions on the
+          # billing-admin group only give update permissions to
+          # pivotal and members of the billing-admins group. Since we
+          # can't unsure that the admin we choose for uploading will
+          # be in the billing admins group, we have to upload this
+          # group as pivotal.  Thus, we upload its users and ACL here,
+          # and then update it again once all of the clients and
+          # groups are uploaded.
+          #
           ['admins', 'billing-admins'].each do |group|
             restore_group(chef_fs_config, group, :clients => false)
           end
