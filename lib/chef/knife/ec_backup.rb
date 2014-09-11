@@ -72,7 +72,10 @@ class Chef
             File.open("#{dest_dir}/organizations/#{name}/invitations.json", 'w') do |file|
               file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("#{url}/association_requests")))
             end
+          else
+            puts "Skipping #{name} since it is a pre-created organization"
           end
+
         end
 
         if @error
