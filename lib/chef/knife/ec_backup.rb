@@ -57,9 +57,9 @@ class Chef
         # Download organizations
         ensure_dir("#{dest_dir}/organizations")
         rest.get_rest('/organizations').each_pair do |name, url|
-          do_org = (config[:org].nil? || config[:org] == name)
+          next unless (config[:org].nil? || config[:org] == name)
           org = rest.get_rest(url)
-          if org['assigned_at'] and do_org
+          if org['assigned_at']
             puts "Grabbing organization #{name} ..."
             ensure_dir("#{dest_dir}/organizations/#{name}")
             download_org(dest_dir, config[:webui_key], name)
