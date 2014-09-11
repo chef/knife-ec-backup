@@ -58,9 +58,9 @@ class Chef
         ensure_dir("#{dest_dir}/organizations")
         rest.get_rest('/organizations').each_pair do |name, url|
           next unless (config[:org].nil? || config[:org] == name)
+          puts "Grabbing organization #{name} ..."
           org = rest.get_rest(url)
           if org['assigned_at']
-            puts "Grabbing organization #{name} ..."
             ensure_dir("#{dest_dir}/organizations/#{name}")
             download_org(dest_dir, config[:webui_key], name)
             File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
