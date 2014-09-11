@@ -57,10 +57,10 @@ class Chef
         # Download organizations
         ensure_dir("#{dest_dir}/organizations")
         rest.get_rest('/organizations').each_pair do |name, url|
-          do_org = (config[:org].nil? || config[:org] == name)
+          next unless (config[:org].nil? || config[:org] == name)
+          puts "Grabbing organization #{name} ..."
           org = rest.get_rest(url)
-          if org['assigned_at'] and do_org
-            puts "Grabbing organization #{name} ..."
+          if org['assigned_at']
             ensure_dir("#{dest_dir}/organizations/#{name}")
             download_org(dest_dir, config[:webui_key], name)
             File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
@@ -72,7 +72,10 @@ class Chef
             File.open("#{dest_dir}/organizations/#{name}/invitations.json", 'w') do |file|
               file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("#{url}/association_requests")))
             end
+          else
+            puts "Skipping #{name} since it is a pre-created organization"
           end
+
         end
 
         if @error
