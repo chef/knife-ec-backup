@@ -2,7 +2,14 @@
 
 # Description
 
-This is an UNOFFICIAL and EXPERIMENTAL knife plugin intended to back up and restore an entire Enterprise Chef / Private Chef server, preserving the data in an intermediate, editable text format.
+knife-ec-backup can backup and restore the data in an Enterprise Chef
+Server installation, preserving the data in an intermediate, editable
+text format.  It is similar to the `knife download` and `knife upload`
+commands and uses the same underlying libraries, but also includes
+workarounds for objects not yet supported by those tools and various
+Server API deficiencies.  The long-run goal is to improve `knife
+donwload`, `knife upload` and the Chef Server API and deprecate this
+tool.
 
 # Requirements
 
