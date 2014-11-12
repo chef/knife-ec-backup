@@ -72,12 +72,32 @@ The following options are supported across all subcommands:
 
 *Options*
 
+  * `--concurrency THREAD_COUNT`:
+    The maximum number of concurrent requests to make to the Chef
+    Server. (default: 10)
+
   * `--webui-key`:
     Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
+    skip any auto-configured options (default: false)
+
+  * `--with-user-sql`:
+    Whether to backup/restore user data directly from the database.  This
+    requires access to the listening postgresql port on the Chef
+    Server.  This is required to correctly handle user passwords and
+    to ensure user-specific association groups are not duplicated.
+
   * `--skip-useracl`:
-    Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower (default: false)
-  * `--skip-version-check'`:
-    Whether to skip checking the Chef Server version.  This will also skip any auto-configured options (default: false)
+    Skip download/restore of the user ACLs.  User ACLs are the
+    permissions that actors have *on other global users*.  These are
+    not the ACLs that control what permissions users have on various
+    Chef objects.
+
+  * `--skip-version-check`:
+    Skip Chef Server version check. This will also skip any auto-configured options (default: false)
+
+  * `--only-org ORG`:
+    Only donwload/restore objects in the named organization. Global
+    objects such as users will still be downloaded/restored.
 
 Creates a repository of an entire Enterprise Chef / Private Chef server.
 
@@ -133,18 +153,67 @@ This compares very closely with the "knife download /" from an OSC server:
 
 ## knife ec restore DEST_DIR (options)
 
+Restores all data from the specified DEST_DIR to an Enterprise Chef /
+Private Chef server. DEST_DIR should be a backup directory created by
+`knife ec restore`
+
 *Options*
 
   * `--webui-key`:
     Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
-  * `--overwrite-pivotal`:
-    Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key (default: false)
-  * `--skip-useracl`:
-    Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower (default: false)
-  * `--skip-version-check'`:
-    Whether to skip checking the Chef Server version.  This will also skip any auto-configured options (default: false)
 
-Restores all data from a repository to an Enterprise Chef / Private Chef server.
+  * `--overwrite-pivotal`:
+    Whether to overwrite pivotal's key.  Once this is done, future
+    requests will fail until you fix the private key (default: false)
+
+  * `--skip-users`:
+    Skip the restore of global users.  This may cause organization
+    uploading to fail if the necessary users do not exist on the Chef
+    Server.
+
+  * `--concurrency THREAD_COUNT`:
+    The maximum number of concurrent requests to make to the Chef
+    Server. (default: 10)
+
+  * `--skip-version-check`:
+    Skip Chef Server version check. This will
+    also skip any auto-configured options (default: false)
+
+  * `--with-user-sql`:
+    Whether to backup/restore user data directly from the database.  This
+    requires access to the listening postgresql port on the Chef
+    Server.  This is required to correctly handle user passwords and
+    to ensure user-specific association groups are not
+    duplicated. This option will only work on `restore` if it was also
+    used during the `backup`.
+
+  * `--skip-useracl`:
+    Skip download/restore of the user ACLs.  User ACLs are the
+    permissions that actors have *on other global users*.  These are
+    not the ACLs that control what permissions users have on various
+    Chef objects.
+
+  * `--only-org ORG`:
+    Only donwload/restore objects in the named organization. Global
+    objects such as users will still be downloaded/restored.
+
+## knife ec key export [FILENAME]
+
+Create a json representation of the users table from the Chef Server
+database.  If no argument is given, the name of the backup is
+`key_dump.json`.
+
+Please note, most users should use `knife ec backup` with the
+`--with-user-sql` option rather than this command.
+
+## knife ec key import [FILENAME]
+
+Import a json representation of the users table from FILENAME to the
+the Chef Server database.  If no argument is given, the filename is
+assumed to be `key_dump.json`.
+
+Please note, most user should use `knife ec restore` with the
+`--with-user-sql` option rather than this command.
 
 # TODO
 
