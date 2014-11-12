@@ -215,11 +215,9 @@ assumed to be `key_dump.json`.
 Please note, most user should use `knife ec restore` with the
 `--with-user-sql` option rather than this command.
 
-# TODO
+# Known Bugs
 
-* Ensure easy installation into embedded ruby gemset on Chef Server.
-* Remove requirement for Knife Essentials gem to be installed.
-* Single org backups.
-* This plugin does **NOT** currently backup user passwords.  **They will have to be reset after a restore.**
-* This plugin does **NOT** currently restore user public keys.  **Private keys will have to be reset after a restore.**
-* This plugin does **NOT** currently restore custom user ACLs.  **It will revert back to default ACLs on a restore.**
+- `knife ec restore` can fail to restore cookbooks, failing with an
+  internal server error. A common cause of this problem is a
+  concurrency bug in Chef Server. Setting `--concurrency 1` can often
+  work around the issue.
