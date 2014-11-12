@@ -43,11 +43,30 @@ Clone the git repository and run the following from inside:
 # Configuration
 
 ## Permissions
+
 Note that most users in an EC installation lack the permissions to pull all of the data from all organizations and other users.
 This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Server.
 It is recommended that you run this from a frontend Enterprise Chef Server, you can use --user and --key to pass the pivotal information along.
 
 # Subcommands
+
+## Common Option
+
+The following options are supported across all subcommands:
+
+  * `--sql_host`:
+    The hostname of the Chef Server's postgresql server. (default: localhost)
+
+  * `--sql_port`:
+    The postgresql listening port on the Chef Server. (default: 5432)
+
+  * `--sql_user`:
+    The username of postgresql user with access to the opscode_chef
+    database. (default: autoconfigured from
+    /etc/opscode/chef-server-running.json)
+
+  * `--sql_password`:
+    The password for the sql_user.  (default: autoconfigured from /etc/opscode/chef-server-running.json)
 
 ## knife ec backup DEST_DIR (options)
 
