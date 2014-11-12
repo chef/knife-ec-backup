@@ -27,6 +27,13 @@ This will install the plugin directly on the Chef Server:
 
     /opt/opscode/embedded/bin/gem install knife-ec-backup
 
+The latest versions of knife-ec-backup require gems with native
+extensions, thus you must install a standard build toolchain.  To
+install knife-ec-backup without installing libpq development headers
+on your system, try the following:
+
+   /opt/opscode/embedded/bin/gem install knife-ec-backup -- --with-pg-config=/opt/opscode/embedded/postgresql/9.2/bin/pg_config
+
 ## Build from source
 Clone the git repository and run the following from inside:
 
