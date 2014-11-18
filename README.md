@@ -2,7 +2,14 @@
 
 # Description
 
-This is an UNOFFICIAL and EXPERIMENTAL knife plugin intended to back up and restore an entire Enterprise Chef / Private Chef server, preserving the data in an intermediate, editable text format.
+knife-ec-backup can backup and restore the data in an Enterprise Chef
+Server installation, preserving the data in an intermediate, editable
+text format.  It is similar to the `knife download` and `knife upload`
+commands and uses the same underlying libraries, but also includes
+workarounds for objects not yet supported by those tools and various
+Server API deficiencies.  The long-run goal is to improve `knife
+donwload`, `knife upload` and the Chef Server API and deprecate this
+tool.
 
 # Requirements
 
@@ -20,6 +27,13 @@ This will install the plugin directly on the Chef Server:
 
     /opt/opscode/embedded/bin/gem install knife-ec-backup
 
+The latest versions of knife-ec-backup require gems with native
+extensions, thus you must install a standard build toolchain.  To
+install knife-ec-backup without installing libpq development headers
+on your system, try the following:
+
+   /opt/opscode/embedded/bin/gem install knife-ec-backup -- --with-pg-config=/opt/opscode/embedded/postgresql/9.2/bin/pg_config
+
 ## Build from source
 Clone the git repository and run the following from inside:
 
@@ -29,22 +43,61 @@ Clone the git repository and run the following from inside:
 # Configuration
 
 ## Permissions
+
 Note that most users in an EC installation lack the permissions to pull all of the data from all organizations and other users.
 This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Server.
 It is recommended that you run this from a frontend Enterprise Chef Server, you can use --user and --key to pass the pivotal information along.
 
 # Subcommands
 
+## Common Option
+
+The following options are supported across all subcommands:
+
+  * `--sql_host`:
+    The hostname of the Chef Server's postgresql server. (default: localhost)
+
+  * `--sql_port`:
+    The postgresql listening port on the Chef Server. (default: 5432)
+
+  * `--sql_user`:
+    The username of postgresql user with access to the opscode_chef
+    database. (default: autoconfigured from
+    /etc/opscode/chef-server-running.json)
+
+  * `--sql_password`:
+    The password for the sql_user.  (default: autoconfigured from /etc/opscode/chef-server-running.json)
+
 ## knife ec backup DEST_DIR (options)
 
 *Options*
 
+  * `--concurrency THREAD_COUNT`:
+    The maximum number of concurrent requests to make to the Chef
+    Server. (default: 10)
+
   * `--webui-key`:
     Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
+    skip any auto-configured options (default: false)
+
+  * `--with-user-sql`:
+    Whether to backup/restore user data directly from the database.  This
+    requires access to the listening postgresql port on the Chef
+    Server.  This is required to correctly handle user passwords and
+    to ensure user-specific association groups are not duplicated.
+
   * `--skip-useracl`:
-    Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower (default: false)
-  * `--skip-version-check'`:
-    Whether to skip checking the Chef Server version.  This will also skip any auto-configured options (default: false)
+    Skip download/restore of the user ACLs.  User ACLs are the
+    permissions that actors have *on other global users*.  These are
+    not the ACLs that control what permissions users have on various
+    Chef objects.
+
+  * `--skip-version-check`:
+    Skip Chef Server version check. This will also skip any auto-configured options (default: false)
+
+  * `--only-org ORG`:
+    Only donwload/restore objects in the named organization. Global
+    objects such as users will still be downloaded/restored.
 
 Creates a repository of an entire Enterprise Chef / Private Chef server.
 
@@ -100,24 +153,71 @@ This compares very closely with the "knife download /" from an OSC server:
 
 ## knife ec restore DEST_DIR (options)
 
+Restores all data from the specified DEST_DIR to an Enterprise Chef /
+Private Chef server. DEST_DIR should be a backup directory created by
+`knife ec restore`
+
 *Options*
 
   * `--webui-key`:
     Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
+
   * `--overwrite-pivotal`:
-    Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key (default: false)
+    Whether to overwrite pivotal's key.  Once this is done, future
+    requests will fail until you fix the private key (default: false)
+
+  * `--skip-users`:
+    Skip the restore of global users.  This may cause organization
+    uploading to fail if the necessary users do not exist on the Chef
+    Server.
+
+  * `--concurrency THREAD_COUNT`:
+    The maximum number of concurrent requests to make to the Chef
+    Server. (default: 10)
+
+  * `--skip-version-check`:
+    Skip Chef Server version check. This will
+    also skip any auto-configured options (default: false)
+
+  * `--with-user-sql`:
+    Whether to backup/restore user data directly from the database.  This
+    requires access to the listening postgresql port on the Chef
+    Server.  This is required to correctly handle user passwords and
+    to ensure user-specific association groups are not
+    duplicated. This option will only work on `restore` if it was also
+    used during the `backup`.
+
   * `--skip-useracl`:
-    Whether to skip downloading User ACLs.  This is required for EC 11.0.0 and lower (default: false)
-  * `--skip-version-check'`:
-    Whether to skip checking the Chef Server version.  This will also skip any auto-configured options (default: false)
+    Skip download/restore of the user ACLs.  User ACLs are the
+    permissions that actors have *on other global users*.  These are
+    not the ACLs that control what permissions users have on various
+    Chef objects.
 
-Restores all data from a repository to an Enterprise Chef / Private Chef server.
+  * `--only-org ORG`:
+    Only donwload/restore objects in the named organization. Global
+    objects such as users will still be downloaded/restored.
 
-# TODO
+## knife ec key export [FILENAME]
 
-* Ensure easy installation into embedded ruby gemset on Chef Server.
-* Remove requirement for Knife Essentials gem to be installed.
-* Single org backups.
-* This plugin does **NOT** currently backup user passwords.  **They will have to be reset after a restore.**
-* This plugin does **NOT** currently restore user public keys.  **Private keys will have to be reset after a restore.**
-* This plugin does **NOT** currently restore custom user ACLs.  **It will revert back to default ACLs on a restore.**
+Create a json representation of the users table from the Chef Server
+database.  If no argument is given, the name of the backup is
+`key_dump.json`.
+
+Please note, most users should use `knife ec backup` with the
+`--with-user-sql` option rather than this command.
+
+## knife ec key import [FILENAME]
+
+Import a json representation of the users table from FILENAME to the
+the Chef Server database.  If no argument is given, the filename is
+assumed to be `key_dump.json`.
+
+Please note, most user should use `knife ec restore` with the
+`--with-user-sql` option rather than this command.
+
+# Known Bugs
+
+- `knife ec restore` can fail to restore cookbooks, failing with an
+  internal server error. A common cause of this problem is a
+  concurrency bug in Chef Server. Setting `--concurrency 1` can often
+  work around the issue.
