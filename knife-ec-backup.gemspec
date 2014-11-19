@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
   # s.add_dependency "mixlib-cli", ">= 1.2.2"
   s.add_dependency "sequel"
   s.add_dependency "pg"
-  s.add_dependency "chef", "~> 11.8"
+  s.add_dependency "chef", ">= 11.8"
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'rake'
   s.add_development_dependency 'simplecov'
