@@ -119,6 +119,10 @@ class Chef
 
       end
 
+      def set_skip_user_acl!
+        config[:skip_useracl] ||= !(server.supports_user_acl? || server.direct_account_access?)
+      end
+
       def set_client_config!
         Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
         Chef::Config.node_name = 'pivotal'

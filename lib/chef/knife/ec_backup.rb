@@ -20,6 +20,7 @@ class Chef
       def run
         set_dest_dir_from_args!
         set_client_config!
+        set_skip_user_acl!
         ensure_webui_key_exists!
 
         ensure_dir("#{dest_dir}/users")

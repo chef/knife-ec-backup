@@ -38,6 +38,7 @@ class Chef
         set_dest_dir_from_args!
         set_client_config!
         ensure_webui_key_exists!
+        set_skip_user_acl!
 
         restore_users unless config[:skip_users]
         restore_user_sql if config[:with_user_sql]
