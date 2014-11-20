@@ -135,12 +135,9 @@ class Chef
 
           # Download the billing-admins ACL and group as pivotal
           chef_fs_config = Chef::ChefFS::Config.new
-          pattern = Chef::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
-          Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-          pattern = Chef::ChefFS::FilePattern.new('/groups/billing-admins.json')
-          Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-          pattern = Chef::ChefFS::FilePattern.new('/groups/admins.json')
-          Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+          chef_fs_copy_pattern(Chef::ChefFS::FilePattern.new('/acls/groups/billing-admins.json'), chef_fs_config)
+          chef_fs_copy_pattern(Chef::ChefFS::FilePattern.new('/groups/billing-admins.json'), chef_fs_config)
+          chef_fs_copy_pattern(Chef::ChefFS::FilePattern.new('/groups/admins.json'), chef_fs_config)
 
           # Set Chef::Config to use an organization administrator
           Chef::Config.node_name = org_admin
@@ -148,16 +145,25 @@ class Chef
           # Download the entire org skipping the billing admins group ACL and the group itself
           chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.chef_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
-          acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
-          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
-          group_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, Chef::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          acl_paths       = chef_fs_paths(Chef::ChefFS::FilePattern.new('/acls/*'), chef_fs_config, 'groups')
+          group_acl_paths = chef_fs_paths(Chef::ChefFS::FilePattern.new('/acls/groups/*'), chef_fs_config, 'billing-admins.json')
+          group_paths     = chef_fs_paths(Chef::ChefFS::FilePattern.new('/groups/*'), chef_fs_config, 'billing-admins.json')
           (top_level_paths + group_acl_paths + acl_paths + group_paths).each do |path|
-            Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            chef_fs_copy_pattern(Chef::ChefFS::FilePattern.new(path), chef_fs_config)
           end
-
         ensure
           Chef::Config.restore(old_config)
         end
+      end
+
+      def chef_fs_paths(pattern, chef_fs_config, exclude=nil)
+        list = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, pattern)
+        list = list.select { |entry| entry.name != exclude } if ! exclude.nil?
+        list.map {|entry| entry.path }
+      end
+
+      def chef_fs_copy_pattern(pattern, chef_fs_config)
+        Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs, chef_fs_config.local_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
       end
     end
   end
