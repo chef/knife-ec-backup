@@ -161,7 +161,7 @@ class Chef
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      def upload_org_data(name, webui_key=config[:webui_key])
+      def upload_org_data(name)
         old_config = Chef::Config.save
 
         begin
@@ -172,7 +172,6 @@ class Chef
 
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
-
           Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
           # Upload the admins group and billing-admins acls
@@ -205,8 +204,6 @@ class Chef
                                            proc { |entry| chef_fs_config.format_path(entry)})
 
           Chef::Config.node_name = org_admin
-          Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
-          Chef::Config.client_key = webui_key
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
           puts "Restoring the rest of the org"
@@ -223,10 +220,9 @@ class Chef
           (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
             Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
-          # restore clients to groups, using the pivotal key again
-          Chef::Config[:node_name] = old_config[:node_name]
-          Chef::Config[:client_key] = old_config[:client_key]
-          Chef::Config.custom_http_headers = {}
+
+          # restore clients to groups, using the pivotal user again
+          Chef::Config[:node_name] = 'pivotal'
           ['admins', 'billing-admins'].each do |group|
             restore_group(Chef::ChefFS::Config.new, group)
           end

@@ -122,8 +122,6 @@ class Chef
 
           # Set Chef::Config to use an organization administrator
           Chef::Config.node_name = org_admin
-          Chef::Config.client_key = webui_key
-          Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
 
           # Download the entire org skipping the billing admins group ACL and the group itself
           chef_fs_config = Chef::ChefFS::Config.new

@@ -120,14 +120,9 @@ class Chef
       end
 
       def set_client_config!
-        if Chef::Config.node_name != "pivotal"
-          if !File.exist?("/etc/opscode/pivotal.pem")
-            ui.error("Username not configured as pivotal and /etc/opscode/pivotal.pem does not exist.  It is recommended that you run this plugin from your Chef server.")
-            exit 1
-          end
-          Chef::Config.node_name = 'pivotal'
-          Chef::Config.client_key = '/etc/opscode/pivotal.pem'
-        end
+        Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
+        Chef::Config.node_name = 'pivotal'
+        Chef::Config.client_key = config[:webui_key]
       end
 
       def set_dest_dir_from_args!
