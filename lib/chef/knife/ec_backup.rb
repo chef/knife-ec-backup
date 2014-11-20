@@ -22,64 +22,92 @@ class Chef
         set_client_config!
         ensure_webui_key_exists!
 
-        # Grab users
-        puts "Grabbing users ..."
         ensure_dir("#{dest_dir}/users")
         ensure_dir("#{dest_dir}/user_acls")
 
-        rest.get_rest('/users').each_pair do |name, url|
-          File.open("#{dest_dir}/users/#{name}.json", 'w') do |file|
-            file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest(url)))
-          end
-
+        for_each_user do |username, url|
+          download_user(username, url)
           if config[:skip_useracl]
-            ui.warn("Skipping user ACL download for #{name}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
-            next
-          end
-
-          File.open("#{dest_dir}/user_acls/#{name}.json", 'w') do |file|
-            file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{name}/_acl")))
+            ui.warn("Skipping user ACL download for #{username}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
+          else
+            download_user_acl(username)
           end
         end
 
         if config[:with_user_sql]
-          require 'chef/knife/ec_key_export'
-          Chef::Knife::EcKeyExport.deps
-          k = Chef::Knife::EcKeyExport.new
-          k.name_args = ["#{dest_dir}/key_dump.json"]
-          k.config[:sql_host] = config[:sql_host]
-          k.config[:sql_port] = config[:sql_port]
-          k.config[:sql_user] = config[:sql_user]
-          k.config[:sql_password] = config[:sql_password]
-          k.run
+          export_users_from_sql
         end
 
-        # Download organizations
         ensure_dir("#{dest_dir}/organizations")
+        for_each_organization do |org_object|
+          name = org_object['name']
+          ensure_dir("#{dest_dir}/organizations/#{name}")
+          write_org_object_to_disk(org_object)
+          download_org_data(name)
+          download_org_members(name)
+          download_org_invitations(name)
+        end
+      end
+
+      def for_each_user
+        rest.get_rest('/users').each_pair do |name, url|
+          yield name, url
+        end
+      end
+
+      def for_each_organization
         rest.get_rest('/organizations').each_pair do |name, url|
           next unless (config[:org].nil? || config[:org] == name)
-          puts "Grabbing organization #{name} ..."
+          puts "Downloading organization object for #{name} from #{url}"
           org = rest.get_rest(url)
           if org['assigned_at']
-            ensure_dir("#{dest_dir}/organizations/#{name}")
-            download_org(dest_dir, config[:webui_key], name)
-            File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
-              file.write(Chef::JSONCompat.to_json_pretty(org))
-            end
-            File.open("#{dest_dir}/organizations/#{name}/members.json", 'w') do |file|
-              file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("#{url}/users")))
-            end
-            File.open("#{dest_dir}/organizations/#{name}/invitations.json", 'w') do |file|
-              file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("#{url}/association_requests")))
-            end
+            yield org
           else
-            puts "Skipping #{name} since it is a pre-created organization"
+            puts "Skipping pre-created org #{name}"
           end
-
         end
+      end
 
-        if @error
-          exit 1
+      def download_user(username, url)
+        File.open("#{dest_dir}/users/#{username}.json", 'w') do |file|
+          file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest(url)))
+        end
+      end
+
+      def download_user_acl(username)
+        File.open("#{dest_dir}/user_acls/#{username}.json", 'w') do |file|
+          file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{username}/_acl")))
+        end
+      end
+
+      def export_users_from_sql
+        require 'chef/knife/ec_key_export'
+        Chef::Knife::EcKeyExport.deps
+        k = Chef::Knife::EcKeyExport.new
+        k.name_args = ["#{dest_dir}/key_dump.json"]
+        k.config[:sql_host] = config[:sql_host]
+        k.config[:sql_port] = config[:sql_port]
+        k.config[:sql_user] = config[:sql_user]
+        k.config[:sql_password] = config[:sql_password]
+        k.run
+      end
+
+      def write_org_object_to_disk(org_object)
+        name = org_object['name']
+        File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
+          file.write(Chef::JSONCompat.to_json_pretty(org_object))
+        end
+      end
+
+      def download_org_members(name)
+        File.open("#{dest_dir}/organizations/#{name}/members.json", 'w') do |file|
+          file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("/organizations/#{name}/users")))
+        end
+      end
+
+      def download_org_invitations(name)
+        File.open("#{dest_dir}/organizations/#{name}/invitations.json", 'w') do |file|
+          file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("/organizations/#{name}/association_requests")))
         end
       end
 
@@ -90,7 +118,7 @@ class Chef
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      def download_org(dest_dir, webui_key, name)
+      def download_org_data(name)
         old_config = Chef::Config.save
 
         begin
