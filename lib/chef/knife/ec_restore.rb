@@ -99,21 +99,25 @@ class Chef
 
       def restore_user_acls
         puts "Restoring user ACLs ..."
-        Dir.foreach("#{dest_dir}/users") do |filename|
-          next if filename !~ /(.+)\.json/
-          name = $1
-
-          if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.")
-            next
-          end
-
+        for_each_user do |name|
           user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
         end
       end
 
-      def for_each_organization(&block)
+      def for_each_user
+        Dir.foreach("#{dest_dir}/users") do |filename|
+          next if filename !~ /(.+)\.json/
+          name = $1
+          if name == 'pivotal' && !config[:overwrite_pivotal]
+            ui.warn("Skipping pivotal user.  To overwrite pivotal, pass --overwrite-pivotal.")
+            next
+          end
+          yield name
+        end
+      end
+
+      def for_each_organization
         Dir.foreach("#{dest_dir}/organizations") do |name|
           next if name == '..' || name == '.' || !File.directory?("#{dest_dir}/organizations/#{name}")
           next unless (config[:org].nil? || config[:org] == name)
@@ -123,15 +127,7 @@ class Chef
 
       def restore_users
         puts "Restoring users ..."
-        Dir.foreach("#{dest_dir}/users") do |filename|
-          next if filename !~ /(.+)\.json/
-          name = $1
-          if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.")
-            next
-          end
-
-          # Update user object
+        for_each_user do |name|
           user = JSONCompat.from_json(IO.read("#{dest_dir}/users/#{name}.json"))
           begin
             # Supply password for new user
