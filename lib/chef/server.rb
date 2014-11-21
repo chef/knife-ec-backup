@@ -19,6 +19,7 @@ class Chef
                      uri = URI.parse("#{root_url}/version")
                      ver_line = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first
                      ver_string = ver_line.split(' ').last
+                     ver_string = ver_string.gsub(/\+.*$/, '')
                      Gem::Version.new(ver_string)
                    end
     end
