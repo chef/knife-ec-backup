@@ -120,7 +120,7 @@ class Chef
       end
 
       def set_skip_user_acl!
-        config[:skip_useracl] ||= !(server.supports_user_acl? || server.direct_account_access?)
+        config[:skip_useracl] ||= !(server.supports_user_acls? || server.direct_account_access?)
       end
 
       def set_client_config!
