@@ -15,6 +15,7 @@ class Chef
         require 'chef/chef_fs/file_pattern'
         require 'chef/chef_fs/parallelizer'
         require 'chef/server'
+        require 'fileutils'
       end
 
       def run
@@ -22,9 +23,6 @@ class Chef
         set_client_config!
         set_skip_user_acl!
         ensure_webui_key_exists!
-
-        ensure_dir("#{dest_dir}/users")
-        ensure_dir("#{dest_dir}/user_acls")
 
         for_each_user do |username, url|
           download_user(username, url)
@@ -42,7 +40,6 @@ class Chef
         ensure_dir("#{dest_dir}/organizations")
         for_each_organization do |org_object|
           name = org_object['name']
-          ensure_dir("#{dest_dir}/organizations/#{name}")
           write_org_object_to_disk(org_object)
           download_org_data(name)
           download_org_members(name)
@@ -70,12 +67,14 @@ class Chef
       end
 
       def download_user(username, url)
+        ensure_dir("#{dest_dir}/users")
         File.open("#{dest_dir}/users/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest(url)))
         end
       end
 
       def download_user_acl(username)
+        ensure_dir("#{dest_dir}/user_acls")
         File.open("#{dest_dir}/user_acls/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{username}/_acl")))
         end
@@ -95,18 +94,21 @@ class Chef
 
       def write_org_object_to_disk(org_object)
         name = org_object['name']
+        ensure_dir("#{dest_dir}/organizations/#{name}")
         File.open("#{dest_dir}/organizations/#{name}/org.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(org_object))
         end
       end
 
       def download_org_members(name)
+        ensure_dir("#{dest_dir}/organizations/#{name}")
         File.open("#{dest_dir}/organizations/#{name}/members.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("/organizations/#{name}/users")))
         end
       end
 
       def download_org_invitations(name)
+        ensure_dir("#{dest_dir}/organizations/#{name}")
         File.open("#{dest_dir}/organizations/#{name}/invitations.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("/organizations/#{name}/association_requests")))
         end
@@ -114,7 +116,7 @@ class Chef
 
       def ensure_dir(dir)
         if !File.exist?(dir)
-          Dir.mkdir(dir)
+          FileUtils.mkdir_p(dir)
         end
       end
 

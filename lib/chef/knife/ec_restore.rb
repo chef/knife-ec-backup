@@ -58,7 +58,7 @@ class Chef
       end
 
       def create_organization(orgname)
-        org = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{orgname}/org.json"))
+        org = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/org.json"))
         rest.post_rest('organizations', org)
       rescue Net::HTTPServerException => e
         if e.response.code == "409"
@@ -69,7 +69,7 @@ class Chef
       end
 
       def restore_open_invitations(orgname)
-        invitations = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{orgname}/invitations.json"))
+        invitations = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/invitations.json"))
         invitations.each do |invitation|
           begin
             rest.post_rest("organizations/#{orgname}/association_requests", { 'user' => invitation['username'] })
@@ -82,7 +82,7 @@ class Chef
       end
 
       def add_users_to_org(orgname)
-        members = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{orgname}/members.json"))
+        members = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/members.json"))
         members.each do |member|
           username = member['user']['username']
           begin
@@ -100,7 +100,7 @@ class Chef
       def restore_user_acls
         puts "Restoring user ACLs ..."
         for_each_user do |name|
-          user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
+          user_acl = JSONCompat.from_json(File.read("#{dest_dir}/user_acls/#{name}.json"))
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
         end
       end
@@ -128,7 +128,7 @@ class Chef
       def restore_users
         puts "Restoring users ..."
         for_each_user do |name|
-          user = JSONCompat.from_json(IO.read("#{dest_dir}/users/#{name}.json"))
+          user = JSONCompat.from_json(File.read("#{dest_dir}/users/#{name}.json"))
           begin
             # Supply password for new user
             user_with_password = user.dup
@@ -272,10 +272,6 @@ class Chef
         end
 
         group.write(members.to_json)
-      end
-
-      def parallelize(entries, options = {}, &block)
-        Chef::ChefFS::Parallelizer.parallelize(entries, options, &block)
       end
 
       def put_acl(rest, url, acls)
