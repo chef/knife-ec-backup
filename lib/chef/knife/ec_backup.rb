@@ -56,12 +56,12 @@ class Chef
       def for_each_organization
         rest.get_rest('/organizations').each_pair do |name, url|
           next unless (config[:org].nil? || config[:org] == name)
-          puts "Downloading organization object for #{name} from #{url}"
+          ui.msg "Downloading organization object for #{name} from #{url}"
           org = rest.get_rest(url)
           if org['assigned_at']
             yield org
           else
-            puts "Skipping pre-created org #{name}"
+            ui.msg "Skipping pre-created org #{name}"
           end
         end
       end

@@ -98,7 +98,7 @@ class Chef
       end
 
       def restore_user_acls
-        puts "Restoring user ACLs ..."
+        ui.msg "Restoring user ACLs ..."
         for_each_user do |name|
           user_acl = JSONCompat.from_json(File.read("#{dest_dir}/user_acls/#{name}.json"))
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
@@ -126,7 +126,7 @@ class Chef
       end
 
       def restore_users
-        puts "Restoring users ..."
+        ui.msg "Restoring users ..."
         for_each_user do |name|
           user = JSONCompat.from_json(File.read("#{dest_dir}/users/#{name}.json"))
           begin
@@ -172,7 +172,7 @@ class Chef
           Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
           # Upload the admins group and billing-admins acls
-          puts "Restoring the org admin data"
+          ui.msg "Restoring the org admin data"
           chef_fs_config = Chef::ChefFS::Config.new
 
           # Handle Admins and Billing Admins seperately
@@ -203,7 +203,8 @@ class Chef
           Chef::Config.node_name = org_admin
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
-          puts "Restoring the rest of the org"
+          ui.msg "Restoring the rest of the org"
+          ui.debug "Using admin user: #{org_admin}"
           chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
 
