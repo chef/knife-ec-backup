@@ -221,3 +221,14 @@ Please note, most user should use `knife ec restore` with the
   internal server error. A common cause of this problem is a
   concurrency bug in Chef Server. Setting `--concurrency 1` can often
   work around the issue.
+
+- `knife ec restore` can fail if the pool of pre-created organizations
+  can not keep up with the newly created organizations.  This can
+  typically be resolved simply be restarting the restore.  To avoid
+  this error for backups with large number of organizations, try
+  setting (in /etc/opscode/private-chef.rb):
+
+        opscode_org_creator['ready_org_depth']
+
+  to the number of organizations in your backup and waiting for the
+  pool to fill before running `knife ec restore`
