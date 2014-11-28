@@ -58,7 +58,13 @@ class Chef
           next unless (config[:org].nil? || config[:org] == name)
           ui.msg "Downloading organization object for #{name} from #{url}"
           org = rest.get_rest(url)
-          if org['assigned_at']
+          # Enterprise Chef 11 and below uses a pool of precreated
+          # organizations to account for slow organization creation
+          # using CouchDB. Thus, on server versions < 12 we want to
+          # skip any of these precreated organizations by checking if
+          # they have been assigned or not.  The Chef 12 API does not
+          # return an assigned_at field.
+          if org['assigned_at'] || server.version >= Gem::Version.new("12")
             yield org
           else
             ui.msg "Skipping pre-created org #{name}"
