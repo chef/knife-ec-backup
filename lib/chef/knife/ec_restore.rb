@@ -38,97 +38,97 @@ class Chef
         set_dest_dir_from_args!
         set_client_config!
         ensure_webui_key_exists!
+        set_skip_user_acl!
 
-        # Restore users
-        restore_users(dest_dir, rest) unless config[:skip_users]
-        restore_user_sql(dest_dir) if config[:with_user_sql]
+        restore_users unless config[:skip_users]
+        restore_user_sql if config[:with_user_sql]
 
-        # Restore organizations
-        Dir.foreach("#{dest_dir}/organizations") do |name|
-          next if name == '..' || name == '.' || !File.directory?("#{dest_dir}/organizations/#{name}")
-          next unless (config[:org].nil? || config[:org] == name)
-          puts "Restoring org #{name} ..."
-
-          # Create organization
-          org = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/org.json"))
-          begin
-            rest.post_rest('organizations', org)
-          rescue Net::HTTPServerException => e
-            if e.response.code == "409"
-              rest.put_rest("organizations/#{name}", org)
-            else
-              raise
-            end
-          end
-
-          # Restore open invitations
-          invitations = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/invitations.json"))
-          invitations.each do |invitation|
-            begin
-              rest.post_rest("organizations/#{name}/association_requests", { 'user' => invitation['username'] })
-            rescue Net::HTTPServerException => e
-              if e.response.code != "409"
-                ui.error("Cannot create invitation #{invitation['id']}")
-              end
-            end
-          end
-
-          # Repopulate org members
-          members = JSONCompat.from_json(IO.read("#{dest_dir}/organizations/#{name}/members.json"))
-          members.each do |member|
-            username = member['user']['username']
-            begin
-              response = rest.post_rest("organizations/#{name}/association_requests", { 'user' => username })
-              association_id = response["uri"].split("/").last
-              rest.put_rest("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
-            rescue Net::HTTPServerException => e
-              if e.response.code != "409"
-                raise
-              end
-            end
-          end
-
-          # Upload org data
-          upload_org(dest_dir, config[:webui_key], name)
+        for_each_organization do |orgname|
+          create_organization(orgname)
+          restore_open_invitations(orgname)
+          add_users_to_org(orgname)
+          upload_org_data(orgname)
         end
 
-        # Restore user ACLs
-        puts "Restoring user ACLs ..."
-        Dir.foreach("#{dest_dir}/users") do |filename|
-          next if filename !~ /(.+)\.json/
-          name = $1
-          if config[:skip_useracl]
-            ui.warn("Skipping user ACL update for #{name}. To update this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
-            next
-          end
-          if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.")
-            next
-          end
-
-          # Update user acl
-          user_acl = JSONCompat.from_json(IO.read("#{dest_dir}/user_acls/#{name}.json"))
-          put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
-        end
-
-
-        if @error
-          exit 1
+        if config[:skip_useracl]
+          ui.warn("Skipping user ACL update. To update user ACLs, remove --skip-useracl or upgrade your Enterprise Chef Server.")
+        else
+          restore_user_acls
         end
       end
 
-      def restore_users(dest_dir, rest)
-        puts "Restoring users ..."
+      def create_organization(orgname)
+        org = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/org.json"))
+        rest.post_rest('organizations', org)
+      rescue Net::HTTPServerException => e
+        if e.response.code == "409"
+          rest.put_rest("organizations/#{orgname}", org)
+        else
+          raise
+        end
+      end
+
+      def restore_open_invitations(orgname)
+        invitations = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/invitations.json"))
+        invitations.each do |invitation|
+          begin
+            rest.post_rest("organizations/#{orgname}/association_requests", { 'user' => invitation['username'] })
+          rescue Net::HTTPServerException => e
+            if e.response.code != "409"
+              ui.error("Cannot create invitation #{invitation['id']}")
+            end
+          end
+        end
+      end
+
+      def add_users_to_org(orgname)
+        members = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/members.json"))
+        members.each do |member|
+          username = member['user']['username']
+          begin
+            response = rest.post_rest("organizations/#{orgname}/association_requests", { 'user' => username })
+            association_id = response["uri"].split("/").last
+            rest.put_rest("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
+          rescue Net::HTTPServerException => e
+            if e.response.code != "409"
+              raise
+            end
+          end
+        end
+      end
+
+      def restore_user_acls
+        ui.msg "Restoring user ACLs ..."
+        for_each_user do |name|
+          user_acl = JSONCompat.from_json(File.read("#{dest_dir}/user_acls/#{name}.json"))
+          put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
+        end
+      end
+
+      def for_each_user
         Dir.foreach("#{dest_dir}/users") do |filename|
           next if filename !~ /(.+)\.json/
           name = $1
           if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn("Skipping pivotal update.  To overwrite pivotal, pass --overwrite-pivotal.")
+            ui.warn("Skipping pivotal user.  To overwrite pivotal, pass --overwrite-pivotal.")
             next
           end
+          yield name
+        end
+      end
 
-          # Update user object
-          user = JSONCompat.from_json(IO.read("#{dest_dir}/users/#{name}.json"))
+      def for_each_organization
+        Dir.foreach("#{dest_dir}/organizations") do |name|
+          next if name == '..' || name == '.' || !File.directory?("#{dest_dir}/organizations/#{name}")
+          next unless (config[:org].nil? || config[:org] == name)
+          yield name
+        end
+      end
+
+      def restore_users
+        ui.msg "Restoring users ..."
+        for_each_user do |name|
+          user = JSONCompat.from_json(File.read("#{dest_dir}/users/#{name}.json"))
           begin
             # Supply password for new user
             user_with_password = user.dup
@@ -144,7 +144,7 @@ class Chef
         end
       end
 
-      def restore_user_sql(dest_dir)
+      def restore_user_sql
         require 'chef/knife/ec_key_import'
         k = Chef::Knife::EcKeyImport.new
         k.name_args = ["#{dest_dir}/key_dump.json"]
@@ -158,7 +158,7 @@ class Chef
       end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
-      def upload_org(dest_dir, webui_key, name)
+      def upload_org_data(name)
         old_config = Chef::Config.save
 
         begin
@@ -169,11 +169,10 @@ class Chef
 
           Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
           Chef::Config.versioned_cookbooks = true
-
           Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
           # Upload the admins group and billing-admins acls
-          puts "Restoring the org admin data"
+          ui.msg "Restoring the org admin data"
           chef_fs_config = Chef::ChefFS::Config.new
 
           # Handle Admins and Billing Admins seperately
@@ -197,16 +196,15 @@ class Chef
           end
 
           pattern = Chef::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
-          if Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
-            @error = true
-          end
+          Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs,
+                                           chef_fs_config.chef_fs, nil, config, ui,
+                                           proc { |entry| chef_fs_config.format_path(entry)})
 
           Chef::Config.node_name = org_admin
-          Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
-          Chef::Config.client_key = webui_key
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
-          puts "Restoring the rest of the org"
+          ui.msg "Restoring the rest of the org"
+          ui.debug "Using admin user: #{org_admin}"
           chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
 
@@ -220,10 +218,9 @@ class Chef
           (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
             Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
-          # restore clients to groups, using the pivotal key again
-          Chef::Config[:node_name] = old_config[:node_name]
-          Chef::Config[:client_key] = old_config[:client_key]
-          Chef::Config.custom_http_headers = {}
+
+          # restore clients to groups, using the pivotal user again
+          Chef::Config[:node_name] = 'pivotal'
           ['admins', 'billing-admins'].each do |group|
             restore_group(Chef::ChefFS::Config.new, group)
           end
@@ -276,10 +273,6 @@ class Chef
         end
 
         group.write(members.to_json)
-      end
-
-      def parallelize(entries, options = {}, &block)
-        Chef::ChefFS::Parallelizer.parallelize(entries, options, &block)
       end
 
       def put_acl(rest, url, acls)

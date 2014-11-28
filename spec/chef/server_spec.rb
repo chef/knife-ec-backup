@@ -16,6 +16,12 @@ describe Chef::Server do
     expect(s.version.to_s).to eq("1.8.1")
   end
 
+  it "ignores git tags when determining the version" do
+    s = Chef::Server.new("http://api.example.com")
+    allow(s).to receive(:open).and_return(StringIO.new("Chef Server 1.8.1+20141024080718.git.16.08098a5\nother stuff\nother stuff"))
+    expect(s.version.to_s).to eq("1.8.1")
+  end
+
   it "knows whether the server supports user ACLs via ngingx" do
     s1 = Chef::Server.new("http://api.example.com")
     s2 = Chef::Server.new("http://api.example.com")

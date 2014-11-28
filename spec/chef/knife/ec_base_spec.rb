@@ -50,27 +50,17 @@ describe Chef::Knife::EcBase do
   end
 
   context "set_client_config!" do
-    it "doesn't mutate config if node_name is pivotal" do
-      Chef::Config.node_name = "pivotal"
-      Chef::Config.client_key = "blargblarg"
+    it "sets the node_name to pivotal" do
+      Chef::Config.node_name = "foobar"
       o.set_client_config!
       expect(Chef::Config.node_name).to eq("pivotal")
-      expect(Chef::Config.client_key).to eq("blargblarg")
     end
 
-    it "exits with an error if the pivotal key doesn't exist" do
-      Chef::Config.node_name = "wombat"
+    it "sets the client key to config[:webui_key]" do
       Chef::Config.client_key = "blargblarg"
-      expect {o.set_client_config!}.to raise_error(SystemExit)
-    end
-
-    it "sets the client key and node name if they look incorrect" do
-      Chef::Config.node_name = "wombat"
-      Chef::Config.client_key = "blargblarg"
-      allow(File).to receive(:exist?).and_return(true)
+      o.config[:webui_key] = "foobar"
       o.set_client_config!
-      expect(Chef::Config.node_name).to eq("pivotal")
-      expect(Chef::Config.client_key).to eq("/etc/opscode/pivotal.pem")
+      expect(Chef::Config.client_key).to eq("foobar")
     end
   end
 
