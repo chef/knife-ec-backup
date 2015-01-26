@@ -44,6 +44,7 @@ class Chef
         restore_user_sql if config[:with_user_sql]
 
         for_each_organization do |orgname|
+          ui.msg "Restoring organization[#{orgname}]"
           create_organization(orgname)
           restore_open_invitations(orgname)
           add_users_to_org(orgname)
@@ -98,7 +99,7 @@ class Chef
       end
 
       def restore_user_acls
-        ui.msg "Restoring user ACLs ..."
+        ui.msg "Restoring user ACLs"
         for_each_user do |name|
           user_acl = JSONCompat.from_json(File.read("#{dest_dir}/user_acls/#{name}.json"))
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
@@ -126,7 +127,7 @@ class Chef
       end
 
       def restore_users
-        ui.msg "Restoring users ..."
+        ui.msg "Restoring users"
         for_each_user do |name|
           user = JSONCompat.from_json(File.read("#{dest_dir}/users/#{name}.json"))
           begin
@@ -172,7 +173,7 @@ class Chef
           Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
           # Upload the admins group and billing-admins acls
-          ui.msg "Restoring the org admin data"
+          ui.msg "Restoring org admin data"
           chef_fs_config = Chef::ChefFS::Config.new
 
           # Handle Admins and Billing Admins seperately
