@@ -216,7 +216,13 @@ class Chef
           group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
           acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
 
-          (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
+
+          # Store organization data in a particular order:
+          # - clients must be uploaded before groups (in top_level_paths)
+          # - groups must be uploaded before any acl's
+          # - groups must be uploaded twice to account for Chef Server versions that don't
+          #   accept group members on POST
+          (top_level_paths + group_paths*2 + group_acl_paths + acl_paths).each do |path|
             Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
 
