@@ -51,6 +51,8 @@ class Chef
           upload_org_data(orgname)
         end
 
+        restore_key_sql if config[:with_key_sql]
+
         if config[:skip_useracl]
           ui.warn("Skipping user ACL update. To update user ACLs, remove --skip-useracl or upgrade your Enterprise Chef Server.")
         else
@@ -145,16 +147,32 @@ class Chef
         end
       end
 
+      def ec_key_import
+        @ec_key_import ||= begin
+                             require 'chef/knife/ec_key_import'
+                             k = Chef::Knife::EcKeyImport.new
+                             k.name_args = ["#{dest_dir}/key_dump.json", "#{dest_dir}/key_table_dump.json"]
+                             k.config[:skip_pivotal] = true
+                             k.config[:skip_ids] = false
+                             k.config[:sql_host] = config[:sql_host]
+                             k.config[:sql_port] = config[:sql_port]
+                             k.config[:sql_user] = config[:sql_user]
+                             k.config[:sql_password] = config[:sql_password]
+                             k
+                           end
+      end
+
       def restore_user_sql
-        require 'chef/knife/ec_key_import'
-        k = Chef::Knife::EcKeyImport.new
-        k.name_args = ["#{dest_dir}/key_dump.json"]
-        k.config[:skip_pivotal] = true
-        k.config[:skip_ids] = false
-        k.config[:sql_host] = config[:sql_host]
-        k.config[:sql_port] = config[:sql_port]
-        k.config[:sql_user] = config[:sql_user]
-        k.config[:sql_password] = config[:sql_password]
+        k = ec_key_import
+        k.config[:skip_users_table] = false
+        k.config[:skip_keys_table] = true
+        k.run
+      end
+
+      def restore_key_sql
+        k = ec_key_import
+        k.config[:skip_users_table] = true
+        k.config[:skip_keys_table] = false
         k.run
       end
 

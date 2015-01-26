@@ -47,6 +47,16 @@ class Chef
           option :sql_password,
           :long => "--sql-password PASSWORD",
           :description => 'Password used to connect to the postgresql database'
+
+          option :skip_keys_table,
+          :long => "--skip-keys-table",
+          :description => "Skip Chef 12-only keys table",
+          :default => false
+
+          option :skip_users_table,
+          :long => "--skip-users-table",
+          :description => "Skip users table",
+          :default => false
         end
       end
 
@@ -54,7 +64,7 @@ class Chef
         @db ||= begin
                   require 'sequel'
                   server_string = "#{config[:sql_user]}:#{config[:sql_password]}@#{config[:sql_host]}:#{config[:sql_port]}/opscode_chef"
-                  ::Sequel.connect("postgres://#{server_string}")
+                  ::Sequel.connect("postgres://#{server_string}", :convert_infinite_timestamps => :string)
                 end
       end
 

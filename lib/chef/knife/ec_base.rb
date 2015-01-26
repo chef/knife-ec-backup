@@ -72,6 +72,11 @@ class Chef
           option :with_user_sql,
             :long => '--with-user-sql',
             :description => 'Try direct data base access for user export/import.  Required to properly handle passwords, keys, and USAGs'
+
+          option :with_key_sql,
+            :long => '--with-key-sql',
+            :description => 'Try direct data base access for key table export/import.  Required to properly handle rotated keys.'
+
         end
 
         attr_accessor :dest_dir
