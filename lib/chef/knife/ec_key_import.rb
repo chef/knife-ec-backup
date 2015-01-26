@@ -40,6 +40,16 @@ class Chef
         :boolean => true,
         :description => "Upload user ids."
 
+      option :users_only,
+        :long => "--users-only",
+        :default => false,
+        :description => "Only update users (skip client key data)"
+
+     option :clients_only,
+        :log => "--clients-only",
+        :default => false,
+        :description => "Only update client key data. Implies --skip-users-table"
+
       def run
         if config[:sql_user].nil? || config[:sql_password].nil?
           load_config_from_file!
@@ -51,7 +61,7 @@ class Chef
         # older knife-ec-backup exports
         user_data_path = @name_args[0] || "key_dump.json"
         key_data_path = @name_args[1] || "key_table_dump.json"
-        import_user_data(user_data_path) unless config[:skip_users_table]
+        import_user_data(user_data_path) unless (config[:skip_users_table] || config[:clients_only])
         import_key_data(key_data_path) unless config[:skip_keys_table]
       end
 
@@ -60,8 +70,10 @@ class Chef
         key_data.each do |d|
           case d['type']
           when 'client'
+            next if config[:users_only]
             insert_key_data_for_client(d)
           when 'user'
+            next if config[:clients_only]
             insert_key_data_for_user(d)
           else
             ui.warn "Unkown actor type #{d['type']} for #{d['name']}"
