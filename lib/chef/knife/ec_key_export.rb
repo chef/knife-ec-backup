@@ -40,7 +40,7 @@ class Chef
         export(:users, user_data_path) unless config[:skip_users_table]
 
         begin
-          export(:keys_by_name, key_data_path) unless config[:skip_keys_table]
+          export_keys(key_data_path) unless config[:skip_keys_table]
         rescue Sequel::DatabaseError => e
           if e.message =~ /^PG::UndefinedTable/
             ui.error "Keys table not found. The keys table only exists on Chef Server 12."
@@ -50,6 +50,11 @@ class Chef
             raise
           end
         end
+      end
+
+      def export_keys(path)
+        data = db.fetch('SELECT keys_by_name.*, orgs.name AS "org_name" FROM keys_by_name LEFT JOIN orgs ON keys_by_name.org_id=orgs.id')
+        File.open(path, 'w') { |file| file.write(data.all.to_json) }
       end
 
       def export(table, path)

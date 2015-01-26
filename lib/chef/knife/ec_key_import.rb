@@ -18,6 +18,7 @@
 
 require 'chef/knife'
 require 'chef/knife/ec_key_base'
+require 'chef/org_id_cache'
 
 class Chef
   class Knife
@@ -43,6 +44,8 @@ class Chef
         if config[:sql_user].nil? || config[:sql_password].nil?
           load_config_from_file!
         end
+
+        @org_id_cache = Chef::OrgIdCache.new(db)
 
         # user_data_path defaults to key_dump.json to support
         # older knife-ec-backup exports
@@ -72,15 +75,29 @@ class Chef
       #
       # Unlike users, we never want to keep the internal ID from the
       # backup.
+      #
+      # The org_id is likely different than that stored in the backup.
+      # We query the new org_id based on org_name, caching it to avoid
+      # multiple lookups in a large org.
       def insert_key_data_for_client(d)
         ui.msg "Updating key data for client[#{d['name']}]"
-        new_id = db[:clients].where(:org_id => d['org_id'], :name => d['name']).first[:id]
-        Chef::Log.debug("Found client id for #{d['name']}: #{new_id}")
-        if new_id.nil?
+
+        org_id = @org_id_cache.fetch(d['org_name'])
+        if org_id.nil?
+          ui.warn "Could not find organization for client[#{d['name']}], skipping."
+          ui.warn "Organizations much be restored before key data can be imported."
+          return
+        end
+
+        existing_client = db[:clients].where(:org_id => org_id, :name => d['name']).first
+        if existing_client.nil?
           ui.warn "Did not find existing client record for #{d['name']}, skipping."
           ui.warn "Client records must be restored before key data can be imported."
           return
         end
+
+        new_id = existing_client = new_id
+        Chef::Log.debug("Found client id for #{d['name']}: #{new_id}")
         upsert_key_record(key_record_for_db(d, new_id))
       end
 
