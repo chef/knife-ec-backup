@@ -108,7 +108,7 @@ class Chef
           return
         end
 
-        new_id = existing_client = new_id
+        new_id = existing_client[:id]
         Chef::Log.debug("Found client id for #{d['name']}: #{new_id}")
         upsert_key_record(key_record_for_db(d, new_id))
       end

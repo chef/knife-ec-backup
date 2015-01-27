@@ -174,6 +174,7 @@ class Chef
         k = ec_key_import
         k.config[:skip_users_table] = true
         k.config[:skip_keys_table] = false
+        k.config[:users_only] = false
         k.config[:clients_only] = true
         k.run
       end
