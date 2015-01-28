@@ -33,8 +33,8 @@ class Chef
           end
         end
 
-        if config[:with_user_sql]
-          export_users_from_sql
+        if config[:with_user_sql] || config[:with_key_sql]
+          export_from_sql
         end
 
         ensure_dir("#{dest_dir}/organizations")
@@ -86,15 +86,17 @@ class Chef
         end
       end
 
-      def export_users_from_sql
+      def export_from_sql
         require 'chef/knife/ec_key_export'
         Chef::Knife::EcKeyExport.deps
         k = Chef::Knife::EcKeyExport.new
-        k.name_args = ["#{dest_dir}/key_dump.json"]
+        k.name_args = ["#{dest_dir}/key_dump.json", "#{dest_dir}/key_table_dump.json"]
         k.config[:sql_host] = config[:sql_host]
         k.config[:sql_port] = config[:sql_port]
         k.config[:sql_user] = config[:sql_user]
         k.config[:sql_password] = config[:sql_password]
+        k.config[:skip_users_table] = !config[:with_user_sql]
+        k.config[:skip_keys_table] = !config[:with_key_sql]
         k.run
       end
 

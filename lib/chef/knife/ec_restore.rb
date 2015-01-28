@@ -44,11 +44,14 @@ class Chef
         restore_user_sql if config[:with_user_sql]
 
         for_each_organization do |orgname|
+          ui.msg "Restoring organization[#{orgname}]"
           create_organization(orgname)
           restore_open_invitations(orgname)
           add_users_to_org(orgname)
           upload_org_data(orgname)
         end
+
+        restore_key_sql if config[:with_key_sql]
 
         if config[:skip_useracl]
           ui.warn("Skipping user ACL update. To update user ACLs, remove --skip-useracl or upgrade your Enterprise Chef Server.")
@@ -98,7 +101,7 @@ class Chef
       end
 
       def restore_user_acls
-        ui.msg "Restoring user ACLs ..."
+        ui.msg "Restoring user ACLs"
         for_each_user do |name|
           user_acl = JSONCompat.from_json(File.read("#{dest_dir}/user_acls/#{name}.json"))
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
@@ -126,7 +129,7 @@ class Chef
       end
 
       def restore_users
-        ui.msg "Restoring users ..."
+        ui.msg "Restoring users"
         for_each_user do |name|
           user = JSONCompat.from_json(File.read("#{dest_dir}/users/#{name}.json"))
           begin
@@ -144,16 +147,35 @@ class Chef
         end
       end
 
+      def ec_key_import
+        @ec_key_import ||= begin
+                             require 'chef/knife/ec_key_import'
+                             k = Chef::Knife::EcKeyImport.new
+                             k.name_args = ["#{dest_dir}/key_dump.json", "#{dest_dir}/key_table_dump.json"]
+                             k.config[:skip_pivotal] = true
+                             k.config[:skip_ids] = false
+                             k.config[:sql_host] = config[:sql_host]
+                             k.config[:sql_port] = config[:sql_port]
+                             k.config[:sql_user] = config[:sql_user]
+                             k.config[:sql_password] = config[:sql_password]
+                             k
+                           end
+      end
+
       def restore_user_sql
-        require 'chef/knife/ec_key_import'
-        k = Chef::Knife::EcKeyImport.new
-        k.name_args = ["#{dest_dir}/key_dump.json"]
-        k.config[:skip_pivotal] = true
-        k.config[:skip_ids] = false
-        k.config[:sql_host] = config[:sql_host]
-        k.config[:sql_port] = config[:sql_port]
-        k.config[:sql_user] = config[:sql_user]
-        k.config[:sql_password] = config[:sql_password]
+        k = ec_key_import
+        k.config[:skip_users_table] = false
+        k.config[:skip_keys_table] = false
+        k.config[:users_only] = true
+        k.run
+      end
+
+      def restore_key_sql
+        k = ec_key_import
+        k.config[:skip_users_table] = true
+        k.config[:skip_keys_table] = false
+        k.config[:users_only] = false
+        k.config[:clients_only] = true
         k.run
       end
 
@@ -172,7 +194,7 @@ class Chef
           Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
           # Upload the admins group and billing-admins acls
-          ui.msg "Restoring the org admin data"
+          ui.msg "Restoring org admin data"
           chef_fs_config = Chef::ChefFS::Config.new
 
           # Handle Admins and Billing Admins seperately
@@ -215,7 +237,13 @@ class Chef
           group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
           acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
 
-          (top_level_paths + group_paths + group_acl_paths + acl_paths).each do |path|
+
+          # Store organization data in a particular order:
+          # - clients must be uploaded before groups (in top_level_paths)
+          # - groups must be uploaded before any acl's
+          # - groups must be uploaded twice to account for Chef Server versions that don't
+          #   accept group members on POST
+          (top_level_paths + group_paths*2 + group_acl_paths + acl_paths).each do |path|
             Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
           end
 
