@@ -13,12 +13,20 @@ tool.
 
 # Requirements
 
-This knife plugin requires Chef 11.8+.
+This knife plugin requires Chef Client 11.8+.
 
 ## Chef 10
 
 Users who are still using Chef 10 can use the most recent 1.x version
 of this gem.  Version 1.x additionally depends on knife-essentials.
+
+## Server Support
+
+This plugin currently supports Enterprise Chef 11 and Chef Server 12.
+Support for the beta key rotation features is provided via the
+`--with-keys-sql` flag, but users of this feature should note that
+this may change once the Chef Server supports an API-based export of
+the key data.
 
 # Installation
 
@@ -85,6 +93,13 @@ The following options are supported across all subcommands:
     requires access to the listening postgresql port on the Chef
     Server.  This is required to correctly handle user passwords and
     to ensure user-specific association groups are not duplicated.
+
+  * `--with-key-sql`: Whether to backup/restore key data directly
+    from the database.  This requires access to the listening
+    postgresql port on the Chef Server.  This is required to correctly
+    handle keys in Chef Servers with multikey support. This option
+    will only work on `restore` if it was also used during the
+    `backup`.
 
   * `--skip-useracl`:
     Skip download/restore of the user ACLs.  User ACLs are the
@@ -187,6 +202,13 @@ Private Chef server. DEST_DIR should be a backup directory created by
     duplicated. This option will only work on `restore` if it was also
     used during the `backup`.
 
+  * `--with-key-sql`: Whether to backup/restore key data directly
+    from the database.  This requires access to the listening
+    postgresql port on the Chef Server.  This is required to correctly
+    handle keys in Chef Servers with multikey support. This option
+    will only work on `restore` if it was also used during the
+    `backup`.
+
   * `--skip-useracl`:
     Skip download/restore of the user ACLs.  User ACLs are the
     permissions that actors have *on other global users*.  These are
@@ -216,6 +238,9 @@ Please note, most user should use `knife ec restore` with the
 `--with-user-sql` option rather than this command.
 
 # Known Bugs
+
+- knife-ec-backup cannot be installed in the embedded gemset of Chef
+  Server 12.  This will be resolved in a future Chef Server release.
 
 - `knife ec restore` can fail to restore cookbooks, failing with an
   internal server error. A common cause of this problem is a
