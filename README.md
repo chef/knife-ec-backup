@@ -170,7 +170,7 @@ This compares very closely with the "knife download /" from an OSC server:
 
 Restores all data from the specified DEST_DIR to an Enterprise Chef /
 Private Chef server. DEST_DIR should be a backup directory created by
-`knife ec restore`
+`knife ec backup`
 
 *Options*
 
