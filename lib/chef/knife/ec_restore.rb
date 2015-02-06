@@ -165,7 +165,7 @@ class Chef
       def restore_user_sql
         k = ec_key_import
         k.config[:skip_users_table] = false
-        k.config[:skip_keys_table] = false
+        k.config[:skip_keys_table] = !config[:with_key_sql]
         k.config[:users_only] = true
         k.run
       end
