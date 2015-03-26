@@ -2,6 +2,13 @@ source :rubygems
 
 gemspec
 
+group :development do
+  gem 'rspec'
+  gem 'rake'
+  gem 'simplecov'
+  gem 'fakefs'
+end
+
 # This is here instead of gemspec so that we can
 # override which Chef gem to use when we do testing
 # Possibilities in the future include using environmental
@@ -15,3 +22,5 @@ gemspec
 # If you want to load debugging tools into the bundle exec sandbox,
 # # add these additional dependencies into Gemfile.local
 eval(IO.read(__FILE__ + '.local'), binding) if File.exists?(__FILE__ + '.local')
+$:.unshift(File.dirname(__FILE__) + '/lib')
+

@@ -20,10 +20,10 @@ Gem::Specification.new do |s|
   s.add_dependency "sequel"
   s.add_dependency "pg"
   s.add_dependency "chef", ">= 11.8"
-  s.add_development_dependency 'rspec'
-  s.add_development_dependency 'rake'
-  s.add_development_dependency 'simplecov'
-  s.add_development_dependency 'fakefs'
+
+  if RUBY_VERSION.index('1.9') == 0 then
+    s.add_dependency "ohai", "< 8.0"
+  end
 
   s.require_path = 'lib'
   s.files = %w(LICENSE README.md Rakefile) + Dir.glob("{lib,spec}/**/*")
