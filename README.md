@@ -40,7 +40,7 @@ downloading the .zip file. Once unpacked, run:
 
 ```
 /opt/opscode/embedded/bin/gem build knife-ec-backup.gemspec
-/opt/opscode/embedded/bin/gem install knife-ec-backup*gem
+/opt/opscode/embedded/bin/gem install knife-ec-backup*gem --no-ri --no-rdoc -V
 ```
 
 ### Note on installing with existing development tools:
@@ -88,6 +88,8 @@ The following options are supported across all subcommands:
     The password for the sql_user.  (default: autoconfigured from /etc/opscode/chef-server-running.json)
 
 ## knife ec backup DEST_DIR (options)
+
+*Path*: If you have chef-client installed as well, you may need to invoke this as `/opt/opscode/embedded/bin/knife ec backup backup`
 
 *Options*
 
