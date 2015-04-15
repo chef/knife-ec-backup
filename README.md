@@ -31,9 +31,19 @@ the key data.
 # Installation
 
 ## Chef Server Install (Recommended)
-This will install the plugin directly on the Chef Server:
 
-    /opt/opscode/embedded/bin/gem install knife-ec-backup
+This gem is installed with chef-server-core 12.0.0 and newer. 
+
+For Private Chef 11 (or Enterprise Chef 11) you'll need to download and build
+locally to get the correct dependencies, either with `git clone` or by
+downloading the .zip file. Once unpacked, run:
+
+```
+/opt/opscode/embedded/bin/gem build knife-ec-backup.gemspec
+/opt/opscode/embedded/bin/gem install knife-ec-backup*gem --no-ri --no-rdoc -V
+```
+
+### Note on installing with existing development tools:
 
 The latest versions of knife-ec-backup require gems with native
 extensions, thus you must install a standard build toolchain.  To
@@ -43,10 +53,11 @@ on your system, try the following:
    /opt/opscode/embedded/bin/gem install knife-ec-backup -- --with-pg-config=/opt/opscode/embedded/postgresql/9.2/bin/pg_config
 
 ## Build from source
+
 Clone the git repository and run the following from inside:
 
     gem build knife-ec-backup.gemspec
-    gem install knife-ec-backup-1.1.3.gem
+    gem install knife-ec-backup*gem
 
 # Configuration
 
@@ -77,6 +88,8 @@ The following options are supported across all subcommands:
     The password for the sql_user.  (default: autoconfigured from /etc/opscode/chef-server-running.json)
 
 ## knife ec backup DEST_DIR (options)
+
+*Path*: If you have chef-client installed as well, you may need to invoke this as `/opt/opscode/embedded/bin/knife ec backup backup`
 
 *Options*
 
