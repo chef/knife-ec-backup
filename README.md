@@ -8,7 +8,7 @@ text format.  It is similar to the `knife download` and `knife upload`
 commands and uses the same underlying libraries, but also includes
 workarounds for objects not yet supported by those tools and various
 Server API deficiencies.  The long-run goal is to improve `knife
-donwload`, `knife upload` and the Chef Server API and deprecate this
+download`, `knife upload` and the Chef Server API and deprecate this
 tool.
 
 # Requirements
