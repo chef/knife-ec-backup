@@ -48,16 +48,16 @@ class Chef
       end
 
       def for_each_user
-        rest.get_rest('/users').each_pair do |name, url|
+        rest.get('/users').each_pair do |name, url|
           yield name, url
         end
       end
 
       def for_each_organization
-        rest.get_rest('/organizations').each_pair do |name, url|
+        rest.get('/organizations').each_pair do |name, url|
           next unless (config[:org].nil? || config[:org] == name)
           ui.msg "Downloading organization object for #{name} from #{url}"
-          org = rest.get_rest(url)
+          org = rest.get(url)
           # Enterprise Chef 11 and below uses a pool of precreated
           # organizations to account for slow organization creation
           # using CouchDB. Thus, on server versions < 12 we want to
@@ -75,14 +75,14 @@ class Chef
       def download_user(username, url)
         ensure_dir("#{dest_dir}/users")
         File.open("#{dest_dir}/users/#{username}.json", 'w') do |file|
-          file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest(url)))
+          file.write(Chef::JSONCompat.to_json_pretty(rest.get(url)))
         end
       end
 
       def download_user_acl(username)
         ensure_dir("#{dest_dir}/user_acls")
         File.open("#{dest_dir}/user_acls/#{username}.json", 'w') do |file|
-          file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get_rest("users/#{username}/_acl")))
+          file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get("users/#{username}/_acl")))
         end
       end
 
@@ -111,14 +111,14 @@ class Chef
       def download_org_members(name)
         ensure_dir("#{dest_dir}/organizations/#{name}")
         File.open("#{dest_dir}/organizations/#{name}/members.json", 'w') do |file|
-          file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("/organizations/#{name}/users")))
+          file.write(Chef::JSONCompat.to_json_pretty(rest.get("/organizations/#{name}/users")))
         end
       end
 
       def download_org_invitations(name)
         ensure_dir("#{dest_dir}/organizations/#{name}")
         File.open("#{dest_dir}/organizations/#{name}/invitations.json", 'w') do |file|
-          file.write(Chef::JSONCompat.to_json_pretty(rest.get_rest("/organizations/#{name}/association_requests")))
+          file.write(Chef::JSONCompat.to_json_pretty(rest.get("/organizations/#{name}/association_requests")))
         end
       end
 

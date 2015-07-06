@@ -33,15 +33,15 @@ describe Chef::Knife::EcRestore do
     it "posts a given org to the API from data on disk" do
       make_org "foo"
       org = JSON.parse(File.read("/organizations/foo/org.json"))
-      expect(@rest).to receive(:post_rest).with("organizations", org)
+      expect(@rest).to receive(:post).with("organizations", org)
       @knife.create_organization("foo")
     end
 
     it "updates a given org if it already exists" do
       make_org "foo"
       org = JSON.parse(File.read("/organizations/foo/org.json"))
-      allow(@rest).to receive(:post_rest).with("organizations", org).and_raise(net_exception(409))
-      expect(@rest).to receive(:put_rest).with("organizations/foo", org)
+      allow(@rest).to receive(:post).with("organizations", org).and_raise(net_exception(409))
+      expect(@rest).to receive(:put).with("organizations/foo", org)
       @knife.create_organization("foo")
     end
   end
@@ -51,15 +51,15 @@ describe Chef::Knife::EcRestore do
 
     it "reads the invitations from disk and posts them to the API" do
       make_org "foo"
-      expect(@rest).to receive(:post_rest).with("organizations/foo/association_requests", {"user" => "bob"})
-      expect(@rest).to receive(:post_rest).with("organizations/foo/association_requests", {"user" => "jane"})
+      expect(@rest).to receive(:post).with("organizations/foo/association_requests", {"user" => "bob"})
+      expect(@rest).to receive(:post).with("organizations/foo/association_requests", {"user" => "jane"})
       @knife.restore_open_invitations("foo")
     end
 
     it "does NOT fail if an inivitation already exists" do
       make_org "foo"
-      allow(@rest).to receive(:post_rest).with("organizations/foo/association_requests", {"user" => "bob"}).and_return(net_exception(409))
-      allow(@rest).to receive(:post_rest).with("organizations/foo/association_requests", {"user" => "jane"}).and_return(net_exception(409))
+      allow(@rest).to receive(:post).with("organizations/foo/association_requests", {"user" => "bob"}).and_return(net_exception(409))
+      allow(@rest).to receive(:post).with("organizations/foo/association_requests", {"user" => "jane"}).and_return(net_exception(409))
       expect {@knife.restore_open_invitations("foo")}.to_not raise_error
     end
   end
@@ -117,21 +117,21 @@ describe Chef::Knife::EcRestore do
 
     it "reads the user from disk and posts it to the API" do
       make_user "jane"
-      expect(@rest).to receive(:post_rest).with("users", anything)
+      expect(@rest).to receive(:post).with("users", anything)
       @knife.restore_users
     end
 
     it "sets a random password for users" do
       make_user "jane"
       # FIX ME: How can we test this better?
-      expect(@rest).to receive(:post_rest).with("users", {"username" => "jane", "password" => anything})
+      expect(@rest).to receive(:post).with("users", {"username" => "jane", "password" => anything})
       @knife.restore_users
     end
 
     it "updates the user if it already exists" do
       make_user "jane"
-      allow(@rest).to receive(:post_rest).with("users", anything).and_raise(net_exception(409))
-      expect(@rest).to receive(:put_rest).with("users/jane", {"username" => "jane"})
+      allow(@rest).to receive(:post).with("users", anything).and_raise(net_exception(409))
+      expect(@rest).to receive(:put).with("users/jane", {"username" => "jane"})
       @knife.restore_users
     end
   end

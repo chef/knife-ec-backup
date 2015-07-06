@@ -37,19 +37,19 @@ describe Chef::Knife::EcBackup do
 
   describe "#for_each_user" do
     it "iterates over remote users" do
-      allow(@rest).to receive(:get_rest).with("/users").and_return(USER_RESPONSE)
+      allow(@rest).to receive(:get).with("/users").and_return(USER_RESPONSE)
       expect{ |b| @knife.for_each_user(&b) }.to yield_successive_args(["foo", USER_RESPONSE["foo"]], ["bar", USER_RESPONSE["bar"]])
     end
   end
 
   describe "#for_each_organization" do
     before(:each) do
-      allow(@rest).to receive(:get_rest).with("/organizations").and_return(ORG_RESPONSE)
+      allow(@rest).to receive(:get).with("/organizations").and_return(ORG_RESPONSE)
     end
 
     it "iterates over remote organizations" do
-      allow(@rest).to receive(:get_rest).with("organizations/bar").and_return(org_response("bar"))
-      allow(@rest).to receive(:get_rest).with("organizations/foo").and_return(org_response("foo"))
+      allow(@rest).to receive(:get).with("organizations/bar").and_return(org_response("bar"))
+      allow(@rest).to receive(:get).with("organizations/foo").and_return(org_response("foo"))
       expect{ |b| @knife.for_each_organization(&b) }.to yield_successive_args(org_response("bar"), org_response("foo"))
     end
 
@@ -57,8 +57,8 @@ describe Chef::Knife::EcBackup do
       server = double('Chef::Server')
       allow(Chef::Server).to receive(:new).and_return(server)
       allow(server).to receive(:version).and_return(Gem::Version.new("11.12.3"))
-      allow(@rest).to receive(:get_rest).with("organizations/bar").and_return(org_response("bar"))
-      allow(@rest).to receive(:get_rest).with("organizations/foo").and_return(org_response("foo", true))
+      allow(@rest).to receive(:get).with("organizations/bar").and_return(org_response("bar"))
+      allow(@rest).to receive(:get).with("organizations/foo").and_return(org_response("foo", true))
       expect{ |b| @knife.for_each_organization(&b) }.to yield_successive_args(org_response("bar"))
     end
 
@@ -66,8 +66,8 @@ describe Chef::Knife::EcBackup do
       server = double('Chef::Server')
       allow(Chef::Server).to receive(:new).and_return(server)
       allow(server).to receive(:version).and_return(Gem::Version.new("12.0.0"))
-      allow(@rest).to receive(:get_rest).with("organizations/bar").and_return(org_response("bar"))
-      allow(@rest).to receive(:get_rest).with("organizations/foo").and_return(org_response("foo", true))
+      allow(@rest).to receive(:get).with("organizations/bar").and_return(org_response("bar"))
+      allow(@rest).to receive(:get).with("organizations/foo").and_return(org_response("foo", true))
       expect{ |b| @knife.for_each_organization(&b) }.to yield_successive_args(org_response("bar"),
                                                                               org_response("foo", true))
     end
@@ -79,13 +79,13 @@ describe Chef::Knife::EcBackup do
     let (:url) { "users/foo" }
 
     it "downloads a named user from the api" do
-      expect(@rest).to receive(:get_rest).with(url)
+      expect(@rest).to receive(:get).with(url)
       @knife.download_user(username, url)
     end
 
     it "writes it to a json file in the destination directory" do
       user_response = {"username" => "foo"}
-      allow(@rest).to receive(:get_rest).with(url).and_return(user_response)
+      allow(@rest).to receive(:get).with(url).and_return(user_response)
       @knife.download_user(username, url)
       expect(JSON.parse(File.read("/users/foo.json"))).to eq(user_response)
     end
@@ -96,13 +96,13 @@ describe Chef::Knife::EcBackup do
     let (:username) {"foo"}
 
     it "downloads a user acl from the API" do
-      expect(@rest).to receive(:get_rest).with("users/#{username}/_acl")
+      expect(@rest).to receive(:get).with("users/#{username}/_acl")
       @knife.download_user_acl(username)
     end
 
     it "writes it to a json file in the destination directory" do
       user_acl_response = {"create" => {}}
-      allow(@rest).to receive(:get_rest).with("users/#{username}/_acl").and_return(user_acl_response)
+      allow(@rest).to receive(:get).with("users/#{username}/_acl").and_return(user_acl_response)
       @knife.download_user_acl(username)
       expect(JSON.parse(File.read("/user_acls/foo.json"))).to eq(user_acl_response)
     end
@@ -130,12 +130,12 @@ describe Chef::Knife::EcBackup do
     }
 
     it "downloads org members for a given org" do
-      expect(@rest).to receive(:get_rest).with("/organizations/bob/users").and_return(users)
+      expect(@rest).to receive(:get).with("/organizations/bob/users").and_return(users)
       @knife.download_org_members("bob")
     end
 
     it "writes the org members to a JSON file" do
-      expect(@rest).to receive(:get_rest).with("/organizations/bob/users").and_return(users)
+      expect(@rest).to receive(:get).with("/organizations/bob/users").and_return(users)
       @knife.download_org_members("bob")
       expect(JSON.parse(File.read("/organizations/bob/members.json"))).to eq(users)
     end
@@ -145,12 +145,12 @@ describe Chef::Knife::EcBackup do
     include FakeFS::SpecHelpers
     let(:invites) { {"a json" => "maybe"} }
     it "downloads invitations for a given org" do
-      expect(@rest).to receive(:get_rest).with("/organizations/bob/association_requests").and_return(invites)
+      expect(@rest).to receive(:get).with("/organizations/bob/association_requests").and_return(invites)
       @knife.download_org_invitations("bob")
     end
 
     it "writes the invitations to a JSON file" do
-      expect(@rest).to receive(:get_rest).with("/organizations/bob/association_requests").and_return(invites)
+      expect(@rest).to receive(:get).with("/organizations/bob/association_requests").and_return(invites)
       @knife.download_org_invitations("bob")
       expect(JSON.parse(File.read("/organizations/bob/invitations.json"))).to eq(invites)
     end

@@ -62,10 +62,10 @@ class Chef
 
       def create_organization(orgname)
         org = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/org.json"))
-        rest.post_rest('organizations', org)
+        rest.post('organizations', org)
       rescue Net::HTTPServerException => e
         if e.response.code == "409"
-          rest.put_rest("organizations/#{orgname}", org)
+          rest.put("organizations/#{orgname}", org)
         else
           raise
         end
@@ -75,7 +75,7 @@ class Chef
         invitations = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/invitations.json"))
         invitations.each do |invitation|
           begin
-            rest.post_rest("organizations/#{orgname}/association_requests", { 'user' => invitation['username'] })
+            rest.post("organizations/#{orgname}/association_requests", { 'user' => invitation['username'] })
           rescue Net::HTTPServerException => e
             if e.response.code != "409"
               ui.error("Cannot create invitation #{invitation['id']}")
@@ -89,9 +89,9 @@ class Chef
         members.each do |member|
           username = member['user']['username']
           begin
-            response = rest.post_rest("organizations/#{orgname}/association_requests", { 'user' => username })
+            response = rest.post("organizations/#{orgname}/association_requests", { 'user' => username })
             association_id = response["uri"].split("/").last
-            rest.put_rest("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
+            rest.put("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
           rescue Net::HTTPServerException => e
             if e.response.code != "409"
               raise
@@ -136,10 +136,10 @@ class Chef
             # Supply password for new user
             user_with_password = user.dup
             user_with_password['password'] = SecureRandom.hex
-            rest.post_rest('users', user_with_password)
+            rest.post('users', user_with_password)
           rescue Net::HTTPServerException => e
             if e.response.code == "409"
-              rest.put_rest("users/#{name}", user)
+              rest.put("users/#{name}", user)
             else
               raise
             end
@@ -304,12 +304,12 @@ class Chef
       end
 
       def put_acl(rest, url, acls)
-        old_acls = rest.get_rest(url)
+        old_acls = rest.get(url)
         old_acls = Chef::ChefFS::DataHandler::AclDataHandler.new.normalize(old_acls, nil)
         acls = Chef::ChefFS::DataHandler::AclDataHandler.new.normalize(acls, nil)
         if acls != old_acls
           Chef::ChefFS::FileSystem::AclEntry::PERMISSIONS.each do |permission|
-            rest.put_rest("#{url}/#{permission}", { permission => acls[permission] })
+            rest.put("#{url}/#{permission}", { permission => acls[permission] })
           end
         end
       end
