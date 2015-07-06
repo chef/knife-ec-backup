@@ -89,8 +89,8 @@ class Chef
 
         def org_admin
           rest = Chef::REST.new(Chef::Config.chef_server_url)
-          admin_users = rest.get_rest('groups/admins')['users']
-          org_members = rest.get_rest('users').map { |user| user['user']['username'] }
+          admin_users = rest.get('groups/admins')['users']
+          org_members = rest.get('users').map { |user| user['user']['username'] }
           admin_users.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
           if admin_users.empty?
             raise Chef::Knife::EcBase::NoAdminFound
@@ -109,8 +109,10 @@ class Chef
                     end
       end
 
+      # Since knife-ec-backup hasn't been updated to use API V1 keys endpoints
+      # we should explicitly as for V0.
       def rest
-        @rest ||= Chef::REST.new(server.root_url)
+        @rest ||= Chef::ServerAPI.new(server.root_url, {:api_version => "0"})
       end
 
       def user_acl_rest
@@ -119,7 +121,7 @@ class Chef
                            elsif server.supports_user_acls?
                              rest
                            elsif server.direct_account_access?
-                             Chef::REST.new("http://127.0.0.1:9465")
+                             Chef::ServerAPI.new("http://127.0.0.1:9465", {:api_version => "0"})
                            end
 
       end

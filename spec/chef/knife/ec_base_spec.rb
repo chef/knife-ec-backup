@@ -19,20 +19,20 @@ describe Chef::Knife::EcBase do
 
   context "org_admin" do
     it "selects an admin from an org" do
-      allow(@rest).to receive(:get_rest).with("groups/admins").and_return({"users" => ["bob"]})
-      allow(@rest).to receive(:get_rest).with("users").and_return([{"user" => { "username" => "bob"}}])
+      allow(@rest).to receive(:get).with("groups/admins").and_return({"users" => ["bob"]})
+      allow(@rest).to receive(:get).with("users").and_return([{"user" => { "username" => "bob"}}])
       expect(o.org_admin).to eq("bob")
     end
 
     it "refuses to return pivotal" do
-      allow(@rest).to receive(:get_rest).with("groups/admins").and_return({"users" => ["pivotal"]})
-      allow(@rest).to receive(:get_rest).with("users").and_return([{"user" => { "username" => "pivotal"}}])
+      allow(@rest).to receive(:get).with("groups/admins").and_return({"users" => ["pivotal"]})
+      allow(@rest).to receive(:get).with("users").and_return([{"user" => { "username" => "pivotal"}}])
       expect{o.org_admin}.to raise_error(Chef::Knife::EcBase::NoAdminFound)
     end
 
     it "refuses to return users not in the org" do
-      allow(@rest).to receive(:get_rest).with("groups/admins").and_return({"users" => ["bob"]})
-      allow(@rest).to receive(:get_rest).with("users").and_return([{"user" => { "username" => "sally"}}])
+      allow(@rest).to receive(:get).with("groups/admins").and_return({"users" => ["bob"]})
+      allow(@rest).to receive(:get).with("users").and_return([{"user" => { "username" => "sally"}}])
       expect{o.org_admin}.to raise_error(Chef::Knife::EcBase::NoAdminFound)
     end
   end

@@ -52,6 +52,21 @@ on your system, try the following:
 
    /opt/opscode/embedded/bin/gem install knife-ec-backup -- --with-pg-config=/opt/opscode/embedded/postgresql/9.2/bin/pg_config
 
+## Running tests
+
+```
+$ bundle install
+$ bundle exec rspec spec/
+```
+
+If bundle install fails on the pg gem and the note above does not work for you, try:
+
+```
+$ brew install postgres (if not present)
+$ ARCHFLAGS="-arch x86_64" gem install pg
+$ bundle exec rspec spec/
+```
+
 ## Build from source
 
 Clone the git repository and run the following from inside:
