@@ -14,7 +14,7 @@ describe Chef::Knife::EcBase do
     @rest = double('rest')
     @stderr = StringIO.new
     allow(o.ui).to receive(:stderr).and_return(@stderr)
-    allow(Chef::REST).to receive(:new).and_return(@rest)
+    allow(Chef::ServerAPI).to receive(:new).and_return(@rest)
   end
 
   context "org_admin" do
