@@ -17,6 +17,7 @@
 #
 
 require 'chef/knife'
+require 'chef/server_api'
 
 class Chef
   class Knife
@@ -88,7 +89,7 @@ class Chef
         end
 
         def org_admin
-          rest = Chef::REST.new(Chef::Config.chef_server_url)
+          rest = Chef::ServerAPI.new(Chef::Config.chef_server_url, {:api_version => "0"})
           admin_users = rest.get('groups/admins')['users']
           org_members = rest.get('users').map { |user| user['user']['username'] }
           admin_users.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
