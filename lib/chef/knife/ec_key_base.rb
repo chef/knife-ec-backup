@@ -76,8 +76,14 @@ class Chef
           exit 1
         else
           running_config ||= JSON.parse(File.read("/etc/opscode/chef-server-running.json"))
-          config[:sql_user] ||= running_config['private_chef']['postgresql']['sql_user']
-          config[:sql_password] ||= running_config['private_chef']['postgresql']['sql_password']
+          # Latest versions of chef server put the database info under opscode-erchef.sql_user
+          hash_key = if running_config['private_chef']['opscode-erchef'].has_key? sql_user
+                       'opscode-erchef'
+                     else
+                       'postgresql'
+                     end
+          config[:sql_user] ||= running_config['private_chef'][hash_key]['sql_user']
+          config[:sql_password] ||= running_config['private_chef'][hash_key]['sql_password']
         end
       end
     end
