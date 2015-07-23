@@ -77,7 +77,7 @@ class Chef
         else
           running_config ||= JSON.parse(File.read("/etc/opscode/chef-server-running.json"))
           # Latest versions of chef server put the database info under opscode-erchef.sql_user
-          hash_key = if running_config['private_chef']['opscode-erchef'].has_key? sql_user
+          hash_key = if running_config['private_chef']['opscode-erchef'].has_key? 'sql_user'
                        'opscode-erchef'
                      else
                        'postgresql'
