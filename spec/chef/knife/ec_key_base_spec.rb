@@ -18,9 +18,6 @@ describe Chef::Knife::EcKeyBase do
   }
   describe "#load_config_from_file!" do
     before(:each) do
-      pp knife.methods
-      @rest = double('rest')
-      allow(Chef::ServerAPI).to receive(:new).and_return(@rest)
       allow(File).to receive(:exists?).and_return(true)
     end
     it "correctly sets sql options when they live under postgresql settings" do
