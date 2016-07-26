@@ -144,21 +144,23 @@ class Chef
 
           ensure_dir(Chef::Config.chef_repo_path)
 
-          # Download the billing-admins ACL and group as pivotal
+          # Download the billing-admins, public_key_read_access ACL and group as pivotal
           chef_fs_config = Chef::ChefFS::Config.new
           chef_fs_copy_pattern('/acls/groups/billing-admins.json', chef_fs_config)
           chef_fs_copy_pattern('/groups/billing-admins.json', chef_fs_config)
+          chef_fs_copy_pattern('/acls/groups/public_key_read_access.json', chef_fs_config)
+          chef_fs_copy_pattern('/groups/public_key_read_access.json', chef_fs_config)
           chef_fs_copy_pattern('/groups/admins.json', chef_fs_config)
 
           # Set Chef::Config to use an organization administrator
           Chef::Config.node_name = org_admin
 
-          # Download the entire org skipping the billing admins group ACL and the group itself
+          # Download the entire org skipping the billing-admins, public_key_read_access group ACLs and the groups themselves
           chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.chef_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
           acl_paths       = chef_fs_paths('/acls/*', chef_fs_config, 'groups')
-          group_acl_paths = chef_fs_paths('/acls/groups/*', chef_fs_config, 'billing-admins.json')
-          group_paths     = chef_fs_paths('/groups/*', chef_fs_config, 'billing-admins.json')
+          group_acl_paths = chef_fs_paths('/acls/groups/*', chef_fs_config, ['billing-admins.json','public_key_read_access.json'])
+          group_paths     = chef_fs_paths('/groups/*', chef_fs_config, ['billing-admins.json','public_key_read_access.json'])
           (top_level_paths + group_acl_paths + acl_paths + group_paths).each do |path|
             chef_fs_copy_pattern(path, chef_fs_config)
           end
@@ -167,10 +169,10 @@ class Chef
         end
       end
 
-      def chef_fs_paths(pattern_str, chef_fs_config, exclude=nil)
+      def chef_fs_paths(pattern_str, chef_fs_config, exclude=[])
         pattern = Chef::ChefFS::FilePattern.new(pattern_str)
         list = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, pattern)
-        list = list.select { |entry| entry.name != exclude } if ! exclude.nil?
+        list = list.select { |entry| ! exclude.include?(entry.name) } if ! exclude.empty?
         list.map {|entry| entry.path }
       end
 
