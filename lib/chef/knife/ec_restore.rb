@@ -193,11 +193,11 @@ class Chef
           Chef::Config.versioned_cookbooks = true
           Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
-          # Upload the admins group and billing-admins acls
+          # Upload the admins, public_key_read_access and billing-admins groups and acls
           ui.msg "Restoring org admin data"
           chef_fs_config = Chef::ChefFS::Config.new
 
-          # Handle Admins and Billing Admins seperately
+          # Handle Admins, Billing Admins and Public Key Read Access seperately
           #
           # admins: We need to upload admins first so that we
           # can upload all of the other objects as a user in the org
@@ -213,14 +213,21 @@ class Chef
           # and then update it again once all of the clients and
           # groups are uploaded.
           #
-          ['admins', 'billing-admins'].each do |group|
+          # public_key_read_access: Similarly for public_key_read_access,
+          # the default permissions only give read/update to
+          # pivotal and members of the admins group. Use the same strategy
+          # above here.
+          #
+          ['admins', 'billing-admins', 'public_key_read_access'].each do |group|
             restore_group(chef_fs_config, group, :clients => false)
           end
 
-          pattern = Chef::ChefFS::FilePattern.new('/acls/groups/billing-admins.json')
-          Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs,
+          ['/acls/groups/billing-admins.json', '/acls/groups/public_key_read_access.json'].each do |acl|
+            pattern = Chef::ChefFS::FilePattern.new(acl)
+            Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs,
                                            chef_fs_config.chef_fs, nil, config, ui,
                                            proc { |entry| chef_fs_config.format_path(entry)})
+          end
 
           Chef::Config.node_name = org_admin
 
@@ -231,10 +238,10 @@ class Chef
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
 
           # Topologically sort groups for upload
-          unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| JSON.parse(entry.read) }
+          unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).select { |entry| ! ['billing-admins.json', 'public_key_read_access.json'].include?(entry.name) }.map { |entry| JSON.parse(entry.read) }
           group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
 
-          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| entry.name != 'billing-admins.json' }.map { |entry| entry.path }
+          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| ! ['billing-admins.json', 'public_key_read_access.json'].include?(entry.name) }.map { |entry| entry.path }
           acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
 
 
@@ -249,7 +256,7 @@ class Chef
 
           # restore clients to groups, using the pivotal user again
           Chef::Config[:node_name] = 'pivotal'
-          ['admins', 'billing-admins'].each do |group|
+          ['admins', 'billing-admins', 'public_key_read_access'].each do |group|
             restore_group(Chef::ChefFS::Config.new, group)
           end
          ensure
