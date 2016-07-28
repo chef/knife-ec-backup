@@ -158,9 +158,9 @@ class Chef
           # Download the entire org skipping the billing-admins, public_key_read_access group ACLs and the groups themselves
           chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.chef_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
-          acl_paths       = chef_fs_paths('/acls/*', chef_fs_config, 'groups')
-          group_acl_paths = chef_fs_paths('/acls/groups/*', chef_fs_config, ['billing-admins.json','public_key_read_access.json'])
-          group_paths     = chef_fs_paths('/groups/*', chef_fs_config, ['billing-admins.json','public_key_read_access.json'])
+          acl_paths       = chef_fs_paths('/acls/*', chef_fs_config, ['groups'])
+          group_acl_paths = chef_fs_paths('/acls/groups/*', chef_fs_config, ['billing-admins','public_key_read_access'])
+          group_paths     = chef_fs_paths('/groups/*', chef_fs_config, ['billing-admins','public_key_read_access'])
           (top_level_paths + group_acl_paths + acl_paths + group_paths).each do |path|
             chef_fs_copy_pattern(path, chef_fs_config)
           end
@@ -173,10 +173,11 @@ class Chef
         pattern = Chef::ChefFS::FilePattern.new(pattern_str)
         list = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, pattern)
         list = list.select { |entry| ! exclude.include?(entry.name) } if ! exclude.empty?
-        list.map {|entry| entry.path }
+        list.map {|entry| entry.path=~/\.json\z/ ? entry.path : entry.path<<'.json' }
       end
 
       def chef_fs_copy_pattern(pattern_str, chef_fs_config)
+        puts "Copying #{pattern_str}"
         pattern = Chef::ChefFS::FilePattern.new(pattern_str)
         Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs,
                                          chef_fs_config.local_fs, nil,
