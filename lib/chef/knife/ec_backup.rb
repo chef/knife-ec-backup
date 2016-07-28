@@ -169,11 +169,15 @@ class Chef
         end
       end
 
+      def normalize_path_name(path)
+        path=~/\.json\z/ ? path : path<<'.json'
+      end
+
       def chef_fs_paths(pattern_str, chef_fs_config, exclude=[])
         pattern = Chef::ChefFS::FilePattern.new(pattern_str)
         list = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, pattern)
         list = list.select { |entry| ! exclude.include?(entry.name) } if ! exclude.empty?
-        list.map {|entry| entry.path=~/\.json\z/ ? entry.path : entry.path<<'.json' }
+        list.map { |entry| normalize_path_name(entry.path) }
       end
 
       def chef_fs_copy_pattern(pattern_str, chef_fs_config)
