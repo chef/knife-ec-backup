@@ -177,7 +177,7 @@ class Chef
       end
 
       def chef_fs_copy_pattern(pattern_str, chef_fs_config)
-        puts "Copying #{pattern_str}"
+        ui.msg "Copying #{pattern_str}"
         pattern = Chef::ChefFS::FilePattern.new(pattern_str)
         Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs,
                                          chef_fs_config.local_fs, nil,
