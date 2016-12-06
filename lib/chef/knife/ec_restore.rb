@@ -292,6 +292,7 @@ class Chef
           "/groups/#{group_name}.json"
         )
 
+        # Will throw NotFoundError if JSON file does not exist on disk. See below.
         members_json = Chef::ChefFS::FileSystem.resolve_path(
           chef_fs_config.local_fs,
           "/groups/#{group_name}.json"
@@ -308,6 +309,8 @@ class Chef
         end
 
         group.write(members.to_json)
+      rescue Chef::ChefFS::FileSystem::NotFoundError
+        Chef::Log.warn "Could not find #{group.display_path} on disk. Will not restore."
       end
 
       def put_acl(rest, url, acls)

@@ -135,4 +135,15 @@ describe Chef::Knife::EcRestore do
       @knife.restore_users
     end
   end
+
+  describe "#restore_group" do
+    context "when group is not present in backup" do
+      let(:chef_fs_config) { Chef::ChefFS::Config.new }
+      let(:group_name) { "bad_group" }
+
+      it "does not raise error" do
+        expect { @knife.restore_group(chef_fs_config, group_name) }.not_to raise_error
+      end
+    end
+  end
 end
