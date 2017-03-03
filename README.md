@@ -267,9 +267,6 @@ Please note, most user should use `knife ec restore` with the
 
 # Known Bugs
 
-- knife-ec-backup cannot be installed in the embedded gemset of Chef
-  Server 12.  This will be resolved in a future Chef Server release.
-
 - `knife ec restore` can fail to restore cookbooks, failing with an
   internal server error. A common cause of this problem is a
   concurrency bug in Chef Server. Setting `--concurrency 1` can often
