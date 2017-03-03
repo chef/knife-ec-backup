@@ -78,6 +78,18 @@ class Chef
             :long => '--with-key-sql',
             :description => 'Try direct data base access for key table export/import.  Required to properly handle rotated keys.'
 
+          option :purge,
+            :long => '--purge',
+            :description => 'Purge objects from your local backup that are not in your source. Applies to org-level data only.'
+
+          option :force,
+            :long => '--force',
+            :description => 'Force all objects from your source to be copied to your destination, skipping the diff check. Applies to org-level data only.'
+
+          option :dry_run,
+            :long => '--dry-run'.
+            :description => 'Report what actions would be taken without performing any. Applies to org-level data only.'
+
         end
 
         attr_accessor :dest_dir
