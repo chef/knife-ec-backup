@@ -84,7 +84,7 @@ It is recommended that you run this from a frontend Enterprise Chef Server, you 
 
 # Subcommands
 
-## Common Option
+## Common Options
 
 The following options are supported across all subcommands:
 
@@ -101,6 +101,12 @@ The following options are supported across all subcommands:
 
   * `--sql_password`:
     The password for the sql_user.  (default: autoconfigured from /etc/opscode/chef-server-running.json)
+
+  * `--purge`:
+    Whether to sync deletions from backup source to restore destination. (default: false)
+
+  * `--dry-run`:
+    Report what actions would be taken without performing any. (default: false)
 
 ## knife ec backup DEST_DIR (options)
 
