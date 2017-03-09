@@ -229,11 +229,12 @@ class Chef
                                            proc { |entry| chef_fs_config.format_path(entry)})
           end
 
-          Chef::Config.node_name = org_admin
+          # Set Chef::Config to use 'pivotal' as opposed to org_admin
+          Chef::Config.node_name = 'pivotal'
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
           ui.msg "Restoring the rest of the org"
-          Chef::Log.debug "Using admin user: #{org_admin}"
+          Chef::Log.debug 'Using user pivotal'
           chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
 

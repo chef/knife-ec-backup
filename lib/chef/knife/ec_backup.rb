@@ -152,8 +152,8 @@ class Chef
           chef_fs_copy_pattern('/groups/public_key_read_access.json', chef_fs_config)
           chef_fs_copy_pattern('/groups/admins.json', chef_fs_config)
 
-          # Set Chef::Config to use an organization administrator
-          Chef::Config.node_name = org_admin
+          # Set Chef::Config to use 'pivotal' as opposed to org_admin
+          Chef::Config.node_name = 'pivotal'
 
           # Download the entire org skipping the billing-admins, public_key_read_access group ACLs and the groups themselves
           chef_fs_config = Chef::ChefFS::Config.new
