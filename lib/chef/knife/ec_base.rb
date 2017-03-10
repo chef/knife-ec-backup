@@ -216,6 +216,24 @@ class Chef
           exit 1
         end
       end
+
+      def handle_http_error_code(e)
+        case e.response.code
+        when /401/
+          ui.warn 'Insufficient authorization for operation on remote.'
+        when /403/
+          ui.warn 'Operation forbidden by remote.'
+        when /404/
+          ui.info 'Object does not exist on remote.'
+        when /409/
+          ui.info 'Ojbect already exists on remote.'
+        when /500/
+          ui.warn 'Non-speciﬁc error message from remote.'
+        when /502|504/
+          ui.warn 'Nginx gateway error from remote.'
+        end
+        ui.info "Received HTTP error #{e.response.code}"
+      end
     end
   end
 end

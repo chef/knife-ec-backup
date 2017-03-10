@@ -66,9 +66,8 @@ class Chef
       rescue Net::HTTPServerException => e
         if e.response.code == "409"
           rest.put("organizations/#{orgname}", org)
-        else
-          raise
         end
+        handle_http_error_code(e)
       end
 
       def restore_open_invitations(orgname)
@@ -80,6 +79,7 @@ class Chef
             if e.response.code != "409"
               ui.error("Cannot create invitation #{invitation['id']}")
             end
+            handle_http_error_code(e)
           end
         end
       end
@@ -93,9 +93,7 @@ class Chef
             association_id = response["uri"].split("/").last
             rest.put("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
           rescue Net::HTTPServerException => e
-            if e.response.code != "409"
-              raise
-            end
+            handle_http_error_code(e)
           end
         end
       end
@@ -140,9 +138,8 @@ class Chef
           rescue Net::HTTPServerException => e
             if e.response.code == "409"
               rest.put("users/#{name}", user)
-            else
-              raise
             end
+            handle_http_error_code(e)
           end
         end
         purge_users_on_restore
@@ -284,6 +281,8 @@ class Chef
           ['admins', 'billing-admins', 'public_key_read_access'].each do |group|
             restore_group(Chef::ChefFS::Config.new, group)
           end
+         rescue Net::HTTPServerException => e
+           handle_http_error_code(e)
          ensure
           Chef::Config.restore(old_config)
         end
@@ -347,6 +346,8 @@ class Chef
             rest.put("#{url}/#{permission}", { permission => acls[permission] })
           end
         end
+      rescue Net::HTTPServerException => e
+        handle_http_error_code(e)
       end
     end
   end
