@@ -176,8 +176,9 @@ class Chef
                               f.write(key_data)
                               f.flush
                               f.close
-                              f.path
+                              f
                             end
+        @temp_webui_key.path
       end
 
       def ensure_webui_key_exists!
