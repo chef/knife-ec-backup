@@ -38,7 +38,8 @@ class Chef
 
           option :secrets_file_path,
             :long => '--secrets-file PATH',
-            :description => 'Path to a valid private-chef-secrets.json file (default: /etc/opscode/private-chef-secrets.json)'
+            :description => 'Path to a valid private-chef-secrets.json file (default: /etc/opscode/private-chef-secrets.json)',
+            :default => '/etc/opscode/private-chef-secrets.json'
 
           option :skip_useracl,
             :long => '--skip-useracl',
