@@ -145,8 +145,11 @@ class Chef
       end
 
       def for_each_user_purge
-        # compare both ways looking for diffs
-        purge_list = local_user_list - remote_user_list | remote_user_list - local_user_list
+        purge_list = if opt_parser.default_argv[1] == 'backup'
+                       local_user_list - remote_user_list
+                     else
+                       remote_user_list - local_user_list
+                     end
         # failsafe - don't delete pivotal
         purge_list -= [:pivotal]
         purge_list.collect(&:to_s).each do |user|
