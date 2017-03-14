@@ -58,8 +58,8 @@ class Chef
           begin
             File.delete("#{dest_dir}/users/#{user}.json")
             File.delete("#{dest_dir}/user_acls/#{user}.json")
-          rescue Errno::ENOENT
-            true
+          rescue Errno::ENOENT => e
+            ui.warn "Failed to find local #{user} data #{e}"
           end
         end
       end
