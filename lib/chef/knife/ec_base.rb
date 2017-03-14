@@ -18,6 +18,7 @@
 
 require 'chef/knife'
 require 'chef/server_api'
+require 'veil'
 
 class Chef
   class Knife
@@ -33,8 +34,12 @@ class Chef
 
           option :webui_key,
             :long => '--webui-key KEYPATH',
-            :description => 'Path to the WebUI Key (default: /etc/opscode/webui_priv.pem)',
-            :default => '/etc/opscode/webui_priv.pem'
+            :description => 'Path to the WebUI Key (default: Read from secrets store or /etc/opscode/webui_priv.pem)'
+
+          option :secrets_file_path,
+            :long => '--secrets-file PATH',
+            :description => 'Path to a valid private-chef-secrets.json file (default: /etc/opscode/private-chef-secrets.json)',
+            :default => '/etc/opscode/private-chef-secrets.json'
 
           option :skip_useracl,
             :long => '--skip-useracl',
@@ -134,7 +139,7 @@ class Chef
       def set_client_config!
         Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
         Chef::Config.node_name = 'pivotal'
-        Chef::Config.client_key = config[:webui_key]
+        Chef::Config.client_key = webui_key
       end
 
       def set_dest_dir_from_args!
@@ -145,8 +150,39 @@ class Chef
         @dest_dir = name_args[0]
       end
 
+      def webui_key
+        if config[:webui_key]
+          config[:webui_key]
+        elsif veil.exist?("chef-server", "webui_key")
+          temporary_webui_key
+        else
+          '/etc/opscode/webui_priv.pem'
+        end
+      end
+
+      def veil_config
+        { provider: 'chef-secrets-file',
+          path: config[:secrets_file_path] }
+      end
+
+      def veil
+        Veil::CredentialCollection.from_config(veil_config)
+      end
+
+      def temporary_webui_key
+        @temp_webui_key ||= begin
+                              key_data = veil.get("chef-server", "webui_key")
+                              f = Tempfile.new("knife-ec-backup")
+                              f.write(key_data)
+                              f.flush
+                              f.close
+                              f
+                            end
+        @temp_webui_key.path
+      end
+
       def ensure_webui_key_exists!
-        if !File.exist?(config[:webui_key])
+        if !File.exist?(webui_key)
           ui.error("Webui Key (#{config[:webui_key]}) does not exist.")
           exit 1
         end

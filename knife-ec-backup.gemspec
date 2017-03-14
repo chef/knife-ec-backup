@@ -20,6 +20,7 @@ Gem::Specification.new do |s|
   s.add_dependency "sequel"
   s.add_dependency "pg"
   s.add_dependency "chef", ">= 11.8"
+  s.add_dependency "veil"
 
   if RUBY_VERSION.index('1.9') == 0 then
     s.add_dependency "ohai", "< 8.0"
