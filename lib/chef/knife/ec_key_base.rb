@@ -48,6 +48,11 @@ class Chef
           :long => "--sql-password PASSWORD",
           :description => 'Password used to connect to the postgresql database'
 
+          option :secrets_file_path,
+          :long => '--secrets-file PATH',
+          :description => 'Path to a valid private-chef-secrets.json file (default: /etc/opscode/private-chef-secrets.json)',
+          :default => '/etc/opscode/private-chef-secrets.json'
+
           option :skip_keys_table,
           :long => "--skip-keys-table",
           :description => "Skip Chef 12-only keys table",
@@ -83,7 +88,26 @@ class Chef
                        'postgresql'
                      end
           config[:sql_user] ||= running_config['private_chef'][hash_key]['sql_user']
-          config[:sql_password] ||= running_config['private_chef'][hash_key]['sql_password']
+          config[:sql_password] ||= sql_password
+        end
+      end
+
+      def veil_config
+        { provider: 'chef-secrets-file',
+          path: config[:secrets_file_path] }
+      end
+
+      def veil
+        Veil::CredentialCollection.from_config(veil_config)
+      end
+
+      def sql_password
+        if config[:sql_password]
+          config[:sql_password]
+        elsif veil.exist?("opscode_erchef", "sql_password")
+          veil.get("opscode_erchef", "sql_password")
+        else veil.exist?("postgresql", "sql_password")
+          veil.get("postgresql", "sql_password")
         end
       end
     end
