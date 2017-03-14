@@ -24,7 +24,12 @@ class Chef
         set_skip_user_acl!
         ensure_webui_key_exists!
 
+        ensure_dir("#{dest_dir}/users")
+        ensure_dir("#{dest_dir}/user_acls") unless config[:skip_useracl]
+        ui.msg "Downloading Users"
+        remote_users = []
         for_each_user do |username, url|
+          remote_users.push(username.to_sym)
           download_user(username, url)
           if config[:skip_useracl]
             ui.warn("Skipping user ACL download for #{username}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
@@ -32,6 +37,7 @@ class Chef
             download_user_acl(username)
           end
         end
+        purge_users(remote_users) if config[:purge]
 
         if config[:with_user_sql] || config[:with_key_sql]
           export_from_sql
@@ -44,6 +50,22 @@ class Chef
           download_org_data(name)
           download_org_members(name)
           download_org_invitations(name)
+        end
+      end
+
+      def purge_users(src)
+        local_users = Dir.glob("#{dest_dir}/users/*\.json").map { |u| File.basename(u, '.json').to_sym }
+        purge_list = local_users - src
+        # failsafe - don't delete pivotal
+        purge_list -= [:pivotal]
+        purge_list.collect(&:to_s).each do |user|
+          ui.msg "Deleting local user #{user} from backup (purge in on)"
+          begin
+            File.delete("#{dest_dir}/users/#{user}.json")
+            File.delete("#{dest_dir}/user_acls/#{user}.json")
+          rescue Errno::ENOENT
+            true
+          end
         end
       end
 
@@ -73,14 +95,12 @@ class Chef
       end
 
       def download_user(username, url)
-        ensure_dir("#{dest_dir}/users")
         File.open("#{dest_dir}/users/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get(url)))
         end
       end
 
       def download_user_acl(username)
-        ensure_dir("#{dest_dir}/user_acls")
         File.open("#{dest_dir}/user_acls/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get("users/#{username}/_acl")))
         end
