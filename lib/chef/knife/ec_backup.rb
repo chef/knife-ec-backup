@@ -27,9 +27,7 @@ class Chef
         ensure_dir("#{dest_dir}/users")
         ensure_dir("#{dest_dir}/user_acls") unless config[:skip_useracl]
         ui.msg "Downloading Users"
-        remote_users = []
         for_each_user do |username, url|
-          remote_users.push(username.to_sym)
           download_user(username, url)
           if config[:skip_useracl]
             ui.warn("Skipping user ACL download for #{username}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
@@ -37,7 +35,7 @@ class Chef
             download_user_acl(username)
           end
         end
-        purge_users(remote_users) if config[:purge]
+        purge_users if config[:purge]
 
         if config[:with_user_sql] || config[:with_key_sql]
           export_from_sql
@@ -53,9 +51,10 @@ class Chef
         end
       end
 
-      def purge_users(src)
+      def purge_users
         local_users = Dir.glob("#{dest_dir}/users/*\.json").map { |u| File.basename(u, '.json').to_sym }
-        purge_list = local_users - src
+        remote_users = users.keys.map(&:to_sym)
+        purge_list = local_users - remote_users
         # failsafe - don't delete pivotal
         purge_list -= [:pivotal]
         purge_list.collect(&:to_s).each do |user|
@@ -70,7 +69,7 @@ class Chef
       end
 
       def for_each_user
-        rest.get('/users').each_pair do |name, url|
+        users.each_pair do |name, url|
           yield name, url
         end
       end

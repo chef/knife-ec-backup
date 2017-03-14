@@ -132,6 +132,10 @@ class Chef
         @rest ||= Chef::ServerAPI.new(server.root_url, {:api_version => "0"})
       end
 
+      def users
+        @users ||= rest.get('/users')
+      end
+
       def user_acl_rest
         @user_acl_rest ||= if config[:skip_version]
                              rest
