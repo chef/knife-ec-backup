@@ -35,7 +35,7 @@ class Chef
             download_user_acl(username)
           end
         end
-        purge_users if config[:purge]
+        purge_users_on_backup
 
         if config[:with_user_sql] || config[:with_key_sql]
           export_from_sql
@@ -51,14 +51,10 @@ class Chef
         end
       end
 
-      def purge_users
-        local_users = Dir.glob("#{dest_dir}/users/*\.json").map { |u| File.basename(u, '.json').to_sym }
-        remote_users = users.keys.map(&:to_sym)
-        purge_list = local_users - remote_users
-        # failsafe - don't delete pivotal
-        purge_list -= [:pivotal]
-        purge_list.collect(&:to_s).each do |user|
-          ui.msg "Deleting local user #{user} from backup (purge in on)"
+      def purge_users_on_backup
+        return unless config[:purge]
+        for_each_user_purge do |user|
+          ui.msg "Deleting user #{user} from local backup (purge in on)"
           begin
             File.delete("#{dest_dir}/users/#{user}.json")
             File.delete("#{dest_dir}/user_acls/#{user}.json")
@@ -69,7 +65,7 @@ class Chef
       end
 
       def for_each_user
-        users.each_pair do |name, url|
+        remote_users.each_pair do |name, url|
           yield name, url
         end
       end

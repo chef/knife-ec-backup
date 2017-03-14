@@ -132,8 +132,26 @@ class Chef
         @rest ||= Chef::ServerAPI.new(server.root_url, {:api_version => "0"})
       end
 
-      def users
-        @users ||= rest.get('/users')
+      def remote_users
+        @remote_users ||= rest.get('/users')
+      end
+
+      def remote_user_list
+        @remote_user_list ||= remote_users.keys.map(&:to_sym)
+      end
+
+      def local_user_list
+        @local_users ||= Dir.glob("#{@dest_dir}/users/*\.json").map { |u| File.basename(u, '.json').to_sym }
+      end
+
+      def for_each_user_purge
+        # compare both ways looking for diffs
+        purge_list = local_user_list - remote_user_list | remote_user_list - local_user_list
+        # failsafe - don't delete pivotal
+        purge_list -= [:pivotal]
+        purge_list.collect(&:to_s).each do |user|
+          yield user
+        end
       end
 
       def user_acl_rest
