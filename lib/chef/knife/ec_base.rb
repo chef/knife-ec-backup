@@ -141,7 +141,7 @@ class Chef
       end
 
       def local_user_list
-        @local_users ||= Dir.glob("#{@dest_dir}/users/*\.json").map { |u| File.basename(u, '.json').to_sym }
+        @local_user_list ||= Dir.glob("#{@dest_dir}/users/*\.json").map { |u| File.basename(u, '.json').to_sym }
       end
 
       def for_each_user_purge

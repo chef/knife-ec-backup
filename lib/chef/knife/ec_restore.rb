@@ -152,7 +152,11 @@ class Chef
         return unless config[:purge]
         for_each_user_purge do |user|
           ui.msg "Deleting user #{user} from remote (purge in on)"
-          rest.delete("/users/#{user}")
+          begin
+            rest.delete("/users/#{user}")
+          rescue Net::HTTPServerException => e
+            ui.warn "Failed deleting user #{user} from remote #{e}"
+          end
         end
       end
 
