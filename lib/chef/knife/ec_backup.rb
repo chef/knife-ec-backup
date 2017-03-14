@@ -54,7 +54,7 @@ class Chef
       def purge_users_on_backup
         return unless config[:purge]
         for_each_user_purge do |user|
-          ui.msg "Deleting user #{user} from local backup (purge in on)"
+          ui.msg "Deleting user #{user} from local backup (purge is on)"
           begin
             File.delete("#{dest_dir}/users/#{user}.json")
             File.delete("#{dest_dir}/user_acls/#{user}.json")
