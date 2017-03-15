@@ -147,8 +147,10 @@ class Chef
       def for_each_user_purge
         purge_list = if opt_parser.default_argv[1] == 'backup'
                        local_user_list - remote_user_list
-                     else
+                     elsif opt_parser.default_argv[1] == 'restore'
                        remote_user_list - local_user_list
+                     else
+                       raise 'for_each_user_purge only supports backup|restore subcommands'
                      end
         # failsafe - don't delete pivotal
         purge_list -= [:pivotal]
