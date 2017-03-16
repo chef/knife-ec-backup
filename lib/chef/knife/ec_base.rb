@@ -83,6 +83,17 @@ class Chef
             :long => '--with-key-sql',
             :description => 'Try direct data base access for key table export/import.  Required to properly handle rotated keys.'
 
+          option :purge,
+            :long => '--purge',
+            :boolean => true | false,
+            :default => false,
+            :description => 'Syncs deletions from backup source to restore destination.'
+
+          option :dry_run,
+            :long => '--dry-run',
+            :boolean => true | false,
+            :default => false,
+            :description => 'Report what actions would be taken without performing any.'
         end
 
         attr_accessor :dest_dir

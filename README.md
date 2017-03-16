@@ -84,23 +84,29 @@ It is recommended that you run this from a frontend Enterprise Chef Server, you 
 
 # Subcommands
 
-## Common Option
+## Common Options
 
 The following options are supported across all subcommands:
 
-  * `--sql_host`:
+  * `--sql-host`:
     The hostname of the Chef Server's postgresql server. (default: localhost)
 
-  * `--sql_port`:
+  * `--sql-port`:
     The postgresql listening port on the Chef Server. (default: 5432)
 
-  * `--sql_user`:
+  * `--sql-user`:
     The username of postgresql user with access to the opscode_chef
     database. (default: autoconfigured from
     /etc/opscode/chef-server-running.json)
 
-  * `--sql_password`:
-    The password for the sql_user.  (default: autoconfigured from /etc/opscode/chef-server-running.json)
+  * `--sql-password`:
+    The password for the sql-user.  (default: autoconfigured from /etc/opscode/chef-server-running.json)
+
+  * `--purge`:
+    Whether to sync deletions from backup source to restore destination. (default: false)
+
+  * `--dry-run`:
+    Report what actions would be taken without performing any. (default: false)
 
 ## knife ec backup DEST_DIR (options)
 
