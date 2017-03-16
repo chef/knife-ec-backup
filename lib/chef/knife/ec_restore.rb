@@ -281,8 +281,8 @@ class Chef
           ['admins', 'billing-admins', 'public_key_read_access'].each do |group|
             restore_group(Chef::ChefFS::Config.new, group)
           end
-         rescue Net::HTTPServerException => e
-           handle_http_error_code(e)
+         rescue Net::HTTPServerException => ex
+           knife_ec_error_handler.add(ex)
          ensure
           Chef::Config.restore(old_config)
         end

@@ -29,7 +29,9 @@ Chef::ServerAPI.class_eval do
   end
 
   def knife_ec_backup_rest_exception_add_context(ex, req_path)
-    ex.knife_ec_backup_rest_request = { url: @url, req_path: req_path, options: @options } if ex.respond_to?(:knife_ec_backup_rest_request=)
+    if ex.respond_to?(:knife_ec_backup_rest_request=)
+      ex.knife_ec_backup_rest_request = { url: @url, req_path: req_path, options: @options }
+    end
   end
 
   def get(req_path, headers = {})
