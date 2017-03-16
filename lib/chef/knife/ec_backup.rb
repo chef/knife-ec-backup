@@ -77,8 +77,8 @@ class Chef
         remote_users.each_pair do |name, url|
           yield name, url
         end
-      rescue Net::HTTPServerException => e
-        handle_http_error_code(e)
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def for_each_organization
@@ -98,24 +98,24 @@ class Chef
             ui.msg "Skipping pre-created org #{name}"
           end
         end
-      rescue Net::HTTPServerException => e
-        handle_http_error_code(e)
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def download_user(username, url)
         File.open("#{dest_dir}/users/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get(url)))
         end
-      rescue Net::HTTPServerException => e
-        handle_http_error_code(e)
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def download_user_acl(username)
         File.open("#{dest_dir}/user_acls/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get("users/#{username}/_acl")))
         end
-      rescue Net::HTTPServerException => e
-        handle_http_error_code(e)
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def export_from_sql
@@ -145,8 +145,8 @@ class Chef
         File.open("#{dest_dir}/organizations/#{name}/members.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get("/organizations/#{name}/users")))
         end
-      rescue Net::HTTPServerException => e
-        handle_http_error_code(e)
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def download_org_invitations(name)
@@ -154,8 +154,8 @@ class Chef
         File.open("#{dest_dir}/organizations/#{name}/invitations.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get("/organizations/#{name}/association_requests")))
         end
-      rescue Net::HTTPServerException => e
-        handle_http_error_code(e)
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def ensure_dir(dir)
@@ -214,8 +214,6 @@ class Chef
           (top_level_paths + top_level_acls + acl_paths + group_paths).each do |path|
             chef_fs_copy_pattern(path, chef_fs_config)
           end
-        rescue Net::HTTPServerException => e
-          handle_http_error_code(e)
         ensure
           Chef::Config.restore(old_config)
         end
@@ -239,8 +237,8 @@ class Chef
                                          chef_fs_config.local_fs, nil,
                                          config, ui,
                                          proc { |entry| chef_fs_config.format_path(entry) })
-      rescue Net::HTTPServerException => e
-        handle_http_error_code(e)
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
     end
   end

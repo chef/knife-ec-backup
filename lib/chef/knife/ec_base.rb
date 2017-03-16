@@ -19,6 +19,8 @@
 require 'chef/knife'
 require 'chef/server_api'
 require 'veil'
+require 'chef/server_api_class_eval'
+require 'chef/knife/knife_ec_error_handler'
 
 class Chef
   class Knife
@@ -115,6 +117,8 @@ class Chef
           else
             admin_users[0]
           end
+        rescue Net::HTTPServerException => ex
+          knife_ec_error_handler.add(ex)
         end
       end
 
@@ -148,6 +152,9 @@ class Chef
       def users_for_purge
         # not itended to be called from ec_base
         raise Chef::Knife::EcBase::UnImplemented
+
+      def knife_ec_error_handler
+        @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new
       end
 
       def user_acl_rest
@@ -215,24 +222,6 @@ class Chef
           ui.error("Webui Key (#{config[:webui_key]}) does not exist.")
           exit 1
         end
-      end
-
-      def handle_http_error_code(e)
-        case e.response.code
-        when /401/
-          ui.warn 'Insufficient authorization for operation on remote.'
-        when /403/
-          ui.warn 'Operation forbidden by remote.'
-        when /404/
-          ui.info 'Object does not exist on remote.'
-        when /409/
-          ui.info 'Ojbect already exists on remote.'
-        when /500/
-          ui.warn 'Non-speciﬁc error message from remote.'
-        when /502|504/
-          ui.warn 'Nginx gateway error from remote.'
-        end
-        ui.info "Received HTTP error #{e.response.code}"
       end
     end
   end
