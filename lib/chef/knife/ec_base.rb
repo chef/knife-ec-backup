@@ -98,7 +98,6 @@ class Chef
         end
 
         attr_accessor :dest_dir
-        attr_accessor :users_for_purge
 
         def configure_chef
           super
