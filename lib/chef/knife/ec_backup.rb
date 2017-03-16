@@ -26,7 +26,7 @@ class Chef
 
         ensure_dir("#{dest_dir}/users")
         ensure_dir("#{dest_dir}/user_acls") unless config[:skip_useracl]
-        ui.msg "Downloading Users"
+        ui.msg 'Downloading Users'
         for_each_user do |username, url|
           download_user(username, url)
           if config[:skip_useracl]
@@ -51,13 +51,22 @@ class Chef
         end
       end
 
+      def users_for_purge
+        purge_list = local_user_list - remote_user_list
+        # failsafe - don't delete pivotal
+        purge_list -= ['pivotal']
+        purge_list.each do |user|
+          yield user
+        end
+      end
+
       def purge_users_on_backup
         return unless config[:purge]
-        for_each_user_purge do |user|
+        users_for_purge do |user|
           ui.msg "Deleting user #{user} from local backup (purge is on)"
           begin
-            File.delete("#{dest_dir}/users/#{user}.json")
-            File.delete("#{dest_dir}/user_acls/#{user}.json")
+            ::File.delete("#{dest_dir}/users/#{user}.json")
+            ::File.delete("#{dest_dir}/user_acls/#{user}.json")
           rescue Errno::ENOENT => e
             ui.warn "Failed to find local #{user} data #{e}"
           end

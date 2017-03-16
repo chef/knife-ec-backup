@@ -24,6 +24,7 @@ class Chef
   class Knife
     module EcBase
       class NoAdminFound < Exception; end
+      class UnImplemented < Exception; end
 
       def self.included(includer)
         includer.class_eval do
@@ -97,6 +98,7 @@ class Chef
         end
 
         attr_accessor :dest_dir
+        attr_accessor :users_for_purge
 
         def configure_chef
           super
@@ -137,26 +139,16 @@ class Chef
       end
 
       def remote_user_list
-        @remote_user_list ||= remote_users.keys.map(&:to_sym)
+        @remote_user_list ||= remote_users.keys
       end
 
       def local_user_list
-        @local_user_list ||= Dir.glob("#{@dest_dir}/users/*\.json").map { |u| File.basename(u, '.json').to_sym }
+        @local_user_list ||= Dir.glob("#{dest_dir}/users/*\.json").map { |u| File.basename(u, '.json') }
       end
 
-      def for_each_user_purge
-        purge_list = if opt_parser.default_argv[1] == 'backup'
-                       local_user_list - remote_user_list
-                     elsif opt_parser.default_argv[1] == 'restore'
-                       remote_user_list - local_user_list
-                     else
-                       raise 'for_each_user_purge only supports backup|restore subcommands'
-                     end
-        # failsafe - don't delete pivotal
-        purge_list -= [:pivotal]
-        purge_list.collect(&:to_s).each do |user|
-          yield user
-        end
+      def users_for_purge
+        # not itended to be called from ec_base
+        raise Chef::Knife::EcBase::UnImplemented
       end
 
       def user_acl_rest
