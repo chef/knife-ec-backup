@@ -24,6 +24,9 @@ class Chef
         set_skip_user_acl!
         ensure_webui_key_exists!
 
+        ensure_dir("#{dest_dir}/users")
+        ensure_dir("#{dest_dir}/user_acls") unless config[:skip_useracl]
+        ui.msg 'Downloading Users'
         for_each_user do |username, url|
           download_user(username, url)
           if config[:skip_useracl]
@@ -32,6 +35,7 @@ class Chef
             download_user_acl(username)
           end
         end
+        purge_users_on_backup
 
         if config[:with_user_sql] || config[:with_key_sql]
           export_from_sql
@@ -47,8 +51,30 @@ class Chef
         end
       end
 
+      def users_for_purge
+        purge_list = local_user_list - remote_user_list
+        # failsafe - don't delete pivotal
+        purge_list -= ['pivotal']
+        purge_list.each do |user|
+          yield user
+        end
+      end
+
+      def purge_users_on_backup
+        return unless config[:purge]
+        users_for_purge do |user|
+          ui.msg "Deleting user #{user} from local backup (purge is on)"
+          begin
+            ::File.delete("#{dest_dir}/users/#{user}.json")
+            ::File.delete("#{dest_dir}/user_acls/#{user}.json")
+          rescue Errno::ENOENT => e
+            ui.warn "Failed to find local #{user} data #{e}"
+          end
+        end
+      end
+
       def for_each_user
-        rest.get('/users').each_pair do |name, url|
+        remote_users.each_pair do |name, url|
           yield name, url
         end
       end
@@ -73,14 +99,12 @@ class Chef
       end
 
       def download_user(username, url)
-        ensure_dir("#{dest_dir}/users")
         File.open("#{dest_dir}/users/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get(url)))
         end
       end
 
       def download_user_acl(username)
-        ensure_dir("#{dest_dir}/user_acls")
         File.open("#{dest_dir}/user_acls/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get("users/#{username}/_acl")))
         end

@@ -24,6 +24,7 @@ class Chef
   class Knife
     module EcBase
       class NoAdminFound < Exception; end
+      class UnImplemented < Exception; end
 
       def self.included(includer)
         includer.class_eval do
@@ -130,6 +131,23 @@ class Chef
       # we should explicitly as for V0.
       def rest
         @rest ||= Chef::ServerAPI.new(server.root_url, {:api_version => "0"})
+      end
+
+      def remote_users
+        @remote_users ||= rest.get('/users')
+      end
+
+      def remote_user_list
+        @remote_user_list ||= remote_users.keys
+      end
+
+      def local_user_list
+        @local_user_list ||= Dir.glob("#{dest_dir}/users/*\.json").map { |u| File.basename(u, '.json') }
+      end
+
+      def users_for_purge
+        # not itended to be called from ec_base
+        raise Chef::Knife::EcBase::UnImplemented
       end
 
       def user_acl_rest

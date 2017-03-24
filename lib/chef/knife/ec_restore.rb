@@ -145,6 +145,28 @@ class Chef
             end
           end
         end
+        purge_users_on_restore
+      end
+
+      def users_for_purge
+        purge_list = remote_user_list - local_user_list
+        # failsafe - don't delete pivotal
+        purge_list -= ['pivotal']
+        purge_list.each do |user|
+          yield user
+        end
+      end
+
+      def purge_users_on_restore
+        return unless config[:purge]
+        users_for_purge do |user|
+          ui.msg "Deleting user #{user} from remote (purge is on)"
+          begin
+            rest.delete("/users/#{user}")
+          rescue Net::HTTPServerException => e
+            ui.warn "Failed deleting user #{user} from remote #{e}"
+          end
+        end
       end
 
       def ec_key_import
