@@ -34,5 +34,9 @@ class Chef
     rescue
       false
     end
+
+    def supports_defaulting_to_pivotal?
+      version >= Gem::Version.new('12.1.0')
+    end
   end
 end
