@@ -182,13 +182,24 @@ class Chef
                                      server.supports_defaulting_to_pivotal? ? 'pivotal' : org_admin
                                    end
 
-          # Download the entire org skipping the billing-admins, public_key_read_access group ACLs and the groups themselves
           chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.chef_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
-          acl_paths       = chef_fs_paths('/acls/*', chef_fs_config, ['groups'])
-          group_acl_paths = chef_fs_paths('/acls/groups/*', chef_fs_config, ['billing-admins','public_key_read_access'])
-          group_paths     = chef_fs_paths('/groups/*', chef_fs_config, ['billing-admins','public_key_read_access'])
-          (top_level_paths + group_acl_paths + acl_paths + group_paths).each do |path|
+
+          # The top level acl object names end with .json extension
+          # Therefore we can use Chef::ChefFS::FilePattern matching for items
+          # such as /acls/organizations.json
+          #
+          # 2nd level leaf /acl/*/* objects as well as /groups/* objects do not end with .json
+          # therefore we use normalize_path_name to add the .json extension
+          # for example: /acls/environments/_default
+
+           # Skip the billing-admins, public_key_read_access group ACLs and the groups since they've already been copied
+          exclude_list = ['billing-admins','public_key_read_access']
+
+          top_level_acls  = chef_fs_paths('/acls/*.json', chef_fs_config, [])
+          acl_paths       = chef_fs_paths('/acls/*/*', chef_fs_config, exclude_list)
+          group_paths     = chef_fs_paths('/groups/*', chef_fs_config, exclude_list)
+          (top_level_paths + top_level_acls + acl_paths + group_paths).each do |path|
             chef_fs_copy_pattern(path, chef_fs_config)
           end
         ensure
