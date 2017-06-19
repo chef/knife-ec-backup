@@ -19,8 +19,7 @@
 require 'chef/knife'
 require 'chef/server_api'
 require 'veil'
-require 'chef/server_api_class_eval'
-require 'chef/knife/knife_ec_error_handler'
+require 'chef/knife/ec_error_handler'
 
 class Chef
   class Knife
@@ -152,9 +151,10 @@ class Chef
       def users_for_purge
         # not itended to be called from ec_base
         raise Chef::Knife::EcBase::UnImplemented
+      end
 
       def knife_ec_error_handler
-        @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new
+        @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new(@dest_dir, self.class)
       end
 
       def user_acl_rest

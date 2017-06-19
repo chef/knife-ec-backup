@@ -66,8 +66,9 @@ class Chef
       rescue Net::HTTPServerException => ex
         if ex.response.code == "409"
           rest.put("organizations/#{orgname}", org)
+        else
+          knife_ec_error_handler.add(ex)
         end
-        knife_ec_error_handler.add(ex)
       end
 
       def restore_open_invitations(orgname)
@@ -78,8 +79,8 @@ class Chef
           rescue Net::HTTPServerException => ex
             if ex.response.code != "409"
               ui.error("Cannot create invitation #{invitation['id']}")
+              knife_ec_error_handler.add(ex)
             end
-            knife_ec_error_handler.add(ex)
           end
         end
       end
@@ -93,7 +94,7 @@ class Chef
             association_id = response["uri"].split("/").last
             rest.put("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
           rescue Net::HTTPServerException => ex
-            knife_ec_error_handler.add(ex)
+            knife_ec_error_handler.add(ex) if ex.response.code != "409"
           end
         end
       end
@@ -335,6 +336,8 @@ class Chef
         group.write(members.to_json)
       rescue Chef::ChefFS::FileSystem::NotFoundError
         Chef::Log.warn "Could not find #{group.display_path} on disk. Will not restore."
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def put_acl(rest, url, acls)
