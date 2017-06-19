@@ -243,10 +243,7 @@ class Chef
           end
 
           ['/acls/groups/billing-admins.json', '/acls/groups/public_key_read_access.json'].each do |acl|
-            pattern = Chef::ChefFS::FilePattern.new(acl)
-            Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs,
-                                           chef_fs_config.chef_fs, nil, config, ui,
-                                           proc { |entry| chef_fs_config.format_path(entry)})
+            chef_fs_copy_pattern(acl, chef_fs_config)
           end
 
           Chef::Config.node_name = if config[:skip_version]
@@ -274,7 +271,7 @@ class Chef
           # - groups must be uploaded twice to account for Chef Server versions that don't
           #   accept group members on POST
           (top_level_paths + group_paths*2 + group_acl_paths + acl_paths).each do |path|
-            Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            chef_fs_copy_pattern(path, chef_fs_config)
           end
 
           # restore clients to groups, using the pivotal user again
@@ -282,11 +279,26 @@ class Chef
           ['admins', 'billing-admins', 'public_key_read_access'].each do |group|
             restore_group(Chef::ChefFS::Config.new, group)
           end
-         rescue Net::HTTPServerException => ex
-           knife_ec_error_handler.add(ex)
          ensure
           Chef::Config.restore(old_config)
         end
+      end
+
+      # ChefFS copy pattern inside the EcRestore class will
+      # copy from the local_fs to the Chef Server.
+      #
+      # NOTE: Do not get confused, this is the other way around
+      # from how we implemented in EcBackup. Therefor we can't
+      # abstract it inside EcBase.
+      def chef_fs_copy_pattern(pattern_str, chef_fs_config)
+        ui.msg "Copying #{pattern_str}"
+        pattern = Chef::ChefFS::FilePattern.new(pattern_str)
+        Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs,
+                                         chef_fs_config.chef_fs, nil,
+                                         config, ui,
+                                         proc { |entry| chef_fs_config.format_path(entry) })
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       # Takes an array of group objects
@@ -336,8 +348,6 @@ class Chef
         group.write(members.to_json)
       rescue Chef::ChefFS::FileSystem::NotFoundError
         Chef::Log.warn "Could not find #{group.display_path} on disk. Will not restore."
-      rescue Net::HTTPServerException => ex
-        knife_ec_error_handler.add(ex)
       end
 
       def put_acl(rest, url, acls)
