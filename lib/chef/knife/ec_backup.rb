@@ -88,7 +88,7 @@ class Chef
           begin
             org = rest.get(url)
           rescue Net::HTTPServerException => ex
-            ui.error "Failed to find ochef-server-ctl org-delete test2 -y &rganization #{name}."
+            ui.error "Failed to find organization '#{name}'."
             knife_ec_error_handler.add(ex)
             next
           end
