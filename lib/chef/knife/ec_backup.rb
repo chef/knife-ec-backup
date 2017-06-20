@@ -85,7 +85,13 @@ class Chef
         rest.get('/organizations').each_pair do |name, url|
           next unless (config[:org].nil? || config[:org] == name)
           ui.msg "Downloading organization object for #{name} from #{url}"
-          org = rest.get(url)
+          begin
+            org = rest.get(url)
+          rescue Net::HTTPServerException => ex
+            ui.error "Failed to find ochef-server-ctl org-delete test2 -y &rganization #{name}."
+            knife_ec_error_handler.add(ex)
+            next
+          end
           # Enterprise Chef 11 and below uses a pool of precreated
           # organizations to account for slow organization creation
           # using CouchDB. Thus, on server versions < 12 we want to
@@ -98,8 +104,6 @@ class Chef
             ui.msg "Skipping pre-created org #{name}"
           end
         end
-      rescue Net::HTTPServerException => ex
-        knife_ec_error_handler.add(ex)
       end
 
       def download_user(username, url)
