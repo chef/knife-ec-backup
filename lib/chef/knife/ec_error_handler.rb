@@ -27,14 +27,15 @@ class Chef
         @err_dir = File.join(working_dir, 'errors')
         FileUtils.mkdir_p(@err_dir)
 
-        @err_file = case process
-          when Chef::Knife::EcRestore
-            File.join(@err_dir, "restore-#{Time.now.iso8601}.json")
-          when Chef::Knife::EcBackup
-            File.join(@err_dir, "backup-#{Time.now.iso8601}.json")
-          else
-            File.join(@err_dir, "other-#{Time.now.iso8601}.json")
-        end
+        # Create an specific error file name depending
+        # of where the process comes from.
+        @err_file = if process == Chef::Knife::EcRestore
+                      File.join(@err_dir, "restore-#{Time.now.iso8601}.json")
+                    elsif process == Chef::Knife::EcBackup
+                      File.join(@err_dir, "backup-#{Time.now.iso8601}.json")
+                    else
+                      File.join(@err_dir, "other-#{Time.now.iso8601}.json")
+                    end
 
         # exit handler
         at_exit { EcErrorHandler.display(@err_file) }
