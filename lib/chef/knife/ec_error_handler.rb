@@ -61,11 +61,17 @@ class Chef
         msg = {
           timestamp:  Time.now,
           message:    ex.message,
-          backtrace:  ex.backtrace
+          backtrace:  ex.backtrace,
+          exception:  ex.class
         }
-        if ex.respond_to?(:knife_ec_backup_rest_request=)
-          msg.merge!(ex.knife_ec_backup_rest_request)
+
+        if ex.respond_to?(:chef_rest_request=)
+          msg.merge!( {
+            req_path: ex.chef_rest_request.path,
+            req_method: ex.chef_rest_request.method
+          })
         end
+
         EcErrorHandler.lock_file(@err_file, 'a') do |f|
           f.write(Chef::JSONCompat.to_json_pretty(msg))
         end
@@ -92,59 +98,5 @@ class Chef
         puts "\nError(s) Summary file located at: '#{file_name}'"
       end
     end
-  end
-end
-
-# Openning the ServerAPI class to inject the HTTP request context into
-# any `Net::HTTPServerException` exception, overriding the get, put, post
-# and delete methods, incorporating a `rescue` block in each, adding the
-# extra context from instance variables as well as the request path to the
-# object, then bubbling the error up in the stack with raise.
-Chef::ServerAPI.class_eval do
-  # ChefKnifeEcBackupNetHTTPExceptionExtensions
-  module ChefKnifeEcBackupNetHTTPExceptionExtensions
-    attr_accessor :knife_ec_backup_rest_request
-  end
-
-  require 'net/http'
-  module Net
-    # HTTPServerException
-    class HTTPServerException
-      include ChefKnifeEcBackupNetHTTPExceptionExtensions
-    end
-  end
-
-  def knife_ec_backup_rest_exception_add_context(ex, req_path)
-    if ex.respond_to?(:knife_ec_backup_rest_request=)
-      ex.knife_ec_backup_rest_request = { url: @url, req_path: req_path, options: @options }
-    end
-  end
-
-  def get(req_path, headers = {})
-    super
-  rescue Net::HTTPServerException => ex
-    knife_ec_backup_rest_exception_add_context(ex, req_path)
-    raise
-  end
-
-  def post(req_path, headers = {})
-    super
-  rescue Net::HTTPServerException => ex
-    knife_ec_backup_rest_exception_add_context(ex, req_path)
-    raise
-  end
-
-  def put(req_path, headers = {})
-    super
-  rescue Net::HTTPServerException => ex
-    knife_ec_backup_rest_exception_add_context(ex, req_path)
-    raise
-  end
-
-  def delete(req_path, headers = {})
-    super
-  rescue Net::HTTPServerException => ex
-    knife_ec_backup_rest_exception_add_context(ex, req_path)
-    raise
   end
 end
