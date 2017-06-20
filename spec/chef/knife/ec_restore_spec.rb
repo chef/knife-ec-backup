@@ -23,7 +23,7 @@ describe Chef::Knife::EcRestore do
   before(:each) do
     Chef::Knife::EcRestore.load_deps
     @knife = Chef::Knife::EcRestore.new
-    @rest = double('Chef::Rest')
+    @rest = double('Chef::ServerAPI')
     allow(@knife).to receive(:rest).and_return(@rest)
     allow(@knife).to receive(:user_acl_rest).and_return(@rest)
   end

@@ -1,5 +1,6 @@
 require 'uri'
 require 'openssl'
+require 'chef/server_api'
 
 class Chef
   class Server
@@ -29,7 +30,7 @@ class Chef
     end
 
     def direct_account_access?
-      Chef::REST.new("http://127.0.0.1:9465").get("users")
+      Chef::ServerAPI.new("http://127.0.0.1:9465").get("users")
       true
     rescue
       false

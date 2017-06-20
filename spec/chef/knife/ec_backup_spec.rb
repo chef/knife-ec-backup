@@ -30,7 +30,7 @@ describe Chef::Knife::EcBackup do
   before(:each) do
     Chef::Knife::EcBackup.load_deps
     @knife = Chef::Knife::EcBackup.new
-    @rest = double('Chef::Rest')
+    @rest = double('Chef::ServerAPI')
     allow(@knife).to receive(:rest).and_return(@rest)
     allow(@knife).to receive(:user_acl_rest).and_return(@rest)
   end

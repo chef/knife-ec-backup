@@ -1,6 +1,6 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "spec_helper"))
 require 'chef/server'
-require 'chef/rest'
+require 'chef/server_api'
 require 'stringio'
 
 describe Chef::Server do
@@ -35,7 +35,7 @@ describe Chef::Server do
   it "knows when account is directly accessible" do
     s = Chef::Server.new("http://api.example.com")
     rest = double('rest')
-    allow(Chef::REST).to receive(:new).and_return(rest)
+    allow(Chef::ServerAPI).to receive(:new).and_return(rest)
     allow(rest).to receive(:get).and_return("")
     expect(s.direct_account_access?).to eq(true)
   end
@@ -43,7 +43,7 @@ describe Chef::Server do
   it "knows when account is not directly accessible" do
     s = Chef::Server.new("http://api.example.com")
     rest = double('rest')
-    allow(Chef::REST).to receive(:new).and_return(rest)
+    allow(Chef::ServerAPI).to receive(:new).and_return(rest)
     allow(rest).to receive(:get).and_raise(Errno::ECONNREFUSED)
     expect(s.direct_account_access?).to eq(false)
   end
