@@ -154,7 +154,7 @@ class Chef
       end
 
       def knife_ec_error_handler
-        @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new(@dest_dir, self.class)
+        @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new(dest_dir, self.class)
       end
 
       def user_acl_rest

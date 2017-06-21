@@ -24,7 +24,7 @@ class Chef
       # Creates a new instance of the EcErrorHandler to start
       # adding errors during a backup or restore.
       def initialize(working_dir, process)
-        @err_dir = File.join(working_dir, 'errors')
+        @err_dir = "#{working_dir}/errors"
         FileUtils.mkdir_p(@err_dir)
 
         # Create an specific error file name depending
@@ -38,7 +38,7 @@ class Chef
                     end
 
         # exit handler
-        at_exit { EcErrorHandler.display(@err_file) }
+        at_exit { display(@err_file) }
       end
 
       # Add an exception to the error file.
@@ -66,32 +66,38 @@ class Chef
           exception:  ex.class
         }
 
-        if ex.respond_to?(:chef_rest_request=)
+        if ex.respond_to?(:chef_rest_request=) && ex.chef_rest_request
           msg.merge!( {
             req_path: ex.chef_rest_request.path,
             req_method: ex.chef_rest_request.method
           })
         end
 
-        EcErrorHandler.lock_file(@err_file, 'a') do |f|
+        lock_file(@err_file, 'a') do |f|
           f.write(Chef::JSONCompat.to_json_pretty(msg))
         end
       end
 
-      def self.lock_file(file_name, mode)
+      # Why lock the error file?
+      #
+      # Well because ec-backup has a concurrency options that
+      # will allow you to backup and restore things in parallel,
+      # therefor we need to ensure that only one process is
+      # writing to the error file.
+      def lock_file(file_name, mode)
         File.open(file_name, mode) do |f|
           begin
-            f.flock File::LOCK_EX
+            f.flock ::File::LOCK_EX
             yield f
           ensure
-            f.flock File::LOCK_UN
+            f.flock ::File::LOCK_UN
           end
         end
       end
 
-      def self.display(file_name)
+      def display(file_name = @err_file)
         puts "\nError Summary Report"
-        EcErrorHandler.lock_file(file_name, 'r') do |f|
+        lock_file(file_name, 'r') do |f|
           f.each_line do |line|
             puts line
           end
