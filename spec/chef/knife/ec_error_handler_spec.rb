@@ -12,7 +12,7 @@ describe Chef::Knife::EcErrorHandler do
   let(:err_dir)  { File.join(dest_dir, "errors") }
 
   before(:each) do
-    allow(Time).to receive(:now).and_return(Time.at(628232400))
+    allow(Time).to receive(:now).and_return(Time.new(1988, 04, 17, 0, 0, 0, "+00:00")) #=> 1988-04-17 00:00:00 +0000
     @knife_ec_error_handler = described_class.new(dest_dir, Class)
   end
 
@@ -24,11 +24,11 @@ describe Chef::Knife::EcErrorHandler do
 
     it "sets up an err_file depending of the class that comes from" do
       ec_backup = described_class.new(dest_dir, Chef::Knife::EcBackup)
-      expect(ec_backup.err_file).to match File.join(err_dir, "backup-1989-11-28T00:00:00-05:00.json")
+      expect(ec_backup.err_file).to match File.join(err_dir, "backup-1988-04-17T00:00:00+00:00.json")
       ec_restore = described_class.new(dest_dir, Chef::Knife::EcRestore)
-      expect(ec_restore.err_file).to match File.join(err_dir, "restore-1989-11-28T00:00:00-05:00.json")
+      expect(ec_restore.err_file).to match File.join(err_dir, "restore-1988-04-17T00:00:00+00:00.json")
       ec_other = described_class.new(dest_dir, Class)
-      expect(ec_other.err_file).to match File.join(err_dir, "other-1989-11-28T00:00:00-05:00.json")
+      expect(ec_other.err_file).to match File.join(err_dir, "other-1988-04-17T00:00:00+00:00.json")
     end
   end
 
@@ -37,7 +37,7 @@ describe Chef::Knife::EcErrorHandler do
     expect { @knife_ec_error_handler.display }.to output(/
 Error Summary Report
 {
-  "timestamp": "1989-11-28 00:00:00 -0500",
+  "timestamp": "1988-04-17 00:00:00 \+0000",
   "message": "I'm not real!",
   "backtrace": null,
   "exception": "Net::HTTPServerException"
@@ -48,22 +48,22 @@ Error Summary Report
   it "#add" do
     mock_content = <<-EOF
 {
-  "timestamp": "1989-11-28 00:00:00 -0500",
+  "timestamp": "1988-04-17 00:00:00 +0000",
   "message": "I'm not real!",
   "backtrace": null,
   "exception": "Net::HTTPServerException"
 }{
-  "timestamp": "1989-11-28 00:00:00 -0500",
+  "timestamp": "1988-04-17 00:00:00 +0000",
   "message": "I'm not real!",
   "backtrace": null,
   "exception": "Net::HTTPServerException"
 }{
-  "timestamp": "1989-11-28 00:00:00 -0500",
+  "timestamp": "1988-04-17 00:00:00 +0000",
   "message": "I'm not real!",
   "backtrace": null,
   "exception": "Net::HTTPServerException"
 }{
-  "timestamp": "1989-11-28 00:00:00 -0500",
+  "timestamp": "1988-04-17 00:00:00 +0000",
   "message": "I'm not real!",
   "backtrace": null,
   "exception": "Net::HTTPServerException"
