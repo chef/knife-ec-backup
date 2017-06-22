@@ -1,5 +1,7 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec_helper"))
 require 'chef/knife/ec_error_handler'
+require 'chef/knife/ec_backup'
+require 'chef/knife/ec_restore'
 require 'fakefs/spec_helpers'
 
 def net_exception(code)

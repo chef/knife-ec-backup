@@ -98,6 +98,9 @@ class Chef
       end
 
       def display(file_name = @err_file)
+        # Print summary report only if error file exist
+        return unless File.exist?(file_name)
+
         puts "\nError Summary Report"
         lock_file(file_name, 'r') do |f|
           f.each_line do |line|
