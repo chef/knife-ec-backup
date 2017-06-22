@@ -40,6 +40,18 @@ describe Chef::Knife::EcBackup do
       allow(@rest).to receive(:get).with("/users").and_return(USER_RESPONSE)
       expect{ |b| @knife.for_each_user(&b) }.to yield_successive_args(["foo", USER_RESPONSE["foo"]], ["bar", USER_RESPONSE["bar"]])
     end
+
+    context "when there are HTTP failures" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+
+      it "adds exceptions to error handler" do
+        exception = net_exception(500)
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(@rest).to receive(:get).with("/users").and_raise(exception)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        @knife.for_each_user
+      end
+    end
   end
 
   describe "#for_each_organization" do
