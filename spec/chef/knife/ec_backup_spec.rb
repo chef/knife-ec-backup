@@ -71,6 +71,32 @@ describe Chef::Knife::EcBackup do
       expect{ |b| @knife.for_each_organization(&b) }.to yield_successive_args(org_response("bar"),
                                                                               org_response("foo", true))
     end
+
+    context "when there are HTTP failures" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+
+      before(:each) do
+        server = double('Chef::Server')
+        allow(Chef::Server).to receive(:new).and_return(server)
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(server).to receive(:version).and_return(Gem::Version.new("12.0.0"))
+      end
+
+      it "adds exception and continues with the rest of the orgs" do
+        exception = net_exception(404)
+        allow(@rest).to receive(:get).with("organizations/foo").and_return(org_response("foo"))
+        allow(@rest).to receive(:get).with("organizations/bar").and_raise(exception)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        expect{ |b| @knife.for_each_organization(&b) }.to yield_successive_args(org_response("foo"))
+      end
+
+      it "adds exceptions to error handler" do
+        allow(@rest).to receive(:get).with("organizations/foo").and_raise(net_exception(500))
+        allow(@rest).to receive(:get).with("organizations/bar").and_raise(net_exception(404))
+        expect(ec_error_handler).to receive(:add).at_least(2)
+        @knife.for_each_organization
+      end
+    end
   end
 
   describe "#download_user" do
