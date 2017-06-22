@@ -21,6 +21,8 @@ class Chef
     # inside the working directory.
     class EcErrorHandler
 
+      attr_reader :err_file
+
       # Creates a new instance of the EcErrorHandler to start
       # adding errors during a backup or restore.
       def initialize(working_dir, process)
