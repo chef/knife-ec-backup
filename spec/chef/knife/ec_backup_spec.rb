@@ -167,7 +167,7 @@ describe Chef::Knife::EcBackup do
     it "writes the given object to disk" do
       org_object = { "name" => "bob" }
       @knife.write_org_object_to_disk(org_object)
-      expect(JSON.parse(File.read("/organizations/bob/org.json"))).to eq(org_object)
+      expect(JSON.parse(File.read("#{dest_dir}/organizations/bob/org.json"))).to eq(org_object)
     end
   end
 
@@ -219,7 +219,19 @@ describe Chef::Knife::EcBackup do
     it "writes the invitations to a JSON file" do
       expect(@rest).to receive(:get).with("/organizations/bob/association_requests").and_return(invites)
       @knife.download_org_invitations("bob")
-      expect(JSON.parse(File.read("/organizations/bob/invitations.json"))).to eq(invites)
+      expect(JSON.parse(File.read("#{dest_dir}/organizations/bob/invitations.json"))).to eq(invites)
+    end
+
+    context "when there are HTTP failures" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+
+      it "adds exceptions to error handler" do
+        exception = net_exception(500)
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(@rest).to receive(:get).with("/organizations/bob/association_requests").and_raise(exception)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        @knife.download_org_invitations("bob")
+      end
     end
   end
 end
