@@ -139,6 +139,7 @@ class Chef
           rescue Net::HTTPServerException => ex
             if ex.response.code == "409"
               rest.put("users/#{name}", user)
+              next
             end
             knife_ec_error_handler.add(ex)
           end
