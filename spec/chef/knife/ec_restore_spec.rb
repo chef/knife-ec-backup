@@ -134,6 +134,19 @@ describe Chef::Knife::EcRestore do
       expect(@rest).to receive(:put).with("users/jane", {"username" => "jane"})
       @knife.restore_users
     end
+
+    context "when there are HTTP failures with different code than 409" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+
+      it "adds exceptions to error handler" do
+        make_user "jane"
+        exception = net_exception(500)
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(@rest).to receive(:post).with("users", anything).and_raise(exception)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        @knife.restore_users
+      end
+    end
   end
 
   describe "#restore_group" do
