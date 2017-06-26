@@ -3,6 +3,7 @@ require 'chef/knife/ec_backup'
 require 'fakefs/spec_helpers'
 
 describe Chef::Knife::EcBackup do
+  let(:dest_dir) { Dir.mktmpdir }
   USER_RESPONSE = {
     "foo" => "organizations/bar/users/foo",
     "bar" => "organizations/bar/users/bar"
@@ -30,15 +31,28 @@ describe Chef::Knife::EcBackup do
   before(:each) do
     Chef::Knife::EcBackup.load_deps
     @knife = Chef::Knife::EcBackup.new
-    @rest = double('Chef::Rest')
+    @rest = double('Chef::ServerAPI')
     allow(@knife).to receive(:rest).and_return(@rest)
     allow(@knife).to receive(:user_acl_rest).and_return(@rest)
+    allow_any_instance_of(Chef::Knife::EcBase).to receive(:dest_dir).and_return(dest_dir)
   end
 
   describe "#for_each_user" do
     it "iterates over remote users" do
       allow(@rest).to receive(:get).with("/users").and_return(USER_RESPONSE)
       expect{ |b| @knife.for_each_user(&b) }.to yield_successive_args(["foo", USER_RESPONSE["foo"]], ["bar", USER_RESPONSE["bar"]])
+    end
+
+    context "when there are HTTP failures" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+
+      it "adds exceptions to error handler" do
+        exception = net_exception(500)
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(@rest).to receive(:get).with("/users").and_raise(exception)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        @knife.for_each_user
+      end
     end
   end
 
@@ -71,12 +85,39 @@ describe Chef::Knife::EcBackup do
       expect{ |b| @knife.for_each_organization(&b) }.to yield_successive_args(org_response("bar"),
                                                                               org_response("foo", true))
     end
+
+    context "when there are HTTP failures" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+
+      before(:each) do
+        server = double('Chef::Server')
+        allow(Chef::Server).to receive(:new).and_return(server)
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(server).to receive(:version).and_return(Gem::Version.new("12.0.0"))
+      end
+
+      it "adds exception and continues with the rest of the orgs" do
+        exception = net_exception(404)
+        allow(@rest).to receive(:get).with("organizations/foo").and_return(org_response("foo"))
+        allow(@rest).to receive(:get).with("organizations/bar").and_raise(exception)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        expect{ |b| @knife.for_each_organization(&b) }.to yield_successive_args(org_response("foo"))
+      end
+
+      it "adds exceptions to error handler" do
+        allow(@rest).to receive(:get).with("organizations/foo").and_raise(net_exception(500))
+        allow(@rest).to receive(:get).with("organizations/bar").and_raise(net_exception(404))
+        expect(ec_error_handler).to receive(:add).at_least(2)
+        @knife.for_each_organization
+      end
+    end
   end
 
   describe "#download_user" do
     include FakeFS::SpecHelpers
     let (:username) { "foo" }
     let (:url) { "users/foo" }
+    before(:each) { FileUtils.mkdir_p(File.join(dest_dir, "users")) }
 
     it "downloads a named user from the api" do
       expect(@rest).to receive(:get).with(url)
@@ -87,13 +128,14 @@ describe Chef::Knife::EcBackup do
       user_response = {"username" => "foo"}
       allow(@rest).to receive(:get).with(url).and_return(user_response)
       @knife.download_user(username, url)
-      expect(JSON.parse(File.read("/users/foo.json"))).to eq(user_response)
+      expect(JSON.parse(File.read("#{dest_dir}/users/foo.json"))).to eq(user_response)
     end
   end
 
   describe "#download_user_acl" do
     include FakeFS::SpecHelpers
     let (:username) {"foo"}
+    before(:each) { FileUtils.mkdir_p(File.join(dest_dir, "user_acls")) }
 
     it "downloads a user acl from the API" do
       expect(@rest).to receive(:get).with("users/#{username}/_acl")
@@ -104,7 +146,19 @@ describe Chef::Knife::EcBackup do
       user_acl_response = {"create" => {}}
       allow(@rest).to receive(:get).with("users/#{username}/_acl").and_return(user_acl_response)
       @knife.download_user_acl(username)
-      expect(JSON.parse(File.read("/user_acls/foo.json"))).to eq(user_acl_response)
+      expect(JSON.parse(File.read("#{dest_dir}/user_acls/foo.json"))).to eq(user_acl_response)
+    end
+
+    context "when there are HTTP failures" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+
+      it "adds exceptions to error handler" do
+        exception = net_exception(500)
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(@rest).to receive(:get).with("users/#{username}/_acl").and_raise(exception)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        @knife.download_user_acl(username)
+      end
     end
   end
 
@@ -113,7 +167,7 @@ describe Chef::Knife::EcBackup do
     it "writes the given object to disk" do
       org_object = { "name" => "bob" }
       @knife.write_org_object_to_disk(org_object)
-      expect(JSON.parse(File.read("/organizations/bob/org.json"))).to eq(org_object)
+      expect(JSON.parse(File.read("#{dest_dir}/organizations/bob/org.json"))).to eq(org_object)
     end
   end
 
@@ -137,8 +191,21 @@ describe Chef::Knife::EcBackup do
     it "writes the org members to a JSON file" do
       expect(@rest).to receive(:get).with("/organizations/bob/users").and_return(users)
       @knife.download_org_members("bob")
-      expect(JSON.parse(File.read("/organizations/bob/members.json"))).to eq(users)
+      expect(JSON.parse(File.read("#{dest_dir}/organizations/bob/members.json"))).to eq(users)
     end
+
+    context "when there are HTTP failures" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+
+      it "adds exceptions to error handler" do
+        exception = net_exception(500)
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(@rest).to receive(:get).with("/organizations/bob/users").and_raise(exception)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        @knife.download_org_members("bob")
+      end
+    end
+
   end
 
   describe "#download_org_inivitations" do
@@ -152,7 +219,19 @@ describe Chef::Knife::EcBackup do
     it "writes the invitations to a JSON file" do
       expect(@rest).to receive(:get).with("/organizations/bob/association_requests").and_return(invites)
       @knife.download_org_invitations("bob")
-      expect(JSON.parse(File.read("/organizations/bob/invitations.json"))).to eq(invites)
+      expect(JSON.parse(File.read("#{dest_dir}/organizations/bob/invitations.json"))).to eq(invites)
+    end
+
+    context "when there are HTTP failures" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+
+      it "adds exceptions to error handler" do
+        exception = net_exception(500)
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(@rest).to receive(:get).with("/organizations/bob/association_requests").and_raise(exception)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        @knife.download_org_invitations("bob")
+      end
     end
   end
 end

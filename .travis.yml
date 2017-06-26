@@ -1,0 +1,21 @@
+# Lets actually use our tests! :smile:
+branches:
+  only:
+    - master
+
+sudo: required
+language: ruby
+cache: bundler
+dist: trusty
+
+before_install:
+- gem update --system
+- gem update bundler
+- gem --version
+
+script:
+  - bundle exec rake
+
+matrix:
+  include:
+    - rvm: 2.3.3

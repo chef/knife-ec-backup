@@ -77,13 +77,21 @@ class Chef
         remote_users.each_pair do |name, url|
           yield name, url
         end
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def for_each_organization
         rest.get('/organizations').each_pair do |name, url|
           next unless (config[:org].nil? || config[:org] == name)
           ui.msg "Downloading organization object for #{name} from #{url}"
-          org = rest.get(url)
+          begin
+            org = rest.get(url)
+          rescue Net::HTTPServerException => ex
+            ui.error "Failed to find organization '#{name}'."
+            knife_ec_error_handler.add(ex)
+            next
+          end
           # Enterprise Chef 11 and below uses a pool of precreated
           # organizations to account for slow organization creation
           # using CouchDB. Thus, on server versions < 12 we want to
@@ -102,12 +110,16 @@ class Chef
         File.open("#{dest_dir}/users/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get(url)))
         end
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def download_user_acl(username)
         File.open("#{dest_dir}/user_acls/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get("users/#{username}/_acl")))
         end
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def export_from_sql
@@ -137,6 +149,8 @@ class Chef
         File.open("#{dest_dir}/organizations/#{name}/members.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get("/organizations/#{name}/users")))
         end
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def download_org_invitations(name)
@@ -144,6 +158,8 @@ class Chef
         File.open("#{dest_dir}/organizations/#{name}/invitations.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get("/organizations/#{name}/association_requests")))
         end
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       def ensure_dir(dir)
@@ -225,6 +241,8 @@ class Chef
                                          chef_fs_config.local_fs, nil,
                                          config, ui,
                                          proc { |entry| chef_fs_config.format_path(entry) })
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
     end
   end

@@ -26,7 +26,7 @@ class Chef
         require 'chef/chef_fs/file_pattern'
         # Work around bug in chef_fs
         require 'chef/chef_fs/command_line'
-        require 'chef/chef_fs/file_system/acl_entry'
+        require 'chef/chef_fs/file_system/chef_server/acl_entry'
         require 'chef/chef_fs/data_handler/acl_data_handler'
         require 'securerandom'
         require 'chef/chef_fs/parallelizer'
@@ -63,11 +63,11 @@ class Chef
       def create_organization(orgname)
         org = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/org.json"))
         rest.post('organizations', org)
-      rescue Net::HTTPServerException => e
-        if e.response.code == "409"
+      rescue Net::HTTPServerException => ex
+        if ex.response.code == "409"
           rest.put("organizations/#{orgname}", org)
         else
-          raise
+          knife_ec_error_handler.add(ex)
         end
       end
 
@@ -76,9 +76,10 @@ class Chef
         invitations.each do |invitation|
           begin
             rest.post("organizations/#{orgname}/association_requests", { 'user' => invitation['username'] })
-          rescue Net::HTTPServerException => e
-            if e.response.code != "409"
+          rescue Net::HTTPServerException => ex
+            if ex.response.code != "409"
               ui.error("Cannot create invitation #{invitation['id']}")
+              knife_ec_error_handler.add(ex)
             end
           end
         end
@@ -92,10 +93,8 @@ class Chef
             response = rest.post("organizations/#{orgname}/association_requests", { 'user' => username })
             association_id = response["uri"].split("/").last
             rest.put("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
-          rescue Net::HTTPServerException => e
-            if e.response.code != "409"
-              raise
-            end
+          rescue Net::HTTPServerException => ex
+            knife_ec_error_handler.add(ex) if ex.response.code != "409"
           end
         end
       end
@@ -137,12 +136,12 @@ class Chef
             user_with_password = user.dup
             user_with_password['password'] = SecureRandom.hex
             rest.post('users', user_with_password)
-          rescue Net::HTTPServerException => e
-            if e.response.code == "409"
+          rescue Net::HTTPServerException => ex
+            if ex.response.code == "409"
               rest.put("users/#{name}", user)
-            else
-              raise
+              next
             end
+            knife_ec_error_handler.add(ex)
           end
         end
         purge_users_on_restore
@@ -245,10 +244,7 @@ class Chef
           end
 
           ['/acls/groups/billing-admins.json', '/acls/groups/public_key_read_access.json'].each do |acl|
-            pattern = Chef::ChefFS::FilePattern.new(acl)
-            Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs,
-                                           chef_fs_config.chef_fs, nil, config, ui,
-                                           proc { |entry| chef_fs_config.format_path(entry)})
+            chef_fs_copy_pattern(acl, chef_fs_config)
           end
 
           Chef::Config.node_name = if config[:skip_version]
@@ -276,7 +272,7 @@ class Chef
           # - groups must be uploaded twice to account for Chef Server versions that don't
           #   accept group members on POST
           (top_level_paths + group_paths*2 + group_acl_paths + acl_paths).each do |path|
-            Chef::ChefFS::FileSystem.copy_to(Chef::ChefFS::FilePattern.new(path), chef_fs_config.local_fs, chef_fs_config.chef_fs, nil, config, ui, proc { |entry| chef_fs_config.format_path(entry) })
+            chef_fs_copy_pattern(path, chef_fs_config)
           end
 
           # restore clients to groups, using the pivotal user again
@@ -287,6 +283,23 @@ class Chef
          ensure
           Chef::Config.restore(old_config)
         end
+      end
+
+      # ChefFS copy pattern inside the EcRestore class will
+      # copy from the local_fs to the Chef Server.
+      #
+      # NOTE: Do not get confused, this is the other way around
+      # from how we implemented in EcBackup. Therefor we can't
+      # abstract it inside EcBase.
+      def chef_fs_copy_pattern(pattern_str, chef_fs_config)
+        ui.msg "Copying #{pattern_str}"
+        pattern = Chef::ChefFS::FilePattern.new(pattern_str)
+        Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs,
+                                         chef_fs_config.chef_fs, nil,
+                                         config, ui,
+                                         proc { |entry| chef_fs_config.format_path(entry) })
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
 
       # Takes an array of group objects
@@ -347,6 +360,8 @@ class Chef
             rest.put("#{url}/#{permission}", { permission => acls[permission] })
           end
         end
+      rescue Net::HTTPServerException => ex
+        knife_ec_error_handler.add(ex)
       end
     end
   end
