@@ -351,12 +351,13 @@ class Chef
         Chef::Log.warn "Could not find #{group.display_path} on disk. Will not restore."
       end
 
+      PERMISSIONS = %w{create read update delete grant}.freeze
       def put_acl(rest, url, acls)
         old_acls = rest.get(url)
         old_acls = Chef::ChefFS::DataHandler::AclDataHandler.new.normalize(old_acls, nil)
         acls = Chef::ChefFS::DataHandler::AclDataHandler.new.normalize(acls, nil)
         if acls != old_acls
-          Chef::ChefFS::FileSystem::AclEntry::PERMISSIONS.each do |permission|
+          PERMISSIONS.each do |permission|
             rest.put("#{url}/#{permission}", { permission => acls[permission] })
           end
         end
