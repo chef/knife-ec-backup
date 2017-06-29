@@ -1,4 +1,6 @@
 # knife EC backup
+[![Build Status Master](https://travis-ci.org/chef/knife-ec-backup.svg?branch=master)](https://travis-ci.org/chef/knife-ec-backup)
+[![Gem Version](https://badge.fury.io/rb/knife-ec-backup.svg)](https://badge.fury.io/rb/knife-ec-backup)
 
 # Description
 
@@ -32,7 +34,7 @@ the key data.
 
 ## Chef Server Install (Recommended)
 
-This gem is installed with chef-server-core 12.0.0 and newer. 
+This gem is installed with chef-server-core 12.0.0 and newer.
 
 For Private Chef 11 (or Enterprise Chef 11) you'll need to download and build
 locally to get the correct dependencies, either with `git clone` or by
