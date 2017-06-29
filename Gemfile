@@ -3,6 +3,14 @@ source :rubygems
 gem 'veil', git: 'https://github.com/chef/chef_secrets'
 gemspec
 
+if vsn = ENV['TRAVIS_CHEF_VERSION']
+  if m = /branch:(?<branch>.*)$/.match(vsn)
+    gem 'chef', git: 'https://github.com/chef/chef', branch: m[:branch]
+  else
+    gem 'chef', vsn
+  end
+end
+
 group :development do
   gem 'rspec'
   gem 'rake'

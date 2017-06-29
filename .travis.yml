@@ -1,12 +1,12 @@
-# Lets actually use our tests! :smile:
+sudo: false
 branches:
   only:
     - master
 
-sudo: required
 language: ruby
 cache: bundler
 dist: trusty
+rvm: 2.3.3
 
 before_install:
 - gem update --system
@@ -16,6 +16,8 @@ before_install:
 script:
   - bundle exec rake
 
-matrix:
-  include:
-    - rvm: 2.3.3
+env:
+  matrix:
+  - TRAVIS_CHEF_VERSION="~> 12.0" # latest 12.x.y
+  - TRAVIS_CHEF_VERSION="~> 13.0" # latest 13.x.y
+  - TRAVIS_CHEF_VERSION="branch:v12.19.36" # chef-server stable
