@@ -1,12 +1,22 @@
+language: ruby
+cache: bundler
+dist: trusty
 sudo: false
+
 branches:
   only:
     - master
 
-language: ruby
-cache: bundler
-dist: trusty
-rvm: 2.3.3
+
+rvm:
+  - 2.2.7
+  - 2.3.4
+  - 2.4.1
+  - ruby-head
+  
+matrix:
+  allow_failures:
+    - rvm: ruby-head
 
 before_install:
 - gem update --system
