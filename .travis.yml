@@ -17,6 +17,9 @@ rvm:
 matrix:
   allow_failures:
     - rvm: ruby-head
+  exclude:
+  - rvm: 2.2.7
+    env: TRAVIS_CHEF_VERSION="~> 13.0"
 
 before_install:
 - gem update --system
