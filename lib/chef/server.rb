@@ -39,5 +39,9 @@ class Chef
     def supports_defaulting_to_pivotal?
       version >= Gem::Version.new('12.1.0')
     end
+
+    def supports_public_key_read_access?
+      version >= Gem::Version.new('12.5.0')
+    end
   end
 end
