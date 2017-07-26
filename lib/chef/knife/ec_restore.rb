@@ -239,14 +239,20 @@ class Chef
           # above here.
           #
           groups = ['admins', 'billing-admins']
-          groups.push('public_key_read_access') if server.supports_public_key_read_access?
+          if server.supports_public_key_read_access? &&
+             ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['groups'], 'public_key_read_access.json'))
+            groups.push('public_key_read_access')
+          end
 
           groups.each do |group|
             restore_group(chef_fs_config, group, :clients => false)
           end
 
           acls_groups_paths = ['/acls/groups/billing-admins.json']
-          acls_groups_paths.push('/acls/groups/public_key_read_access.json') if server.supports_public_key_read_access?
+          if server.supports_public_key_read_access? &&
+             ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['acls'], 'groups', 'public_key_read_access.json'))
+            acls_groups_paths.push('/acls/groups/public_key_read_access.json')
+          end
 
           acls_groups_paths.each do |acl|
             chef_fs_copy_pattern(acl, chef_fs_config)
@@ -263,16 +269,13 @@ class Chef
           chef_fs_config = Chef::ChefFS::Config.new
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
 
-          filenames = ['billing-admins.json']
-          filenames.push('public_key_read_access.json') if server.supports_public_key_read_access?
-
           # Topologically sort groups for upload
+          filenames = ['billing-admins.json', 'public_key_read_access.json']
           unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).select { |entry| ! filenames.include?(entry.name) }.map { |entry| JSON.parse(entry.read) }
           group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
 
           group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| ! filenames.include?(entry.name) }.map { |entry| entry.path }
           acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
-
 
           # Store organization data in a particular order:
           # - clients must be uploaded before groups (in top_level_paths)
@@ -333,6 +336,7 @@ class Chef
         includes[:users] = true unless includes.key? :users
         includes[:clients] = true unless includes.key? :clients
 
+        ui.msg "Copying /groups/#{group_name}.json"
         group = Chef::ChefFS::FileSystem.resolve_path(
           chef_fs_config.chef_fs,
           "/groups/#{group_name}.json"
