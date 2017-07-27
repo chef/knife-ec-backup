@@ -239,20 +239,16 @@ class Chef
           # above here.
           #
           groups = ['admins', 'billing-admins']
-          if server.supports_public_key_read_access? &&
-             ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['groups'], 'public_key_read_access.json'))
-            groups.push('public_key_read_access')
-          end
+          groups.push('public_key_read_access') if
+            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['groups'], 'public_key_read_access.json'))
 
           groups.each do |group|
             restore_group(chef_fs_config, group, :clients => false)
           end
 
           acls_groups_paths = ['/acls/groups/billing-admins.json']
-          if server.supports_public_key_read_access? &&
-             ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['acls'], 'groups', 'public_key_read_access.json'))
-            acls_groups_paths.push('/acls/groups/public_key_read_access.json')
-          end
+          acls_groups_paths.push('/acls/groups/public_key_read_access.json') if
+            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['acls'], 'groups', 'public_key_read_access.json'))
 
           acls_groups_paths.each do |acl|
             chef_fs_copy_pattern(acl, chef_fs_config)
