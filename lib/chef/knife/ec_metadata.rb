@@ -35,7 +35,8 @@ class Chef
       #
       def initialize(backup_path, data = {})
         @backup_path = backup_path
-        @data = data.dup.freeze
+        @data = data
+        data.empty? ? report : save
       end
 
       # Save the file to disk.
@@ -55,10 +56,9 @@ class Chef
       # @return [Hash]
       #
       def report
-        data = File.read(path)
-        FFI_Yajl::Parser.parse(data, symbolize_names: true)
+        @data = FFI_Yajl::Parser.parse(::File.read(path), symbolize_names: true)
       rescue Errno::ENOENT
-        raise NoMetadataFile.new(path)
+        raise NoMetadataFile, path
       end
 
       # The path to the VERSION file.
