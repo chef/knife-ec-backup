@@ -299,6 +299,10 @@ class Chef
                                          proc { |entry| chef_fs_config.format_path(entry) })
       rescue Net::HTTPServerException => ex
         knife_ec_error_handler.add(ex)
+      rescue Chef::ChefFS::FileSystem::NotFoundError => ex
+        knife_ec_error_handler.add(ex)
+      rescue Chef::ChefFS::FileSystem::OperationFailedError => ex
+        knife_ec_error_handler.add(ex)
       end
 
       # Takes an array of group objects
