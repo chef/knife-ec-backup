@@ -27,8 +27,8 @@ class Chef
 
       VERSION_FILE = 'VERSION'.freeze
 
-      # Create a new metadata object for the backup
-      # given backup location and version data.
+      # Create a new EcMetadata object given backup path
+      # and optional version data.
       #
       # @param [String] backup_path
       #   the location of the backup directory
@@ -38,26 +38,27 @@ class Chef
       def initialize(backup_path, data = {})
         @backup_path = backup_path
         @data = data
-        data.empty? ? report : save
       end
 
       # Save the file to disk.
       #
       # @return [true]
       #
-      def save
+      def store
         ::File.open(path, 'w+') do |f|
           f.write(FFI_Yajl::Encoder.encode(to_hash, pretty: true))
         end
 
         true
+      rescue Errno::ENOENT
+        raise NoMetadataFile, path
       end
 
       # Load the metadata from disk.
       #
       # @return [Hash]
       #
-      def report
+      def load
         @data = FFI_Yajl::Parser.parse(::File.read(path), symbolize_names: true)
       rescue Errno::ENOENT
         raise NoMetadataFile, path
