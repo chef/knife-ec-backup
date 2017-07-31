@@ -23,6 +23,8 @@ class Chef
     class EcMetadata
       class NoMetadataFile < RuntimeError; end
 
+      attr_accessor :data, :backup_path
+
       VERSION_FILE = 'VERSION'.freeze
 
       # Create a new metadata object for the backup
