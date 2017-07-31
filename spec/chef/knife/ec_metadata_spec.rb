@@ -38,16 +38,34 @@ EOF
   end
 
   describe '#store' do
-    it 'correctly saves the metadata information to disk' do
-      @ec_backup.store
-      expect(::File.read(::File.join(beep_path, 'VERSION'))).to match mock_content
+    context 'when the parent directory exists' do
+      it 'correctly saves the metadata information to disk' do
+        @ec_backup.store
+        expect(::File.read(::File.join(beep_path, 'VERSION'))).to match mock_content
+      end
+    end
+
+    context 'when the parent directory is non-existant' do
+      it 'raises a NoMetadataFile exception' do
+        FileUtils.rm_rf(beep_path)
+        expect { @ec_backup.store }.to raise_error(Chef::Knife::EcMetadata::NoMetadataFile, '/beep/VERSION')
+      end
     end
   end
 
   describe '#load' do
-    it 'correctly parses VERSION file contents' do
-      @ec_backup.store
-      expect(@ec_restore.load).to eq(boop)
+    context 'when the parent directory exists' do
+      it 'correctly parses VERSION file contents' do
+        @ec_backup.store
+        expect(@ec_restore.load).to eq(boop)
+      end
+    end
+
+    context 'when the parent directory is non-existant' do
+      it 'raises a NoMetadataFile exception' do
+        FileUtils.rm_rf(beep_path)
+        expect { @ec_restore.load }.to raise_error(Chef::Knife::EcMetadata::NoMetadataFile, '/beep/VERSION')
+      end
     end
   end
 
