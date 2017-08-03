@@ -47,4 +47,13 @@ describe Chef::Server do
     allow(rest).to receive(:get).and_raise(Errno::ECONNREFUSED)
     expect(s.direct_account_access?).to eq(false)
   end
+
+  it "knows that public_key_read_access was implemented in 12.5.0" do
+    before = Chef::Server.new("http://api.example.com")
+    allow(before).to receive(:open).and_return(StringIO.new("Chef Server 12.4.1\nother stuff\nother stuff"))
+    expect(before.supports_public_key_read_access?).to eq(false)
+    after = Chef::Server.new("http://api.example.com")
+    allow(after).to receive(:open).and_return(StringIO.new("Chef Server 12.6.0\nother stuff\nother stuff"))
+    expect(after.supports_public_key_read_access?).to eq(true)
+  end
 end

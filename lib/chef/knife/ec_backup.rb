@@ -186,11 +186,13 @@ class Chef
 
           # Download the billing-admins, public_key_read_access ACL and group as pivotal
           chef_fs_config = Chef::ChefFS::Config.new
-          chef_fs_copy_pattern('/acls/groups/billing-admins.json', chef_fs_config)
-          chef_fs_copy_pattern('/groups/billing-admins.json', chef_fs_config)
-          chef_fs_copy_pattern('/acls/groups/public_key_read_access.json', chef_fs_config)
-          chef_fs_copy_pattern('/groups/public_key_read_access.json', chef_fs_config)
-          chef_fs_copy_pattern('/groups/admins.json', chef_fs_config)
+
+          paths = ['/acls/groups/billing-admins.json', '/groups/billing-admins.json', '/groups/admins.json']
+          paths.push('/acls/groups/public_key_read_access.json', '/groups/public_key_read_access.json') if server.supports_public_key_read_access?
+
+          paths.each do |path|
+            chef_fs_copy_pattern(path, chef_fs_config)
+          end
 
           Chef::Config.node_name = if config[:skip_version]
                                      org_admin
@@ -210,7 +212,7 @@ class Chef
           # for example: /acls/environments/_default
 
            # Skip the billing-admins, public_key_read_access group ACLs and the groups since they've already been copied
-          exclude_list = ['billing-admins','public_key_read_access']
+          exclude_list = ['billing-admins', 'public_key_read_access']
 
           top_level_acls  = chef_fs_paths('/acls/*.json', chef_fs_config, [])
           acl_paths       = chef_fs_paths('/acls/*/*', chef_fs_config, exclude_list)
