@@ -80,7 +80,10 @@ class Chef
             reason: ex.reason
           )
         elsif ex.instance_of?(Chef::ChefFS::FileSystem::OperationFailedError)
-          msg.merge!(message: ex.message)
+          msg.merge!(
+            entry: ex.entry,
+            operation: ex.operation
+          )
         end
 
         lock_file(@err_file, 'a') do |f|

@@ -14,9 +14,9 @@ end
 def cheffs_filesystem_exception(type)
   case type
   when 'NotFoundError'
-    Chef::ChefFS::FileSystem::NotFoundError.new(self, '/boop', 'I\'m not real!')
+    Chef::ChefFS::FileSystem::NotFoundError.new('/boop', 'The exception', 'The reason')
   when 'OperationFailedError'
-    Chef::ChefFS::FileSystem::OperationFailedError.new(:read, self, '/boop', 'I\'m not real!')
+    Chef::ChefFS::FileSystem::OperationFailedError.new(:read, '/boop', 'The exception', 'The reason')
   else
     raise RuntimeError, 'invalid type passed'
   end
@@ -84,14 +84,19 @@ Error Summary Report
   "exception": "Net::HTTPServerException"
 }{
   "timestamp": "1988-04-17 00:00:00 +0000",
-  "message": "I'm not real!",
+  "message": "The reason",
   "backtrace": null,
-  "exception": "Chef::ChefFS::FileSystem::NotFoundError"
+  "exception": "Chef::ChefFS::FileSystem::NotFoundError",
+  "entry": "/boop",
+  "cause": "The exception",
+  "reason": "The reason"
 }{
   "timestamp": "1988-04-17 00:00:00 +0000",
-  "message": "I'm not real!",
+  "message": "The reason",
   "backtrace": null,
-  "exception": "Chef::ChefFS::FileSystem::OperationFailedError"
+  "exception": "Chef::ChefFS::FileSystem::OperationFailedError",
+  "entry": "/boop",
+  "operation": "read"
 }
 EOF
     err_file = @knife_ec_error_handler.err_file
