@@ -69,10 +69,21 @@ class Chef
         }
 
         if ex.respond_to?(:chef_rest_request=) && ex.chef_rest_request
-          msg.merge!( {
+          msg.merge!(
             req_path: ex.chef_rest_request.path,
             req_method: ex.chef_rest_request.method
-          })
+          )
+        elsif ex.instance_of?(Chef::ChefFS::FileSystem::NotFoundError)
+          msg.merge!(
+            entry: ex.entry,
+            cause: ex.cause,
+            reason: ex.reason
+          )
+        elsif ex.instance_of?(Chef::ChefFS::FileSystem::OperationFailedError)
+          msg.merge!(
+            entry: ex.entry,
+            operation: ex.operation
+          )
         end
 
         lock_file(@err_file, 'a') do |f|

@@ -2,11 +2,24 @@ require File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec_hel
 require 'chef/knife/ec_error_handler'
 require 'chef/knife/ec_backup'
 require 'chef/knife/ec_restore'
+require 'chef/chef_fs/config'
+require 'chef/chef_fs/file_system'
 require 'fakefs/spec_helpers'
 
 def net_exception(code)
   s = double("status", :code => code.to_s)
   Net::HTTPServerException.new("I'm not real!", s)
+end
+
+def cheffs_filesystem_exception(type)
+  case type
+  when 'NotFoundError'
+    Chef::ChefFS::FileSystem::NotFoundError.new('/boop', 'The exception', 'The reason')
+  when 'OperationFailedError'
+    Chef::ChefFS::FileSystem::OperationFailedError.new(:read, '/boop', 'The exception', 'The reason')
+  else
+    raise RuntimeError, 'invalid type passed'
+  end
 end
 
 describe Chef::Knife::EcErrorHandler do
@@ -69,6 +82,21 @@ Error Summary Report
   "message": "I'm not real!",
   "backtrace": null,
   "exception": "Net::HTTPServerException"
+}{
+  "timestamp": "1988-04-17 00:00:00 +0000",
+  "message": "The reason",
+  "backtrace": null,
+  "exception": "Chef::ChefFS::FileSystem::NotFoundError",
+  "entry": "/boop",
+  "cause": "The exception",
+  "reason": "The reason"
+}{
+  "timestamp": "1988-04-17 00:00:00 +0000",
+  "message": "The reason",
+  "backtrace": null,
+  "exception": "Chef::ChefFS::FileSystem::OperationFailedError",
+  "entry": "/boop",
+  "operation": "read"
 }
 EOF
     err_file = @knife_ec_error_handler.err_file
@@ -83,6 +111,8 @@ EOF
     @knife_ec_error_handler.add(net_exception(409))
     @knife_ec_error_handler.add(net_exception(404))
     @knife_ec_error_handler.add(net_exception(123))
+    @knife_ec_error_handler.add(cheffs_filesystem_exception('NotFoundError'))
+    @knife_ec_error_handler.add(cheffs_filesystem_exception('OperationFailedError'))
     expect(File.read(err_file)).to match mock_content.strip
   end
 end

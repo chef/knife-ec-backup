@@ -243,7 +243,9 @@ class Chef
                                          chef_fs_config.local_fs, nil,
                                          config, ui,
                                          proc { |entry| chef_fs_config.format_path(entry) })
-      rescue Net::HTTPServerException => ex
+      rescue Net::HTTPServerException,
+             Chef::ChefFS::FileSystem::NotFoundError,
+             Chef::ChefFS::FileSystem::OperationFailedError => ex
         knife_ec_error_handler.add(ex)
       end
     end

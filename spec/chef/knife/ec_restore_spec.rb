@@ -1,6 +1,8 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec_helper"))
 require 'chef/knife/ec_restore'
 require 'fakefs/spec_helpers'
+require_relative './ec_error_handler_spec'
+require "chef/chef_fs/file_system/repository/chef_repository_file_system_root_dir"
 
 def make_user(username)
   FileUtils.mkdir_p("/users")
@@ -156,6 +158,28 @@ describe Chef::Knife::EcRestore do
 
       it "does not raise error" do
         expect { @knife.restore_group(chef_fs_config, group_name) }.not_to raise_error
+      end
+    end
+  end
+
+  describe "#chef_fs_copy_pattern" do
+    context "when there are Filesystem errors" do
+      let(:ec_error_handler) { double("Chef::Knife::EcErrorHandler") }
+      let(:cheffs_config) { double("Chef::ChefFS::Config") }
+      let(:cheffs_files) { double("Chef::ChefFS::FileSystem") }
+      let(:cheffs_local_fs) { double('Chef::ChefFS::FileSystem::Repository::ChefRepositoryFileSystemRootDir') }
+      let(:chef_fs) { double('applefs') }
+
+      it "adds exceptions to error handler" do
+        exception = cheffs_filesystem_exception('NotFoundError')
+        allow(Chef::Knife::EcErrorHandler).to receive(:new).and_return(ec_error_handler)
+        allow(Chef::ChefFS::Config).to receive(:new).and_return(cheffs_config)
+        allow(Chef::ChefFS::FileSystem::Repository::ChefRepositoryFileSystemRootDir).to receive(:new).and_return(cheffs_local_fs)
+        allow(Chef::ChefFS::FileSystem).to receive(:copy_to).with(any_args).and_raise(exception)
+        allow(cheffs_config).to receive(:chef_fs).and_return(chef_fs)
+        allow(cheffs_config).to receive(:local_fs).and_return(cheffs_local_fs)
+        expect(ec_error_handler).to receive(:add).at_least(1).with(exception)
+        @knife.chef_fs_copy_pattern('bob', cheffs_config)
       end
     end
   end
