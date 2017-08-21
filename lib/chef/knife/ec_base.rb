@@ -223,6 +223,9 @@ class Chef
           exit 1
         end
       end
+
+      def completion_banner
+        puts '** Finished **'
     end
   end
 end

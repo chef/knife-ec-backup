@@ -49,6 +49,8 @@ class Chef
           download_org_members(name)
           download_org_invitations(name)
         end
+
+        completion_banner
       end
 
       def users_for_purge

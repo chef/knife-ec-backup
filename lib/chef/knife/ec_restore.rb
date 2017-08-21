@@ -57,6 +57,8 @@ class Chef
         else
           restore_user_acls
         end
+
+        completion_banner
       end
 
       def create_organization(orgname)
