@@ -70,4 +70,10 @@ describe Chef::Knife::EcBase do
       expect{o.ensure_webui_key_exists!}.to raise_error(SystemExit)
     end
   end
+
+  context "completion_banner" do
+    it "lets the user know we're Finished" do
+      expect{o.completion_banner}.to output("** Finished **\n").to_stdout
+    end
+  end
 end

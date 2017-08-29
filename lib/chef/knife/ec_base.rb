@@ -223,6 +223,10 @@ class Chef
           exit 1
         end
       end
+
+      def completion_banner
+        puts "#{ui.color("** Finished **", :magenta)}"
+      end
     end
   end
 end
