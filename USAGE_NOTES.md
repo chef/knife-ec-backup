@@ -115,6 +115,8 @@ knife ec backup chef_backups/ --webui-key chef_backups/conf/webui_priv_src.pem -
 
 As mentioned earlier, the recommended strategy is to utilize a new destination cluster targeted for migration that has not been previously used. Easily spin new ones up with an [AWS Native Chef HA Cluster](https://github.com/chef-customers/aws_native_chef_server)
 
+Run [knife-tidy](https://github.com/chef-customers/knife-tidy) if needed to correct data errors in the backup.
+
 The command below will take the object based backup and restore it to a destination.
 
 ```bash
