@@ -104,10 +104,8 @@ Keep a close watch on your Chef Server stats while running a backup and terminat
 The command below will download all data from the source Chef Server and store objects as individual json files beneath `chef_backups`. It is safe to re-run the backup multiple times over the existing `chef_backups` directory.  On subsequent runs, `knife-ec-backup` will do a differential backup of the `/cookbooks` objects.
 
 ```bash
-knife ec backup chef_backups/ --webui-key chef_backups/conf/webui_priv_src.pem --concurrency 20 -c chef_backups/conf/knife_src_server.rb
+knife ec backup chef_backups/ --sql-host xxx --sql-port xxx --sql-password xxx --with-user-sql --with-key-sql --webui-key chef_backups/conf/webui_priv_src.pem --concurrency 20 -c chef_backups/conf/knife_src_server.rb
 ```
-
-**Note:** If using non-ldap users who need to login to manage console (Ask yourself why this is really necessary) then `--with-user-sql`, `--sql-user` (opscode_chef), `--sql-password` (from /etc/opscode/chef-server-running.json), `--sql-host` and `--sql-port` are required as well.
 
 **Note:** Because the `backup` operation can be run multiple times. One good strategy may be to run repeated backups ahead of the migration day if the initial backup takes a prohibitively long time. Running several small backups ahead of time may be better than running one BIG one. Another supporting strategy might be performing backups during low-peak times, or adding frontend capacity during both backups (db connections) and restores (frontend CPU bound).
 
@@ -120,12 +118,10 @@ Run [knife-tidy](https://github.com/chef-customers/knife-tidy) if needed to corr
 The command below will take the object based backup and restore it to a destination.
 
 ```bash
-knife ec restore chef_backups/ --webui-key chef_backups/conf/webui_priv_dst.pem --concurrency 1 -c chef_backups/conf/knife_dst_server.rb
+knife ec restore chef_backups/ --sql-host xxx --sql-port xxx --sql-password xxx --with-user-sql --with-key-sql --webui-key chef_backups/conf/webui_priv_dst.pem --concurrency 1 -c chef_backups/conf/knife_dst_server.rb
 ```
 
 **IMPORTANT:** Unlike a backup operation, the concurrency needs to be set to 1 to avoid race conditions.
-
-**Note:** Similar to the `backup` operation, same note about `--with-user-sql` potentially being required.
 
 ### Dealing With Errors
 - If you encounter any un-recoverable errors during a backup/restore try adding the `-VV` flag to the knife command for maximum information.
