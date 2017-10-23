@@ -25,7 +25,6 @@ class Chef
     class EcKeyImport < Chef::Knife
 
       include Knife::EcKeyBase
-      include Knife::EcBase
 
       banner "knife ec key import [USER_DATA_PATH] [KEY_DATA_PATH]"
 
@@ -166,6 +165,7 @@ class Chef
 
       def import_user_data(path)
         key_data = JSON.parse(File.read(path))
+        knife_ec_error_handler = config[:knife_ec_error_handler]
         key_data.each do |d|
           if d['username'] == 'pivotal' && config[:skip_pivotal]
             ui.warn "Skipping pivotal user."
@@ -200,7 +200,7 @@ class Chef
                 ui.warn message
                 ex = ex.exception "#{ex.message} #{message}"
               end
-              knife_ec_error_handler.add(ex)
+              knife_ec_error_handler.add(ex) if knife_ec_error_handler
             end
           end
         end
