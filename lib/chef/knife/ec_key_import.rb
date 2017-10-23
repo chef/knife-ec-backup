@@ -25,6 +25,7 @@ class Chef
     class EcKeyImport < Chef::Knife
 
       include Knife::EcKeyBase
+      include Knife::EcBase
 
       banner "knife ec key import [USER_DATA_PATH] [KEY_DATA_PATH]"
 
@@ -190,7 +191,17 @@ class Chef
               d['hashed_password'] = nil
               d['salt'] = nil
             end
-            users_to_update.update(d)
+            begin
+              users_to_update.update(d)
+            rescue => ex
+              ui.warn "Could not restore user #{d['username']}"
+              if ex.class == Sequel::ForeignKeyConstraintViolation
+                message = "This error usually indicates that a user already exists with a different ID and is associated with one or more organizations on the target system.  The username is #{d['username']} and the ID in the backup files is #{d['id']}"
+                ui.warn message
+                ex = ex.exception "#{ex.message} #{message}"
+              end
+              knife_ec_error_handler.add(ex)
+            end
           end
         end
       end
