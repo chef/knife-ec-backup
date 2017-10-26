@@ -165,6 +165,7 @@ class Chef
 
       def import_user_data(path)
         key_data = JSON.parse(File.read(path))
+        knife_ec_error_handler = config[:knife_ec_error_handler]
         key_data.each do |d|
           if d['username'] == 'pivotal' && config[:skip_pivotal]
             ui.warn "Skipping pivotal user."
@@ -190,7 +191,17 @@ class Chef
               d['hashed_password'] = nil
               d['salt'] = nil
             end
-            users_to_update.update(d)
+            begin
+              users_to_update.update(d)
+            rescue => ex
+              ui.warn "Could not restore user #{d['username']}"
+              if ex.class == Sequel::ForeignKeyConstraintViolation
+                message = "This error usually indicates that a user already exists with a different ID and is associated with one or more organizations on the target system.  The username is #{d['username']} and the ID in the backup files is #{d['id']}"
+                ui.warn message
+                ex = ex.exception "#{ex.message} #{message}"
+              end
+              knife_ec_error_handler.add(ex) if knife_ec_error_handler
+            end
           end
         end
       end
