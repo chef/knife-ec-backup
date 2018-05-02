@@ -10,10 +10,16 @@ describe Chef::Server do
     expect(s.root_url).to eq("http://api.example.com")
   end
 
-  it "determines the server version" do
-    s = Chef::Server.new("http://api.example.com")
+  it "determines the running habitat service pkg version" do
+    s = Chef::Server.new('http://api.example.com')
+    allow(s).to receive(:open).and_return(StringIO.new("Package: chef-server/chef-server-nginx/12.17.42/20180413212943\nother stuff\nother stuff"))
+    expect(s.version.to_s).to eq('12.17.42')
+  end
+
+  it "determines the running omnibus server version" do
+    s = Chef::Server.new('http://api.example.com')
     allow(s).to receive(:open).and_return(StringIO.new("Chef Server 1.8.1\nother stuff\nother stuff"))
-    expect(s.version.to_s).to eq("1.8.1")
+    expect(s.version.to_s).to eq('1.8.1')
   end
 
   it "ignores git tags when determining the version" do
@@ -22,7 +28,7 @@ describe Chef::Server do
     expect(s.version.to_s).to eq("1.8.1")
   end
 
-  it "knows whether the server supports user ACLs via ngingx" do
+  it "knows whether the server supports user ACLs via nginx" do
     s1 = Chef::Server.new("http://api.example.com")
     s2 = Chef::Server.new("http://api.example.com")
     allow(s1).to receive(:open).and_return(StringIO.new("Chef Server 11.0.0\nother stuff\nother stuff"))
