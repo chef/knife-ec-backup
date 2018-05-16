@@ -50,6 +50,8 @@ class Chef
           download_org_invitations(name)
         end
 
+        warn_on_incorrect_clients_group(dest_dir, "backup")
+
         completion_banner
       end
 

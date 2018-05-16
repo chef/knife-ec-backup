@@ -20,6 +20,7 @@ require 'chef/knife'
 require 'chef/server_api'
 require 'veil'
 require 'chef/knife/ec_error_handler'
+require 'ffi_yajl'
 
 class Chef
   class Knife
@@ -221,6 +222,21 @@ class Chef
         if !File.exist?(webui_key)
           ui.error("Webui Key (#{config[:webui_key]}) does not exist.")
           exit 1
+        end
+      end
+
+      def warn_on_incorrect_clients_group(dir, op)
+        orgs = Dir[::File.join(dir, 'organizations', '*')].map { |d| ::File.basename(d) }
+        orgs.each do |org|
+          clients_path = ::File.expand_path(::File.join(dir, 'organizations', org, 'clients'))
+          clients_in_org = Dir[::File.join(clients_path, '*')].map { |d| ::File.basename(d, '.json') }
+          clients_group_path = ::File.expand_path(::File.join(dir, 'organizations', org, 'groups', 'clients.json'))
+          existing_group_data = FFI_Yajl::Parser.parse(::File.read(clients_group_path), symbolize_names: false)
+          existing_group_data['clients'] = [] unless existing_group_data.key?('clients')
+          if existing_group_data['clients'].length != clients_in_org.length
+            ui.warn "There are #{(existing_group_data['clients'].length - clients_in_org.length).abs} missing clients in #{org}'s client group file #{clients_group_path}. If this is not intentional do not perform a restore until corrected. `knife tidy backup clean` will auto-correct this. https://github.com/chef-customers/knife-tidy"
+            ui.confirm("\nDo you wish to continue?") if op == "restore"
+          end
         end
       end
 
