@@ -39,6 +39,8 @@ class Chef
         ensure_webui_key_exists!
         set_skip_user_acl!
 
+        warn_on_incorrect_clients_group(dest_dir, "restore")
+
         restore_users unless config[:skip_users]
         restore_user_sql if config[:with_user_sql]
 
