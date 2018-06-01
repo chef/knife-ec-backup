@@ -177,7 +177,7 @@ class Chef
                              k = Chef::Knife::EcKeyImport.new
                              k.name_args = ["#{dest_dir}/key_dump.json", "#{dest_dir}/key_table_dump.json"]
                              k.config[:skip_pivotal] = true
-                             k.config[:skip_ids] = false
+                             k.config[:skip_ids] = true
                              k.config[:sql_host] = config[:sql_host]
                              k.config[:sql_port] = config[:sql_port]
                              k.config[:sql_user] = config[:sql_user]
