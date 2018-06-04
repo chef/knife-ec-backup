@@ -230,6 +230,10 @@ Private Chef server. DEST_DIR should be a backup directory created by
     Skip Chef Server version check. This will
     also skip any auto-configured options (default: false)
 
+  * `--[no-]skip-user-ids`:
+    Reuses user ids from the restore destination when updating existing 
+    users to avoid database conflicts (default: true)
+
   * `--with-user-sql`:
     Whether to backup/restore user data directly from the database.  This
     requires access to the listening postgresql port on the Chef

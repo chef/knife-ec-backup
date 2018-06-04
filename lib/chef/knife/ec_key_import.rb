@@ -38,7 +38,7 @@ class Chef
         :long => "--[no-]skip-user-ids",
         :default => true,
         :boolean => true,
-        :description => "Upload user ids."
+        :description => "Reuses user ids from the restore destination when updating existing users to avoid database conflicts."
 
       option :users_only,
         :long => "--users-only",
