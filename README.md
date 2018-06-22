@@ -277,6 +277,9 @@ assumed to be `key_dump.json`.
 Please note, most user should use `knife ec restore` with the
 `--with-user-sql` option rather than this command.
 
+# Usage Notes
+Please read the [Usage Notes](https://github.com/chef/knife-ec-backup/blob/master/USAGE_NOTES.md) for further information on assistance with backups, restores and Chef Server migration strategies.
+
 # Known Bugs
 
 - knife-ec-backup cannot be installed in the embedded gemset of Chef
