@@ -4,10 +4,9 @@ require 'chef/knife/ec_base'
 class Chef
   class Knife
     class EcBackup < Chef::Knife
-
       include Knife::EcBase
 
-      banner "knife ec backup DIRECTORY"
+      banner 'knife ec backup DIRECTORY'
 
       deps do
         require 'chef/chef_fs/config'
@@ -19,6 +18,7 @@ class Chef
       end
 
       def run
+        validate_skip_objects
         set_dest_dir_from_args!
         set_client_config!
         set_skip_user_acl!
@@ -28,7 +28,11 @@ class Chef
         ensure_dir("#{dest_dir}/user_acls") unless config[:skip_useracl]
         ui.msg 'Downloading Users'
         for_each_user do |username, url|
-          download_user(username, url)
+          if config[:skip_users]
+            ui.warn("Skipping user download for #{username}. To download this user, remove --skip-users.")
+          else
+            download_user(username, url)
+          end
           if config[:skip_useracl]
             ui.warn("Skipping user ACL download for #{username}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
           else
@@ -37,9 +41,7 @@ class Chef
         end
         purge_users_on_backup
 
-        if config[:with_user_sql] || config[:with_key_sql]
-          export_from_sql
-        end
+        export_from_sql if config[:with_user_sql] || config[:with_key_sql]
 
         ensure_dir("#{dest_dir}/organizations")
         for_each_organization do |org_object|
@@ -50,7 +52,7 @@ class Chef
           download_org_invitations(name)
         end
 
-        warn_on_incorrect_clients_group(dest_dir, "backup")
+        warn_on_incorrect_clients_group(dest_dir, 'backup')
 
         completion_banner
       end
@@ -87,7 +89,7 @@ class Chef
 
       def for_each_organization
         rest.get('/organizations').each_pair do |name, url|
-          next unless (config[:org].nil? || config[:org] == name)
+          next unless config[:org].nil? || config[:org] == name
           ui.msg "Downloading organization object for #{name} from #{url}"
           begin
             org = rest.get(url)
@@ -102,7 +104,7 @@ class Chef
           # skip any of these precreated organizations by checking if
           # they have been assigned or not.  The Chef 12 API does not
           # return an assigned_at field.
-          if org['assigned_at'] || server.version >= Gem::Version.new("12")
+          if org['assigned_at'] || server.version >= Gem::Version.new('12')
             yield org
           else
             ui.msg "Skipping pre-created org #{name}"
@@ -167,76 +169,84 @@ class Chef
       end
 
       def ensure_dir(dir)
-        if !File.exist?(dir)
-          FileUtils.mkdir_p(dir)
-        end
+        FileUtils.mkdir_p(dir) unless File.exist?(dir)
       end
 
-      PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
+      PATHS = %w[chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path].freeze
       def download_org_data(name)
         old_config = Chef::Config.save
 
         begin
-          # Clear out paths
-          PATHS.each do |path|
-            Chef::Config.delete(path.to_sym)
-          end
-          Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
-          Chef::Config.versioned_cookbooks = true
+      # Clear out paths
+      PATHS.each do |path|
+        Chef::Config.delete(path.to_sym)
+      end
+      Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
+      Chef::Config.versioned_cookbooks = true
 
-          Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
+      Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
-          ensure_dir(Chef::Config.chef_repo_path)
+      ensure_dir(Chef::Config.chef_repo_path)
 
-          # Download the billing-admins, public_key_read_access ACL and group as pivotal
-          chef_fs_config = Chef::ChefFS::Config.new
+      # Download the billing-admins, public_key_read_access ACL and group as pivotal
+      chef_fs_config = Chef::ChefFS::Config.new
 
-          paths = ['/acls/groups/billing-admins.json', '/groups/billing-admins.json', '/groups/admins.json']
-          paths.push('/acls/groups/public_key_read_access.json', '/groups/public_key_read_access.json') if server.supports_public_key_read_access?
+      unless skip_objects.include? 'groups'
+        paths = ['/acls/groups/billing-admins.json', '/groups/billing-admins.json', '/groups/admins.json']
+        paths.push('/acls/groups/public_key_read_access.json', '/groups/public_key_read_access.json') if server.supports_public_key_read_access?
 
-          paths.each do |path|
-            chef_fs_copy_pattern(path, chef_fs_config)
-          end
-
-          Chef::Config.node_name = if config[:skip_version]
-                                     org_admin
-                                   else
-                                     server.supports_defaulting_to_pivotal? ? 'pivotal' : org_admin
-                                   end
-
-          chef_fs_config = Chef::ChefFS::Config.new
-          top_level_paths = chef_fs_config.chef_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
-
-          # The top level acl object names end with .json extension
-          # Therefore we can use Chef::ChefFS::FilePattern matching for items
-          # such as /acls/organizations.json
-          #
-          # 2nd level leaf /acl/*/* objects as well as /groups/* objects do not end with .json
-          # therefore we use normalize_path_name to add the .json extension
-          # for example: /acls/environments/_default
-
-           # Skip the billing-admins, public_key_read_access group ACLs and the groups since they've already been copied
-          exclude_list = ['billing-admins', 'public_key_read_access']
-
-          top_level_acls  = chef_fs_paths('/acls/*.json', chef_fs_config, [])
-          acl_paths       = chef_fs_paths('/acls/*/*', chef_fs_config, exclude_list)
-          group_paths     = chef_fs_paths('/groups/*', chef_fs_config, exclude_list)
-          (top_level_paths + top_level_acls + acl_paths + group_paths).each do |path|
-            chef_fs_copy_pattern(path, chef_fs_config)
-          end
-        ensure
-          Chef::Config.restore(old_config)
+        paths.each do |path|
+          chef_fs_copy_pattern(path, chef_fs_config)
         end
       end
 
+      Chef::Config.node_name = if config[:skip_version]
+                                 org_admin
+                               else
+                                 server.supports_defaulting_to_pivotal? ? 'pivotal' : org_admin
+  end
+
+      chef_fs_config = Chef::ChefFS::Config.new
+      top_level_excludes = %w[acls groups]
+      top_level_excludes.concat skip_objects
+
+      top_level_paths = chef_fs_config.chef_fs.children.reject { |entry| top_level_excludes.include? entry.name }.map(&:path)
+
+      # The top level acl object names end with .json extension
+      # Therefore we can use Chef::ChefFS::FilePattern matching for items
+      # such as /acls/organizations.json
+      #
+      # 2nd level leaf /acl/*/* objects as well as /groups/* objects do not end with .json
+      # therefore we use normalize_path_name to add the .json extension
+      # for example: /acls/environments/_default
+
+      # Skip the billing-admins, public_key_read_access group ACLs and the groups since they've already been copied
+      exclude_list = ['billing-admins', 'public_key_read_access']
+
+      top_level_acls = chef_fs_paths('/acls/*.json', chef_fs_config, [])
+      acl_paths = skip_objects.include?('groups') ?
+      [] : chef_fs_paths('/acls/*/*', chef_fs_config, exclude_list)
+      group_paths = skip_objects.include?('groups') ?
+      [] : chef_fs_paths('/groups/*', chef_fs_config, exclude_list)
+      require 'pry'; binding.pry
+      acl_skip_paths = skip_objects.map { |o| chef_fs_paths("/acls/#{o}*/*", chef_fs_config, exclude_list) }.flatten
+      group_skip_paths = skip_objects.map { |o| chef_fs_paths("/groups/#{o}.json", chef_fs_config, exclude_list) }.flatten
+      (top_level_paths + top_level_acls + acl_paths + group_paths - acl_skip_paths - group_skip_paths).each do |path|
+        chef_fs_copy_pattern(path, chef_fs_config)
+      end
+    ensure
+      Chef::Config.restore(old_config)
+    end
+  end
+
       def normalize_path_name(path)
-        path=~/\.json\z/ ? path : path<<'.json'
+        path =~ /\.json\z/ ? path : path << '.json'
       end
 
-      def chef_fs_paths(pattern_str, chef_fs_config, exclude=[])
+      def chef_fs_paths(pattern_str, chef_fs_config, exclude = [])
         pattern = Chef::ChefFS::FilePattern.new(pattern_str)
         list = Chef::ChefFS::FileSystem.list(chef_fs_config.chef_fs, pattern)
-        list = list.select { |entry| ! exclude.include?(entry.name) } if ! exclude.empty?
+        list = list.reject { |entry| exclude.include?(entry.name) } unless exclude.empty?
         list.map { |entry| normalize_path_name(entry.path) }
       end
 
@@ -252,6 +262,6 @@ class Chef
              Chef::ChefFS::FileSystem::OperationFailedError => ex
         knife_ec_error_handler.add(ex)
       end
-    end
-  end
+end
+end
 end

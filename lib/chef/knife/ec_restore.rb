@@ -4,26 +4,21 @@ require 'chef/knife/ec_base'
 class Chef
   class Knife
     class EcRestore < Chef::Knife
-
       include Knife::EcBase
 
-      banner "knife ec restore DIRECTORY"
+      banner 'knife ec restore DIRECTORY'
 
       option :overwrite_pivotal,
-        :long => '--overwrite-pivotal',
-        :boolean => true,
-        :default => false,
-        :description => "Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key."
-
-      option :skip_users,
-        :long => "--skip-users",
-        :description => "Skip restoring users"
+             long: '--overwrite-pivotal',
+             boolean: true,
+             default: false,
+             description: "Whether to overwrite pivotal's key.  Once this is done, future requests will fail until you fix the private key."
 
       option :skip_ids,
-        :long => "--[no-]skip-user-ids",
-        :default => true,
-        :boolean => true,
-        :description => "Reuses user ids from the restore destination when updating existing users to avoid database conflicts."
+             long: '--[no-]skip-user-ids',
+             default: true,
+             boolean: true,
+             description: 'Reuses user ids from the restore destination when updating existing users to avoid database conflicts.'
 
       deps do
         require 'chef/json_compat'
@@ -40,14 +35,19 @@ class Chef
       end
 
       def run
+        validate_skip_objects
         set_dest_dir_from_args!
         set_client_config!
         ensure_webui_key_exists!
         set_skip_user_acl!
 
-        warn_on_incorrect_clients_group(dest_dir, "restore")
+        warn_on_incorrect_clients_group(dest_dir, 'restore')
 
-        restore_users unless config[:skip_users]
+        if config[:skip_users]
+          ui.warn('Skipping user ACL update. To update user ACLs, remove --skip-useracl or upgrade your Enterprise Chef Server.')
+        else
+          restore_users
+        end
         restore_user_sql if config[:with_user_sql]
 
         for_each_organization do |orgname|
@@ -61,7 +61,7 @@ class Chef
         restore_key_sql if config[:with_key_sql]
 
         if config[:skip_useracl]
-          ui.warn("Skipping user ACL update. To update user ACLs, remove --skip-useracl or upgrade your Enterprise Chef Server.")
+          ui.warn('Skipping user ACL update. To update user ACLs, remove --skip-useracl or upgrade your Enterprise Chef Server.')
         else
           restore_user_acls
         end
@@ -73,7 +73,7 @@ class Chef
         org = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/org.json"))
         rest.post('organizations', org)
       rescue Net::HTTPServerException => ex
-        if ex.response.code == "409"
+        if ex.response.code == '409'
           rest.put("organizations/#{orgname}", org)
         else
           knife_ec_error_handler.add(ex)
@@ -84,9 +84,9 @@ class Chef
         invitations = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/invitations.json"))
         invitations.each do |invitation|
           begin
-            rest.post("organizations/#{orgname}/association_requests", { 'user' => invitation['username'] })
+            rest.post("organizations/#{orgname}/association_requests", 'user' => invitation['username'])
           rescue Net::HTTPServerException => ex
-            if ex.response.code != "409"
+            if ex.response.code != '409'
               ui.error("Cannot create invitation #{invitation['id']}")
               knife_ec_error_handler.add(ex)
             end
@@ -99,17 +99,17 @@ class Chef
         members.each do |member|
           username = member['user']['username']
           begin
-            response = rest.post("organizations/#{orgname}/association_requests", { 'user' => username })
-            association_id = response["uri"].split("/").last
-            rest.put("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
+            response = rest.post("organizations/#{orgname}/association_requests", 'user' => username)
+            association_id = response['uri'].split('/').last
+            rest.put("users/#{username}/association_requests/#{association_id}", 'response' => 'accept')
           rescue Net::HTTPServerException => ex
-            knife_ec_error_handler.add(ex) if ex.response.code != "409"
+            knife_ec_error_handler.add(ex) if ex.response.code != '409'
           end
         end
       end
 
       def restore_user_acls
-        ui.msg "Restoring user ACLs"
+        ui.msg 'Restoring user ACLs'
         for_each_user do |name|
           user_acl = JSONCompat.from_json(File.read("#{dest_dir}/user_acls/#{name}.json"))
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
@@ -119,9 +119,9 @@ class Chef
       def for_each_user
         Dir.foreach("#{dest_dir}/users") do |filename|
           next if filename !~ /(.+)\.json/
-          name = $1
+          name = Regexp.last_match(1)
           if name == 'pivotal' && !config[:overwrite_pivotal]
-            ui.warn("Skipping pivotal user.  To overwrite pivotal, pass --overwrite-pivotal.")
+            ui.warn('Skipping pivotal user.  To overwrite pivotal, pass --overwrite-pivotal.')
             next
           end
           yield name
@@ -131,13 +131,13 @@ class Chef
       def for_each_organization
         Dir.foreach("#{dest_dir}/organizations") do |name|
           next if name == '..' || name == '.' || !File.directory?("#{dest_dir}/organizations/#{name}")
-          next unless (config[:org].nil? || config[:org] == name)
+          next unless config[:org].nil? || config[:org] == name
           yield name
         end
       end
 
       def restore_users
-        ui.msg "Restoring users"
+        ui.msg 'Restoring users'
         for_each_user do |name|
           user = JSONCompat.from_json(File.read("#{dest_dir}/users/#{name}.json"))
           begin
@@ -146,7 +146,7 @@ class Chef
             user_with_password['password'] = SecureRandom.hex
             rest.post('users', user_with_password)
           rescue Net::HTTPServerException => ex
-            if ex.response.code == "409"
+            if ex.response.code == '409'
               rest.put("users/#{name}", user)
               next
             end
@@ -210,7 +210,7 @@ class Chef
         k.run
       end
 
-      PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
+      PATHS = %w[chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path].freeze
       def upload_org_data(name)
         old_config = Chef::Config.save
 
@@ -225,7 +225,7 @@ class Chef
           Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
           # Upload the admins, public_key_read_access and billing-admins groups and acls
-          ui.msg "Restoring org admin data"
+          ui.msg 'Restoring org admin data'
           chef_fs_config = Chef::ChefFS::Config.new
 
           # Handle Admins, Billing Admins and Public Key Read Access seperately
@@ -254,7 +254,7 @@ class Chef
             ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['groups'], 'public_key_read_access.json'))
 
           groups.each do |group|
-            restore_group(chef_fs_config, group, :clients => false)
+            restore_group(chef_fs_config, group, clients: false)
           end
 
           acls_groups_paths = ['/acls/groups/billing-admins.json']
@@ -272,24 +272,24 @@ class Chef
                                    end
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
-          ui.msg "Restoring the rest of the org"
+          ui.msg 'Restoring the rest of the org'
           chef_fs_config = Chef::ChefFS::Config.new
-          top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
+          top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map(&:path)
 
           # Topologically sort groups for upload
           filenames = ['billing-admins.json', 'public_key_read_access.json']
-          unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).select { |entry| ! filenames.include?(entry.name) }.map { |entry| JSON.parse(entry.read) }
+          unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).reject { |entry| filenames.include?(entry.name) }.map { |entry| JSON.parse(entry.read) }
           group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
 
-          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| ! filenames.include?(entry.name) }.map { |entry| entry.path }
-          acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
+          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).reject { |entry| filenames.include?(entry.name) }.map(&:path)
+          acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).reject { |entry| entry.name == 'groups' }.map(&:path)
 
           # Store organization data in a particular order:
           # - clients must be uploaded before groups (in top_level_paths)
           # - groups must be uploaded before any acl's
           # - groups must be uploaded twice to account for Chef Server versions that don't
           #   accept group members on POST
-          (top_level_paths + group_paths*2 + group_acl_paths + acl_paths).each do |path|
+          (top_level_paths + group_paths * 2 + group_acl_paths + acl_paths).each do |path|
             chef_fs_copy_pattern(path, chef_fs_config)
           end
 
@@ -298,7 +298,7 @@ class Chef
           groups.each do |group|
             restore_group(Chef::ChefFS::Config.new, group)
           end
-         ensure
+        ensure
           Chef::Config.restore(old_config)
         end
       end
@@ -331,9 +331,9 @@ class Chef
       def group_array_to_sortable_hash(groups)
         ret = {}
         groups.each do |group|
-          name = group["name"]
-          ret[name] = if group.key?("groups")
-                        group["groups"]
+          name = group['name']
+          ret[name] = if group.key?('groups')
+                        group['groups']
                       else
                         []
                       end
@@ -341,7 +341,7 @@ class Chef
         ret
       end
 
-      def restore_group(chef_fs_config, group_name, includes = {:users => true, :clients => true})
+      def restore_group(chef_fs_config, group_name, includes = { users: true, clients: true })
         includes[:users] = true unless includes.key? :users
         includes[:clients] = true unless includes.key? :clients
 
@@ -358,7 +358,7 @@ class Chef
         ).read
 
         members = JSON.parse(members_json).select do |member|
-          if includes[:users] and includes[:clients]
+          if includes[:users] && includes[:clients]
             member
           elsif includes[:users]
             member == 'users'
@@ -372,14 +372,14 @@ class Chef
         Chef::Log.warn "Could not find #{group.display_path} on disk. Will not restore."
       end
 
-      PERMISSIONS = %w{create read update delete grant}.freeze
+      PERMISSIONS = %w[create read update delete grant].freeze
       def put_acl(rest, url, acls)
         old_acls = rest.get(url)
         old_acls = Chef::ChefFS::DataHandler::AclDataHandler.new.normalize(old_acls, nil)
         acls = Chef::ChefFS::DataHandler::AclDataHandler.new.normalize(acls, nil)
         if acls != old_acls
           PERMISSIONS.each do |permission|
-            rest.put("#{url}/#{permission}", { permission => acls[permission] })
+            rest.put("#{url}/#{permission}", permission => acls[permission])
           end
         end
       rescue Net::HTTPServerException => ex

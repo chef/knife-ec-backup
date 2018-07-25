@@ -25,81 +25,89 @@ require 'ffi_yajl'
 class Chef
   class Knife
     module EcBase
-      class NoAdminFound < Exception; end
-      class UnImplemented < Exception; end
+      class NoAdminFound < RuntimeError; end
+      class UnImplemented < RuntimeError; end
 
       def self.included(includer)
         includer.class_eval do
-
           option :concurrency,
-            :long => '--concurrency THREADS',
-            :description => 'Maximum number of simultaneous requests to send (default: 10)'
+                 long: '--concurrency THREADS',
+                 description: 'Maximum number of simultaneous requests to send (default: 10)'
 
           option :webui_key,
-            :long => '--webui-key KEYPATH',
-            :description => 'Path to the WebUI Key (default: Read from secrets store or /etc/opscode/webui_priv.pem)'
+                 long: '--webui-key KEYPATH',
+                 description: 'Path to the WebUI Key (default: Read from secrets store or /etc/opscode/webui_priv.pem)'
 
           option :secrets_file_path,
-            :long => '--secrets-file PATH',
-            :description => 'Path to a valid private-chef-secrets.json file (default: /etc/opscode/private-chef-secrets.json)',
-            :default => '/etc/opscode/private-chef-secrets.json'
+                 long: '--secrets-file PATH',
+                 description: 'Path to a valid private-chef-secrets.json file (default: /etc/opscode/private-chef-secrets.json)',
+                 default: '/etc/opscode/private-chef-secrets.json'
+
+          option :skip_users,
+                 long: '--skip-users',
+                 description: 'Skip restoring users',
+                 default: false
 
           option :skip_useracl,
-            :long => '--skip-useracl',
-            :boolean => true,
-            :default => false,
-            :description => "Skip downloading/restoring User ACLs.  This is required for EC 11.0.2 and lower"
+                 long: '--skip-useracl',
+                 boolean: true,
+                 default: false,
+                 description: 'Skip downloading/restoring User ACLs.  This is required for EC 11.0.2 and lower'
 
           option :skip_version,
-            :long => '--skip-version-check',
-            :boolean => true,
-            :default => false,
-            :description => "Skip Chef Server version check.  This will also skip any auto-configured options"
+                 long: '--skip-version-check',
+                 boolean: true,
+                 default: false,
+                 description: 'Skip Chef Server version check.  This will also skip any auto-configured options'
+
+          option :skip_objects,
+                 long: '--skip-objects OBJECTS',
+                 description: 'Comma separated list of Chef Server objects to exclude from backup/restore'
 
           option :org,
-            :long => "--only-org ORG",
-            :description => "Only download/restore objects in the named organization (default: all orgs)"
+                 long: '--only-org ORG',
+                 description: 'Only download/restore objects in the named organization (default: all orgs)'
 
           option :sql_host,
-            :long => '--sql-host HOSTNAME',
-            :description => 'Postgresql database hostname (default: localhost)',
-            :default => "localhost"
+                 long: '--sql-host HOSTNAME',
+                 description: 'Postgresql database hostname (default: localhost)',
+                 default: 'localhost'
 
           option :sql_port,
-            :long => '--sql-port PORT',
-            :description => 'Postgresql database port (default: 5432)',
-            :default => 5432
+                 long: '--sql-port PORT',
+                 description: 'Postgresql database port (default: 5432)',
+                 default: 5432
 
           option :sql_user,
-            :long => "--sql-user USERNAME",
-            :description => 'User used to connect to the postgresql database.'
+                 long: '--sql-user USERNAME',
+                 description: 'User used to connect to the postgresql database.'
 
           option :sql_password,
-            :long => "--sql-password PASSWORD",
-            :description => 'Password used to connect to the postgresql database'
+                 long: '--sql-password PASSWORD',
+                 description: 'Password used to connect to the postgresql database'
 
           option :with_user_sql,
-            :long => '--with-user-sql',
-            :description => 'Try direct data base access for user export/import.  Required to properly handle passwords, keys, and USAGs'
+                 long: '--with-user-sql',
+                 description: 'Try direct data base access for user export/import.  Required to properly handle passwords, keys, and USAGs'
 
           option :with_key_sql,
-            :long => '--with-key-sql',
-            :description => 'Try direct data base access for key table export/import.  Required to properly handle rotated keys.'
+                 long: '--with-key-sql',
+                 description: 'Try direct data base access for key table export/import.  Required to properly handle rotated keys.'
 
           option :purge,
-            :long => '--purge',
-            :boolean => true | false,
-            :default => false,
-            :description => 'Syncs deletions from backup source to restore destination.'
+                 long: '--purge',
+                 boolean: true | false,
+                 default: false,
+                 description: 'Syncs deletions from backup source to restore destination.'
 
           option :dry_run,
-            :long => '--dry-run',
-            :boolean => true | false,
-            :default => false,
-            :description => 'Report what actions would be taken without performing any.'
+                 long: '--dry-run',
+                 boolean: true | false,
+                 default: false,
+                 description: 'Report what actions would be taken without performing any.'
         end
 
-        attr_accessor :dest_dir
+        attr_accessor :dest_dir, :skip_objects
 
         def configure_chef
           super
@@ -108,7 +116,7 @@ class Chef
         end
 
         def org_admin
-          rest = Chef::ServerAPI.new(Chef::Config.chef_server_url, {:api_version => "0"})
+          rest = Chef::ServerAPI.new(Chef::Config.chef_server_url, api_version: '0')
           admin_users = rest.get('groups/admins')['users']
           org_members = rest.get('users').map { |user| user['user']['username'] }
           admin_users.delete_if { |user| !org_members.include?(user) || user == 'pivotal' }
@@ -120,43 +128,43 @@ class Chef
         rescue Net::HTTPServerException => ex
           knife_ec_error_handler.add(ex)
         end
-      end
+  end
 
       def server
         @server ||= if Chef::Config.chef_server_root.nil?
-                      ui.warn("chef_server_root not found in knife configuration; using chef_server_url")
+                      ui.warn('chef_server_root not found in knife configuration; using chef_server_url')
                       Chef::Server.from_chef_server_url(Chef::Config.chef_server_url)
                     else
                       Chef::Server.new(Chef::Config.chef_server_root)
-                    end
       end
+        end
 
       # Since knife-ec-backup hasn't been updated to use API V1 keys endpoints
       # we should explicitly as for V0.
       def rest
-        @rest ||= Chef::ServerAPI.new(server.root_url, {:api_version => "0"})
-      end
+        @rest ||= Chef::ServerAPI.new(server.root_url, api_version: '0')
+        end
 
       def remote_users
         @remote_users ||= rest.get('/users')
-      end
+        end
 
       def remote_user_list
         @remote_user_list ||= remote_users.keys
-      end
+        end
 
       def local_user_list
         @local_user_list ||= Dir.glob("#{dest_dir}/users/*\.json").map { |u| File.basename(u, '.json') }
-      end
+        end
 
       def users_for_purge
         # not itended to be called from ec_base
         raise Chef::Knife::EcBase::UnImplemented
-      end
+        end
 
       def knife_ec_error_handler
         @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new(dest_dir, self.class)
-      end
+        end
 
       def user_acl_rest
         @user_acl_rest ||= if config[:skip_version]
@@ -164,66 +172,84 @@ class Chef
                            elsif server.supports_user_acls?
                              rest
                            elsif server.direct_account_access?
-                             Chef::ServerAPI.new("http://127.0.0.1:9465", {:api_version => "0"})
-                           end
-
+                             Chef::ServerAPI.new('http://127.0.0.1:9465', api_version: '0')
       end
+        end
 
       def set_skip_user_acl!
         config[:skip_useracl] ||= !(server.supports_user_acls? || server.direct_account_access?)
-      end
+        end
 
       def set_client_config!
-        Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'x-ops-request-source' => 'web'})
+        Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge('x-ops-request-source' => 'web')
         Chef::Config.node_name = 'pivotal'
         Chef::Config.client_key = webui_key
-      end
+        end
 
       def set_dest_dir_from_args!
         if name_args.length <= 0
-          ui.error("Must specify backup directory as an argument.")
+          ui.error('Must specify backup directory as an argument.')
           exit 1
         end
         @dest_dir = name_args[0]
-      end
+        end
+
+      def validate_skip_objects
+        valid_objects = %w[cookbooks cookbook_artifacts nodes clients
+                           roles environments data_bags policies policy_groups
+                           acls groups users useracls invitations.json members.json]
+
+        self.skip_objects = config[:skip_objects].split(',').uniq
+        config[:skip_users] = true if skip_objects.include?('users')
+        if skip_objects.include?('useracls') || skip_objects.include?('useracl')
+          config[:skip_useracl] = true
+        end
+        skip_objects.map! { |x| %w[invitations members].include?(x) ? "#{x}.json" : x }
+        invalid_objects = skip_objects - valid_objects
+        # self.skip_objects.push('cookbook_artifacts').uniq if skip_objects.include?('cookbooks')
+        if invalid_objects.count > 0
+          ui.error "Invalid values passed to skip_objects: #{invalid_objects}"
+          raise
+        end
+        end
 
       def webui_key
         if config[:webui_key]
           config[:webui_key]
-        elsif veil.exist?("chef-server", "webui_key")
+        elsif veil.exist?('chef-server', 'webui_key')
           temporary_webui_key
         else
           '/etc/opscode/webui_priv.pem'
         end
-      end
+        end
 
       def veil_config
         { provider: 'chef-secrets-file',
           path: config[:secrets_file_path] }
-      end
+        end
 
       def veil
         Veil::CredentialCollection.from_config(veil_config)
-      end
+        end
 
       def temporary_webui_key
         @temp_webui_key ||= begin
-                              key_data = veil.get("chef-server", "webui_key")
-                              f = Tempfile.new("knife-ec-backup")
-                              f.write(key_data)
-                              f.flush
-                              f.close
-                              f
-                            end
+          key_data = veil.get('chef-server', 'webui_key')
+          f = Tempfile.new('knife-ec-backup')
+          f.write(key_data)
+          f.flush
+          f.close
+          f
+        end
         @temp_webui_key.path
-      end
+        end
 
       def ensure_webui_key_exists!
-        if !File.exist?(webui_key)
+        unless File.exist?(webui_key)
           ui.error("Webui Key (#{config[:webui_key]}) does not exist.")
           exit 1
         end
-      end
+        end
 
       def warn_on_incorrect_clients_group(dir, op)
         orgs = Dir[::File.join(dir, 'organizations', '*')].map { |d| ::File.basename(d) }
@@ -235,14 +261,14 @@ class Chef
           existing_group_data['clients'] = [] unless existing_group_data.key?('clients')
           if existing_group_data['clients'].length != clients_in_org.length
             ui.warn "There are #{(existing_group_data['clients'].length - clients_in_org.length).abs} missing clients in #{org}'s client group file #{clients_group_path}. If this is not intentional do NOT proceed with a restore until corrected. `knife tidy backup clean` will auto-correct this. https://github.com/chef-customers/knife-tidy"
-            ui.confirm("\nDo you still wish to continue with the restore?") if op == "restore"
+            ui.confirm("\nDo you still wish to continue with the restore?") if op == 'restore'
           end
         end
-      end
+        end
 
       def completion_banner
-        puts "#{ui.color("** Finished **", :magenta)}"
-      end
-    end
-  end
+        puts ui.color('** Finished **', :magenta).to_s
+        end
+end
+end
 end
