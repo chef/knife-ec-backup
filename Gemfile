@@ -16,6 +16,8 @@ group :development do
   gem 'rake'
   gem 'simplecov'
   gem 'fakefs'
+  gem 'rb-readline'
+  gem 'pry'
 end
 
 # This is here instead of gemspec so that we can

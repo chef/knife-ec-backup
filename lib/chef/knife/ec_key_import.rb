@@ -164,6 +164,8 @@ class Chef
       end
 
       def import_user_data(path)
+        ui.warn File.read(path)
+        #require 'pry';binding.pry
         key_data = JSON.parse(File.read(path))
         knife_ec_error_handler = config[:knife_ec_error_handler]
         key_data.each do |d|
@@ -175,7 +177,10 @@ class Chef
           ui.msg "Updating user record for #{d['username']}"
           users_to_update = db[:users].where(:username => d['username'])
 
+          #ui.warn users_to_update.all
           if users_to_update.count != 1
+            ui.warn users_to_update.count
+            ui.warn users_to_update
             ui.warn "Wrong number of users to update for #{d['username']}. Skipping"
           else
             # Remove authz id from import since this will no longer

@@ -56,6 +56,10 @@ class Chef
             :default => false,
             :description => "Skip Chef Server version check.  This will also skip any auto-configured options"
 
+          option :skip_objects,
+            :long => "--skip-objects OBJECTS",
+            :description => "Comma separated list of Chef Server objects to exclude from backup/restore"
+
           option :org,
             :long => "--only-org ORG",
             :description => "Only download/restore objects in the named organization (default: all orgs)"
@@ -185,6 +189,24 @@ class Chef
           exit 1
         end
         @dest_dir = name_args[0]
+      end
+
+      def skip_objects
+        skipped ||= skipped.split.uniq if skipped else []
+      end
+
+      def validate_skip_objects
+        valid_objects = ['cookbooks', 'cookbook_artifacts', 'nodes', 'clients', 
+        'roles', 'environments', 'data_bags', 'policies', 'policy_groups', 
+        'invitations', 'members']
+        invalid_objects = skip_objects - valid_objects
+        skip_objects.push('cookbook_artifacts').uniq if skip_objects.include?('cookbooks')
+        if invalid_objects.count > 0
+          ui.error "Invalid values passed to skip_objects: #{invalid_objects}"
+          raise
+        else
+          return skip_objects
+        end
       end
 
       def webui_key

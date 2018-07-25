@@ -3,10 +3,15 @@ require 'chef/knife/ec_restore'
 require 'fakefs/spec_helpers'
 require_relative './ec_error_handler_spec'
 require "chef/chef_fs/file_system/repository/chef_repository_file_system_root_dir"
+require 'chef'
 
 def make_user(username)
   FileUtils.mkdir_p("/users")
-  File.write("/users/#{username}.json", "{\"username\": \"#{username}\"}")
+  File.write("/users/#{username}.json", "{\"id\": \"00000000000000000000000000000008\", \"username\": \"#{username}\"}")
+end
+
+def read_user(username)
+  Chef::JSONCompat.from_json(File.read("/users/#{username}.json"))
 end
 
 def make_org(orgname)
@@ -134,6 +139,15 @@ describe Chef::Knife::EcRestore do
       make_user "jane"
       allow(@rest).to receive(:post).with("users", anything).and_raise(net_exception(409))
       expect(@rest).to receive(:put).with("users/jane", {"username" => "jane"})
+      @knife.restore_users
+    end
+
+    it "maintains the existing user pk when using --with-user-sql" do
+      make_user "jane"
+      allow(@rest).to receive(:post).with("users", anything).and_raise(net_exception(409))
+      expect(@rest).to receive(:put).with("users/jane", {"id": "00000000000000000000000000000009", "username" => "frank"})
+      puts read_user("jane")
+      allow(@rest).to receive(:get).with("users/jane").and_return({"id": "00000000000000000000000000000009", "username" => "jane"})
       @knife.restore_users
     end
 

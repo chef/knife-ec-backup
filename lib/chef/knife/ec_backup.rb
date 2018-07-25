@@ -19,6 +19,8 @@ class Chef
       end
 
       def run
+        require 'pry';binding.pry
+        validate_skip_objects
         set_dest_dir_from_args!
         set_client_config!
         set_skip_user_acl!
@@ -205,7 +207,10 @@ class Chef
                                    end
 
           chef_fs_config = Chef::ChefFS::Config.new
-          top_level_paths = chef_fs_config.chef_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
+          top_level_excludes = ['acls', 'groups']
+          top_level_excludes.concat skip_objects
+
+          top_level_paths = chef_fs_config.chef_fs.children.select { |entry| !top_level_excludes.include? entry.name }.map { |entry| entry.path }
 
           # The top level acl object names end with .json extension
           # Therefore we can use Chef::ChefFS::FilePattern matching for items

@@ -112,6 +112,12 @@ class Chef
         ui.msg "Restoring user ACLs"
         for_each_user do |name|
           user_acl = JSONCompat.from_json(File.read("#{dest_dir}/user_acls/#{name}.json"))
+          # Filter out read_access groups for other orgs if config[:org] is specified
+          if config[:org]
+            user_acl.each do |action|
+              action['groups'].select! { |x| x =~ /(?<=::#{config[:org]})_read_access_group/ || x !~ /_read_access_group/}
+            end
+          end
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
         end
       end
