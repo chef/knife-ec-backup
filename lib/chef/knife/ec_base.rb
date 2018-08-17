@@ -203,7 +203,7 @@ class Chef
                            roles environments data_bags policies policy_groups
                            acls groups users useracls invitations.json members.json]
 
-        self.skip_objects = config[:skip_objects].split(',').uniq
+        self.skip_objects = config[:skip_objects].split(/,\ ?/).uniq
         config[:skip_users] = true if skip_objects.include?('users')
         if skip_objects.include?('useracls') || skip_objects.include?('useracl')
           config[:skip_useracl] = true
