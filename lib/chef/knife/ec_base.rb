@@ -62,7 +62,11 @@ class Chef
 
           option :skip_objects,
                  long: '--skip-objects OBJECTS',
-                 description: 'Comma separated list of Chef Server objects to exclude from backup/restore'
+                 default: '',
+                 description: 'Comma separated list of Chef Server objects to exclude from backup/restore. '\
+                              'Valid objects include: cookbooks, cookbook_artifacts, nodes, clients, roles, '\
+                              'environments, data_bags, policies, policy_groups, acls, groups, users, useracls, '\
+                              'invitations, members.'
 
           option :org,
                  long: '--only-org ORG',
