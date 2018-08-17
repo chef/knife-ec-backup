@@ -128,7 +128,7 @@ class Chef
         rescue Net::HTTPServerException => ex
           knife_ec_error_handler.add(ex)
         end
-  end
+      end
 
       def server
         @server ||= if Chef::Config.chef_server_root.nil?
@@ -143,28 +143,28 @@ class Chef
       # we should explicitly as for V0.
       def rest
         @rest ||= Chef::ServerAPI.new(server.root_url, api_version: '0')
-        end
+      end
 
       def remote_users
         @remote_users ||= rest.get('/users')
-        end
+      end
 
       def remote_user_list
         @remote_user_list ||= remote_users.keys
-        end
+      end
 
       def local_user_list
         @local_user_list ||= Dir.glob("#{dest_dir}/users/*\.json").map { |u| File.basename(u, '.json') }
-        end
+      end
 
       def users_for_purge
         # not itended to be called from ec_base
         raise Chef::Knife::EcBase::UnImplemented
-        end
+      end
 
       def knife_ec_error_handler
         @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new(dest_dir, self.class)
-        end
+      end
 
       def user_acl_rest
         @user_acl_rest ||= if config[:skip_version]
@@ -173,18 +173,18 @@ class Chef
                              rest
                            elsif server.direct_account_access?
                              Chef::ServerAPI.new('http://127.0.0.1:9465', api_version: '0')
+                           end
       end
-        end
 
       def set_skip_user_acl!
         config[:skip_useracl] ||= !(server.supports_user_acls? || server.direct_account_access?)
-        end
+      end
 
       def set_client_config!
         Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge('x-ops-request-source' => 'web')
         Chef::Config.node_name = 'pivotal'
         Chef::Config.client_key = webui_key
-        end
+      end
 
       def set_dest_dir_from_args!
         if name_args.length <= 0
@@ -192,7 +192,7 @@ class Chef
           exit 1
         end
         @dest_dir = name_args[0]
-        end
+      end
 
       def validate_skip_objects
         valid_objects = %w[cookbooks cookbook_artifacts nodes clients
@@ -211,7 +211,7 @@ class Chef
           ui.error "Invalid values passed to skip_objects: #{invalid_objects}"
           raise
         end
-        end
+      end
 
       def webui_key
         if config[:webui_key]
@@ -221,16 +221,16 @@ class Chef
         else
           '/etc/opscode/webui_priv.pem'
         end
-        end
+      end
 
       def veil_config
         { provider: 'chef-secrets-file',
           path: config[:secrets_file_path] }
-        end
+      end
 
       def veil
         Veil::CredentialCollection.from_config(veil_config)
-        end
+      end
 
       def temporary_webui_key
         @temp_webui_key ||= begin
@@ -242,14 +242,14 @@ class Chef
           f
         end
         @temp_webui_key.path
-        end
+      end
 
       def ensure_webui_key_exists!
         unless File.exist?(webui_key)
           ui.error("Webui Key (#{config[:webui_key]}) does not exist.")
           exit 1
         end
-        end
+      end
 
       def warn_on_incorrect_clients_group(dir, op)
         orgs = Dir[::File.join(dir, 'organizations', '*')].map { |d| ::File.basename(d) }
@@ -264,11 +264,11 @@ class Chef
             ui.confirm("\nDo you still wish to continue with the restore?") if op == 'restore'
           end
         end
-        end
+      end
 
       def completion_banner
         puts ui.color('** Finished **', :magenta).to_s
-        end
-end
-end
+      end
+    end
+  end
 end

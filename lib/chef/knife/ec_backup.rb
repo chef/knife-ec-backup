@@ -177,67 +177,66 @@ class Chef
         old_config = Chef::Config.save
 
         begin
-      # Clear out paths
-      PATHS.each do |path|
-        Chef::Config.delete(path.to_sym)
-      end
-      Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
-      Chef::Config.versioned_cookbooks = true
+          # Clear out paths
+          PATHS.each do |path|
+            Chef::Config.delete(path.to_sym)
+          end
+          Chef::Config.chef_repo_path = "#{dest_dir}/organizations/#{name}"
+          Chef::Config.versioned_cookbooks = true
 
-      Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
+          Chef::Config.chef_server_url = "#{server.root_url}/organizations/#{name}"
 
-      ensure_dir(Chef::Config.chef_repo_path)
+          ensure_dir(Chef::Config.chef_repo_path)
 
-      # Download the billing-admins, public_key_read_access ACL and group as pivotal
-      chef_fs_config = Chef::ChefFS::Config.new
+          # Download the billing-admins, public_key_read_access ACL and group as pivotal
+          chef_fs_config = Chef::ChefFS::Config.new
 
-      unless skip_objects.include? 'groups'
-        paths = ['/acls/groups/billing-admins.json', '/groups/billing-admins.json', '/groups/admins.json']
-        paths.push('/acls/groups/public_key_read_access.json', '/groups/public_key_read_access.json') if server.supports_public_key_read_access?
+          unless skip_objects.include? 'groups'
+            paths = ['/acls/groups/billing-admins.json', '/groups/billing-admins.json', '/groups/admins.json']
+            paths.push('/acls/groups/public_key_read_access.json', '/groups/public_key_read_access.json') if server.supports_public_key_read_access?
 
-        paths.each do |path|
-          chef_fs_copy_pattern(path, chef_fs_config)
+            paths.each do |path|
+              chef_fs_copy_pattern(path, chef_fs_config)
+            end
+          end
+
+          Chef::Config.node_name = if config[:skip_version]
+                                     org_admin
+                                   else
+                                     server.supports_defaulting_to_pivotal? ? 'pivotal' : org_admin
+                                   end
+
+          chef_fs_config = Chef::ChefFS::Config.new
+          top_level_excludes = %w[acls groups]
+          top_level_excludes.concat skip_objects
+
+          top_level_paths = chef_fs_config.chef_fs.children.reject { |entry| top_level_excludes.include? entry.name }.map(&:path)
+
+          # The top level acl object names end with .json extension
+          # Therefore we can use Chef::ChefFS::FilePattern matching for items
+          # such as /acls/organizations.json
+          #
+          # 2nd level leaf /acl/*/* objects as well as /groups/* objects do not end with .json
+          # therefore we use normalize_path_name to add the .json extension
+          # for example: /acls/environments/_default
+
+          # Skip the billing-admins, public_key_read_access group ACLs and the groups since they've already been copied
+          exclude_list = ['billing-admins', 'public_key_read_access']
+
+          top_level_acls = chef_fs_paths('/acls/*.json', chef_fs_config, [])
+          acl_paths = skip_objects.include?('groups') ?
+          [] : chef_fs_paths('/acls/*/*', chef_fs_config, exclude_list)
+          group_paths = skip_objects.include?('groups') ?
+          [] : chef_fs_paths('/groups/*', chef_fs_config, exclude_list)
+          acl_skip_paths = skip_objects.map { |o| chef_fs_paths("/acls/#{o}*/*", chef_fs_config, exclude_list) }.flatten
+          group_skip_paths = skip_objects.map { |o| chef_fs_paths("/groups/#{o}.json", chef_fs_config, exclude_list) }.flatten
+          (top_level_paths + top_level_acls + acl_paths + group_paths - acl_skip_paths - group_skip_paths).each do |path|
+            chef_fs_copy_pattern(path, chef_fs_config)
+          end
+        ensure
+          Chef::Config.restore(old_config)
         end
       end
-
-      Chef::Config.node_name = if config[:skip_version]
-                                 org_admin
-                               else
-                                 server.supports_defaulting_to_pivotal? ? 'pivotal' : org_admin
-  end
-
-      chef_fs_config = Chef::ChefFS::Config.new
-      top_level_excludes = %w[acls groups]
-      top_level_excludes.concat skip_objects
-
-      top_level_paths = chef_fs_config.chef_fs.children.reject { |entry| top_level_excludes.include? entry.name }.map(&:path)
-
-      # The top level acl object names end with .json extension
-      # Therefore we can use Chef::ChefFS::FilePattern matching for items
-      # such as /acls/organizations.json
-      #
-      # 2nd level leaf /acl/*/* objects as well as /groups/* objects do not end with .json
-      # therefore we use normalize_path_name to add the .json extension
-      # for example: /acls/environments/_default
-
-      # Skip the billing-admins, public_key_read_access group ACLs and the groups since they've already been copied
-      exclude_list = ['billing-admins', 'public_key_read_access']
-
-      top_level_acls = chef_fs_paths('/acls/*.json', chef_fs_config, [])
-      acl_paths = skip_objects.include?('groups') ?
-      [] : chef_fs_paths('/acls/*/*', chef_fs_config, exclude_list)
-      group_paths = skip_objects.include?('groups') ?
-      [] : chef_fs_paths('/groups/*', chef_fs_config, exclude_list)
-      require 'pry'; binding.pry
-      acl_skip_paths = skip_objects.map { |o| chef_fs_paths("/acls/#{o}*/*", chef_fs_config, exclude_list) }.flatten
-      group_skip_paths = skip_objects.map { |o| chef_fs_paths("/groups/#{o}.json", chef_fs_config, exclude_list) }.flatten
-      (top_level_paths + top_level_acls + acl_paths + group_paths - acl_skip_paths - group_skip_paths).each do |path|
-        chef_fs_copy_pattern(path, chef_fs_config)
-      end
-    ensure
-      Chef::Config.restore(old_config)
-    end
-  end
 
       def normalize_path_name(path)
         path =~ /\.json\z/ ? path : path << '.json'
@@ -262,6 +261,6 @@ class Chef
              Chef::ChefFS::FileSystem::OperationFailedError => ex
         knife_ec_error_handler.add(ex)
       end
-end
-end
+    end
+  end
 end
