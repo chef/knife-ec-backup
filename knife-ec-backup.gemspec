@@ -5,7 +5,6 @@ Gem::Specification.new do |s|
   s.name = "knife-ec-backup"
   s.version = KnifeECBackup::VERSION
   s.license = 'Apache 2.0'
-  s.platform = Gem::Platform::RUBY
   s.extra_rdoc_files = ["README.md", "LICENSE"]
   s.summary = "Backup and Restore of Enterprise Chef"
   s.description = s.summary
