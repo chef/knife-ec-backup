@@ -41,7 +41,7 @@ class Chef
         ensure_webui_key_exists!
         set_skip_user_acl!
 
-        warn_on_incorrect_clients_group(dest_dir, 'restore')
+        warn_on_incorrect_clients_group(dest_dir, 'restore') unless skip_objects.include? 'clients'
 
         if config[:skip_users]
           ui.warn('Skipping user ACL update. To update user ACLs, remove --skip-useracl or upgrade your Enterprise Chef Server.')

@@ -52,7 +52,7 @@ class Chef
           download_org_invitations(name)
         end
 
-        warn_on_incorrect_clients_group(dest_dir, 'backup')
+        warn_on_incorrect_clients_group(dest_dir, 'backup') unless skip_objects.include? 'clients'
 
         completion_banner
       end
@@ -228,7 +228,6 @@ class Chef
           [] : chef_fs_paths('/acls/*/*', chef_fs_config, exclude_list)
           group_paths = skip_objects.include?('groups') ?
           [] : chef_fs_paths('/groups/*', chef_fs_config, exclude_list)
-          acl_skip_paths = skip_objects.map { |o| chef_fs_paths("/acls/#{o}*/*", chef_fs_config, exclude_list) }.flatten
           group_skip_paths = skip_objects.map { |o| chef_fs_paths("/groups/#{o}.json", chef_fs_config, exclude_list) }.flatten
           (top_level_paths + top_level_acls + acl_paths + group_paths - acl_skip_paths - group_skip_paths).each do |path|
             chef_fs_copy_pattern(path, chef_fs_config)
