@@ -36,6 +36,7 @@ class Chef
 
       def run
         validate_skip_objects
+        warn_restore_with_purge
         set_dest_dir_from_args!
         set_client_config!
         ensure_webui_key_exists!
@@ -384,6 +385,13 @@ class Chef
         end
       rescue Net::HTTPServerException => ex
         knife_ec_error_handler.add(ex)
+      end
+
+      def warn_restore_with_purge
+        if config[:purge]
+          ui.warn "DEPRECATION: Restoring with the purge flag is not recommended and will be removed in a future release."
+          ui.confirm("\nDo you still wish to continue with the restore?")
+        end
       end
     end
   end
