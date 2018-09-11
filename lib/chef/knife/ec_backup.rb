@@ -224,10 +224,11 @@ class Chef
           exclude_list = ['billing-admins', 'public_key_read_access']
 
           top_level_acls = chef_fs_paths('/acls/*.json', chef_fs_config, [])
-          acl_paths = skip_objects.include?('groups') ?
-          [] : chef_fs_paths('/acls/*/*', chef_fs_config, exclude_list)
+          acl_paths = skip_objects.include?('acls') ?
+            [] : chef_fs_paths('/acls/*/*', chef_fs_config, exclude_list)
           group_paths = skip_objects.include?('groups') ?
-          [] : chef_fs_paths('/groups/*', chef_fs_config, exclude_list)
+            [] : chef_fs_paths('/groups/*', chef_fs_config, exclude_list)
+          acl_skip_paths = skip_objects.map { |o| [chef_fs_paths("/acls/groups/#{o}.json", chef_fs_config, exclude_list), chef_fs_paths("/acls/#{o}*/*", chef_fs_config, exclude_list)] }.flatten
           group_skip_paths = skip_objects.map { |o| chef_fs_paths("/groups/#{o}.json", chef_fs_config, exclude_list) }.flatten
           (top_level_paths + top_level_acls + acl_paths + group_paths - acl_skip_paths - group_skip_paths).each do |path|
             chef_fs_copy_pattern(path, chef_fs_config)

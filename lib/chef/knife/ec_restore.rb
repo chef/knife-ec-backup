@@ -250,20 +250,23 @@ class Chef
           # pivotal and members of the admins group. Use the same strategy
           # above here.
           #
-          groups = ['admins', 'billing-admins']
-          groups.push('public_key_read_access') if
-            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['groups'], 'public_key_read_access.json'))
+          #
+          unless skip_objects.include? 'groups'
+            groups = ['admins', 'billing-admins']
+            groups.push('public_key_read_access') if
+              ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['groups'], 'public_key_read_access.json'))
 
-          groups.each do |group|
-            restore_group(chef_fs_config, group, clients: false)
-          end
+            groups.each do |group|
+              restore_group(chef_fs_config, group, clients: false)
+            end
 
-          acls_groups_paths = ['/acls/groups/billing-admins.json']
-          acls_groups_paths.push('/acls/groups/public_key_read_access.json') if
-            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['acls'], 'groups', 'public_key_read_access.json'))
+            acls_groups_paths = ['/acls/groups/billing-admins.json']
+            acls_groups_paths.push('/acls/groups/public_key_read_access.json') if
+              ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['acls'], 'groups', 'public_key_read_access.json'))
 
-          acls_groups_paths.each do |acl|
-            chef_fs_copy_pattern(acl, chef_fs_config)
+            acls_groups_paths.each do |acl|
+              chef_fs_copy_pattern(acl, chef_fs_config)
+            end
           end
 
           Chef::Config.node_name = if config[:skip_version]
@@ -275,22 +278,31 @@ class Chef
           # Restore the entire org skipping the admin data and restoring groups and acls last
           ui.msg 'Restoring the rest of the org'
           chef_fs_config = Chef::ChefFS::Config.new
-          top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map(&:path)
+          top_level_excludes = %w[acls groups]
+          top_level_excludes.concat skip_objects
+
+          top_level_paths = chef_fs_config.local_fs.children.reject { |entry| top_level_excludes.include? entry.name }.map(&:path)
 
           # Topologically sort groups for upload
           filenames = ['billing-admins.json', 'public_key_read_access.json']
           unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).reject { |entry| filenames.include?(entry.name) }.map { |entry| JSON.parse(entry.read) }
-          group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
-
-          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).reject { |entry| filenames.include?(entry.name) }.map(&:path)
-          acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).reject { |entry| entry.name == 'groups' }.map(&:path)
+          if skip_objects.include?('groups')
+            group_paths = group_acl_paths = []
+          else
+            group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
+            group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).reject { |entry| filenames.include?(entry.name) }.map(&:path)
+          end
+          acl_paths = skip_objects.include?('acls') ?
+            [] : Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).reject { |entry| entry.name == 'groups' }.map(&:path)
+          acl_skip_paths = skip_objects.map { |o| [chef_fs_paths("/acls/groups/#{o}.json", chef_fs_config, exclude_list), chef_fs_paths("/acls/#{o}*/*", chef_fs_config, exclude_list)] }.flatten
+          group_skip_paths = skip_objects.map { |o| chef_fs_paths("/groups/#{o}.json", chef_fs_config, exclude_list) }.flatten
 
           # Store organization data in a particular order:
           # - clients must be uploaded before groups (in top_level_paths)
           # - groups must be uploaded before any acl's
           # - groups must be uploaded twice to account for Chef Server versions that don't
           #   accept group members on POST
-          (top_level_paths + group_paths * 2 + group_acl_paths + acl_paths).each do |path|
+          (top_level_paths + group_paths * 2 + group_acl_paths + acl_paths - acl_skip_paths - group_skip_paths).each do |path|
             chef_fs_copy_pattern(path, chef_fs_config)
           end
 
