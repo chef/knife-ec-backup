@@ -24,23 +24,23 @@ class Chef
         set_skip_user_acl!
         ensure_webui_key_exists!
 
-        ensure_dir("#{dest_dir}/users")
-        ensure_dir("#{dest_dir}/user_acls") unless config[:skip_useracl]
-        ui.msg 'Downloading Users'
-        for_each_user do |username, url|
-          if config[:skip_users]
-            ui.warn("Skipping user download for #{username}. To download this user, remove --skip-users.")
-          else
-            download_user(username, url)
-          end
+        if config[:skip_users]
+          ui.warn("Skipping user downloads. To download users, remove --skip-users.")
+        else
+          ensure_dir("#{dest_dir}/users")
+          ui.msg 'Downloading Users'
           if config[:skip_useracl]
-            ui.warn("Skipping user ACL download for #{username}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
+            ui.warn("Skipping user ACL downloads. To download user ACLs, remove --skip-useracl or upgrade your Enterprise Chef Server.")
           else
-            download_user_acl(username)
+            ensure_dir("#{dest_dir}/user_acls")
+          end
+          for_each_user do |username, url|
+            download_user(username, url)
+            download_user_acl(username) unless config[:skip_useracl]
           end
         end
-        purge_users_on_backup
 
+        purge_users_on_backup
         export_from_sql if config[:with_user_sql] || config[:with_key_sql]
 
         ensure_dir("#{dest_dir}/organizations")
