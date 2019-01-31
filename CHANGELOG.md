@@ -70,3 +70,8 @@
 * [knife-ec-backup #04](https://github.com/chef/knife-ec-backup/pull/4) Removed billing-admins ACL download from full org download.
 * [knife-ec-backup #03](https://github.com/chef/knife-ec-backup/pull/3) Updated Readme with more FAQ.
 * [knife-ec-backup #02](https://github.com/chef/knife-ec-backup/pull/2) Fixed issues with Billing Admins Group ACL not being properly backed up.
+<!-- latest_release -->
+
+<!-- release_rollup -->
+### Changes not yet released to rubygems.org
+<!-- release_rollup -->

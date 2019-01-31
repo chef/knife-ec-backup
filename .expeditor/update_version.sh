@@ -6,7 +6,7 @@
 
 set -evx
 
-sed -i -r "s/^(\s*)VERSION = \".+\"/\1VERSION = \"$(cat VERSION)\"/" lib/knife_ec_backup/version.rb
+sed -i -r "s/^(\s*)VERSION = '.+'/\1VERSION = '$(cat VERSION)'/" lib/knife_ec_backup/version.rb
 
 # Once Expeditor finishes executing this script, it will commit the changes and push
 # the commit as a new tag corresponding to the value in the VERSION file.
