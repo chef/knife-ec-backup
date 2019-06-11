@@ -22,8 +22,8 @@ describe Chef::Server do
 
   it "determines the running Automate CS API habitat service pkg version" do
     s = Chef::Server.new('http://api.example.com')
-    allow(@rest).to receive(:get).with("version").and_return(StringIO.new("Package: chef-server/chef-server-nginx/12.17.42/20180413212943\nother stuff\nother stuff"))
-    expect(s.version.to_s).to eq('12.17.42')
+    allow(@rest).to receive(:get).with("version").and_return(StringIO.new("Package: chef/automate-cs-nginx/12.19.31/20190529200833\nHabitat: 0.69.0/20181127183841\nMember: f73decd1025f4a5aa728b4429c297ef1 / ip-10-1-1-200.us-west-1.compute.internal"))
+    expect(s.version.to_s).to eq('12.19.31')
   end
 
   it "determines the running omnibus server version" do
