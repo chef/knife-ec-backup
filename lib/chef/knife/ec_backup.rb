@@ -133,6 +133,7 @@ class Chef
         k.name_args = ["#{dest_dir}/key_dump.json", "#{dest_dir}/key_table_dump.json"]
         k.config[:sql_host] = config[:sql_host]
         k.config[:sql_port] = config[:sql_port]
+        k.config[:sql_db] = config[:sql_db]
         k.config[:sql_user] = config[:sql_user]
         k.config[:sql_password] = config[:sql_password]
         k.config[:skip_users_table] = !config[:with_user_sql]

@@ -23,8 +23,7 @@ class Chef
 
     def version
       @version ||= begin
-                     uri = URI.parse("#{root_url}/version")
-                     ver_line = open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).each_line.first
+                     ver_line = Chef::ServerAPI.new(root_url).get('version').each_line.first
                      parse_server_version(ver_line)
                    end
     end

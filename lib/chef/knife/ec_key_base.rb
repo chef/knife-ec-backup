@@ -40,6 +40,11 @@ class Chef
           :description => 'Postgresql database port (default: 5432)',
           :default => 5432
 
+          option :sql_db,
+          :long => '--sql-db DBNAME',
+          :description => 'Postgresql Chef Server database name (default: opscode_chef)',
+          :default => "opscode_chef"
+
           option :sql_user,
           :long => "--sql-user USERNAME",
           :description => 'User used to connect to the postgresql database.'
@@ -68,7 +73,7 @@ class Chef
       def db
         @db ||= begin
                   require 'sequel'
-                  server_string = "#{config[:sql_user]}:#{config[:sql_password]}@#{config[:sql_host]}:#{config[:sql_port]}/opscode_chef"
+                  server_string = "#{config[:sql_user]}:#{config[:sql_password]}@#{config[:sql_host]}:#{config[:sql_port]}/#{config[:sql_db]}"
                   ::Sequel.connect("postgres://#{server_string}", :convert_infinite_timestamps => :string)
                 end
       end
