@@ -96,6 +96,10 @@ The following options are supported across all subcommands:
   * `--sql-port`:
     The postgresql listening port on the Chef Server. (default: 5432)
 
+  * `--sql-db`:
+    The postgresql Chef Server database name. (default: opscode_chef)
+    Specify 'automate-cs-oc-erchef' when using Automate Chef Server API
+
   * `--sql-user`:
     The username of postgresql user with access to the opscode_chef
     database. (default: autoconfigured from

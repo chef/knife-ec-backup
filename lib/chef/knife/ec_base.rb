@@ -70,6 +70,11 @@ class Chef
             :description => 'Postgresql database port (default: 5432)',
             :default => 5432
 
+          option :sql_db,
+            :long => '--sql-db DBNAME',
+            :description => 'Postgresql Chef Server database name (default: opscode_chef)',
+            :default => "opscode_chef"
+
           option :sql_user,
             :long => "--sql-user USERNAME",
             :description => 'User used to connect to the postgresql database.'

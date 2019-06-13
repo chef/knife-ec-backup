@@ -186,6 +186,7 @@ class Chef
                              k.config[:skip_ids] = config[:skip_ids]
                              k.config[:sql_host] = config[:sql_host]
                              k.config[:sql_port] = config[:sql_port]
+                             k.config[:sql_db] = config[:sql_db]
                              k.config[:sql_user] = config[:sql_user]
                              k.config[:sql_password] = config[:sql_password]
                              k
