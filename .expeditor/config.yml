@@ -37,11 +37,11 @@ merge_actions:
   - built_in:build_gem:
       only_if: built_in:bump_version
   - trigger_pipeline:habitat/build:
-    post_commit: true
-    ignore_labels:
-      - "Expeditor: Skip All"
-      - "Expeditor: Skip Habitat Build"
-    only_if: built_in:bump_version
+      post_commit: true
+      ignore_labels:
+        - "Expeditor: Skip All"
+        - "Expeditor: Skip Habitat Build"
+      only_if: built_in:bump_version
 
 promote:
   actions:
