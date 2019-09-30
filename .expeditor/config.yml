@@ -36,8 +36,20 @@ merge_actions:
         - "Expeditor: Skip All"
   - built_in:build_gem:
       only_if: built_in:bump_version
+  - trigger_pipeline:habitat/build:
+    post_commit: true
+    ignore_labels:
+      - "Expeditor: Skip All"
+      - "Expeditor: Skip Habitat Build"
+    only_if: built_in:bump_version
 
 promote:
   actions:
     - built_in:rollover_changelog
     - built_in:publish_rubygems
+    - built_in:promote_habitat_packages
+  channels:
+    - dev
+    - acceptance
+    - current
+    - stable
