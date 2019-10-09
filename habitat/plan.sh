@@ -9,38 +9,35 @@ pkg_lib_dirs=(lib)
 pkg_svc_user=root
 pkg_svc_group=${pkg_svc_user}
 pkg_build_deps=(
+  core/bundler
   core/gcc-libs
+  core/git
   core/libffi
   core/make
   core/openssl
+  core/postgresql-client
+  core/rsync
 )
 pkg_deps=(
-  core/bundler
   core/coreutils
   core/gcc
   core/ruby
 )
 
-pkg_build_deps=(
-  core/git
-  core/make
-  core/postgresql-client
-)
-
 do_unpack() {
   mkdir -p "${HAB_CACHE_SRC_PATH}/${pkg_dirname}"
-  cp -r ../* ${HAB_CACHE_SRC_PATH}/${pkg_dirname}/
+  rsync -a --exclude='.*' $PLAN_CONTEXT/../ ${HAB_CACHE_SRC_PATH}/${pkg_dirname}/
 }
 
 
 do_build() {
-  pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}"
+  pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
   bundle install --jobs 2 --retry 5 --path ./vendor/bundle --binstubs
   popd
 }
 
 do_install() {
-  pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}"
+  pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
   cp -R . "$pkg_prefix/"
   fix_interpreter "$pkg_prefix/bin/knife" core/coreutils bin/env
   popd
