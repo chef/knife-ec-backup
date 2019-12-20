@@ -17,7 +17,7 @@
 #
 
 require 'chef/knife'
-require 'chef/knife/ec_key_base'
+require_relative 'ec_key_base'
 
 class Chef
   class Knife

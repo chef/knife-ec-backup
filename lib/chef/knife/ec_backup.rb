@@ -1,5 +1,5 @@
 require 'chef/knife'
-require 'chef/knife/ec_base'
+require_relative 'ec_base'
 
 class Chef
   class Knife
@@ -14,7 +14,7 @@ class Chef
         require 'chef/chef_fs/file_system'
         require 'chef/chef_fs/file_pattern'
         require 'chef/chef_fs/parallelizer'
-        require 'chef/server'
+        require_relative '../server'
         require 'fileutils'
       end
 
@@ -127,7 +127,7 @@ class Chef
       end
 
       def export_from_sql
-        require 'chef/knife/ec_key_export'
+        require_relative 'ec_key_export'
         Chef::Knife::EcKeyExport.deps
         k = Chef::Knife::EcKeyExport.new
         k.name_args = ["#{dest_dir}/key_dump.json", "#{dest_dir}/key_table_dump.json"]

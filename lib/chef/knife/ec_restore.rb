@@ -1,5 +1,5 @@
 require 'chef/knife'
-require 'chef/knife/ec_base'
+require_relative 'ec_base'
 
 class Chef
   class Knife
@@ -35,8 +35,8 @@ class Chef
         require 'chef/chef_fs/data_handler/acl_data_handler'
         require 'securerandom'
         require 'chef/chef_fs/parallelizer'
-        require 'chef/tsorter'
-        require 'chef/server'
+        require_relative '../tsorter'
+        require_relative '../server'
       end
 
       def run
@@ -179,7 +179,7 @@ class Chef
 
       def ec_key_import
         @ec_key_import ||= begin
-                             require 'chef/knife/ec_key_import'
+                             require_relative 'ec_key_import'
                              k = Chef::Knife::EcKeyImport.new
                              k.name_args = ["#{dest_dir}/key_dump.json", "#{dest_dir}/key_table_dump.json"]
                              k.config[:skip_pivotal] = true

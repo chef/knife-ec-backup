@@ -19,7 +19,7 @@
 require 'chef/knife'
 require 'chef/server_api'
 require 'veil'
-require 'chef/knife/ec_error_handler'
+require_relative 'ec_error_handler'
 require 'ffi_yajl'
 
 class Chef
