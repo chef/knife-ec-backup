@@ -1,9 +1,13 @@
 # Documentation available at https://expeditor.chef.io/docs/getting-started/
 ---
+
 # Slack channel in Chef Software slack to send notifications about build failures, etc
 pipelines:
   - habitat/build:
       definition: .expeditor/build.habitat.yml
+  - verify:
+      description: Pull Request validation tests
+      public: true
 
 slack:
   notify_channel: sustaining-notify
@@ -17,9 +21,10 @@ github:
   delete_branch_on_merge: true
   # The tag format to use (e.g. v1.0.0)
   version_tag_format: "v{{version}}"
-  # allow bumping the release via label
+  # allow bumping the minor release via label
   minor_bump_labels:
     - "Expeditor: Bump Version Minor"
+  # allow bumping the major release via label
   major_bump_labels:
     - "Expeditor: Bump Version Major"
 
