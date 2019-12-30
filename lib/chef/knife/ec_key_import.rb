@@ -17,8 +17,8 @@
 #
 
 require 'chef/knife'
-require 'chef/knife/ec_key_base'
-require 'chef/org_id_cache'
+require_relative 'ec_key_base'
+require_relative '../org_id_cache'
 
 class Chef
   class Knife
