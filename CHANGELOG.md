@@ -1,9 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release -->
+<!-- latest_release 2.4.7 -->
+## [v2.4.7](https://github.com/chef/knife-ec-backup/tree/v2.4.7) (2020-04-19)
+
+#### Merged Pull Requests
+- ability to log errors in separate directory [#135](https://github.com/chef/knife-ec-backup/pull/135) ([jeremymv2](https://github.com/jeremymv2))
 <!-- latest_release -->
 
-<!-- release_rollup -->
+<!-- release_rollup since=2.4.6 -->
+### Changes not yet released to rubygems.org
+
+#### Merged Pull Requests
+- ability to log errors in separate directory [#135](https://github.com/chef/knife-ec-backup/pull/135) ([jeremymv2](https://github.com/jeremymv2)) <!-- 2.4.7 -->
 <!-- release_rollup -->
 
 <!-- latest_stable_release -->
