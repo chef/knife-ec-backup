@@ -31,6 +31,10 @@ class Chef
       def self.included(includer)
         includer.class_eval do
 
+          option :error_log_dir,
+            :long => '--error-log-dir PATH',
+            :description => 'Path to a directory where any errors will be logged'
+
           option :concurrency,
             :long => '--concurrency THREADS',
             :description => 'Maximum number of simultaneous requests to send (default: 10)'
@@ -160,7 +164,8 @@ class Chef
       end
 
       def knife_ec_error_handler
-        @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new(dest_dir, self.class)
+        error_dir = !config[:error_log_dir].nil? ? config[:error_log_dir] : dest_dir
+        @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new(error_dir, self.class)
       end
 
       def user_acl_rest
