@@ -164,7 +164,7 @@ class Chef
       end
 
       def knife_ec_error_handler
-        error_dir = !config[:error_log_dir].nil? ? config[:error_log_dir] : dest_dir
+        error_dir = config[:error_log_dir] || dest_dir
         @knife_ec_error_handler ||= Chef::Knife::EcErrorHandler.new(error_dir, self.class)
       end
 
