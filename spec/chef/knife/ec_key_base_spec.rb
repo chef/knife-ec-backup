@@ -6,7 +6,7 @@ class KeyBaseTester < Chef::Knife
 end
 
 describe Chef::Knife::EcKeyBase do
-  let (:knife) { Chef::Knife::KeyBaseTester.new }
+  let (:knife) { KeyBaseTester.new }
 
   let(:running_server_postgresql_sql_config_json) {
     '{"private_chef": { "opscode-erchef":{}, "postgresql": { "sql_user": "jiminy", "sql_password": "secret"} }, "postgresql": { "sql_user": "jiminy", "sql_password": "secret"} }'
@@ -35,4 +35,3 @@ describe Chef::Knife::EcKeyBase do
     end
   end
 end
-
