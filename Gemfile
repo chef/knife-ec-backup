@@ -16,6 +16,9 @@ group :development do
   gem 'rake'
   gem 'simplecov'
   gem 'fakefs'
+  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.6")
+    gem "chef-zero", "~> 14"
+  end
 end
 
 # This is here instead of gemspec so that we can
