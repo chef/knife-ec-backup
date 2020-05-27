@@ -18,9 +18,10 @@
 
 require 'chef/knife'
 require 'chef/server_api'
-require 'veil'
+require 'veil' unless defined?(Veil)
 require_relative 'ec_error_handler'
 require 'ffi_yajl' unless defined?(FFI_Yajl)
+require_relative '../automate'
 
 class Chef
   class Knife
@@ -41,7 +42,7 @@ class Chef
 
           option :webui_key,
             :long => '--webui-key KEYPATH',
-            :description => 'Path to the WebUI Key (default: Read from secrets store or /etc/opscode/webui_priv.pem)'
+            :description => 'Path to the WebUI Key (default: Read from secrets store or /etc/opscode/webui_priv.pem or /hab/svc/automate-cs-oc-erchef/data/webui_priv.pem)'
 
           option :secrets_file_path,
             :long => '--secrets-file PATH',
@@ -76,8 +77,7 @@ class Chef
 
           option :sql_db,
             :long => '--sql-db DBNAME',
-            :description => 'Postgresql Chef Server database name (default: opscode_chef)',
-            :default => "opscode_chef"
+            :description => 'Postgresql Chef Server database name (default: opscode_chef or automate-cs-oc-erchef)'
 
           option :sql_user,
             :long => "--sql-user USERNAME",
@@ -86,6 +86,18 @@ class Chef
           option :sql_password,
             :long => "--sql-password PASSWORD",
             :description => 'Password used to connect to the postgresql database'
+
+          option :sql_cert,
+            :long => "--sql-cert ",
+            :description => 'Path to client ssl cert'
+
+          option :sql_key,
+            :long => "--sql-key PATH",
+            :description => 'Path to client ssl key'
+
+          option :sql_rootcert,
+          :long => "--sql-rootcert ",
+          :description => 'Path to root ssl cert'
 
           option :with_user_sql,
             :long => '--with-user-sql',
@@ -200,6 +212,8 @@ class Chef
       def webui_key
         if config[:webui_key]
           config[:webui_key]
+        elsif Chef::Automate.is_installed?
+          config[:webui_key] = Chef::Automate.config[:webui_key]
         elsif veil.exist?("chef-server", "webui_key")
           temporary_webui_key
         else
