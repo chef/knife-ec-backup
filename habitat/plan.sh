@@ -19,7 +19,6 @@ pkg_deps=(
   core/coreutils
   core/gcc
   core/ruby
-  core/bundler
   core/postgresql-client
   core/libffi
 )
@@ -32,7 +31,7 @@ do_unpack() {
 
 do_build() {
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
-  bundle install --jobs 2 --retry 5 --path ./vendor/bundle --binstubs
+  bundle install --jobs 2 --retry 5 --path ./vendor/bundle --binstubs --standalone
   popd
 }
 
