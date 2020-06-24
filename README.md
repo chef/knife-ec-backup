@@ -1,5 +1,5 @@
 # Knife EC Backup
-[![Build Status Master](https://travis-ci.org/chef/knife-ec-backup.svg?branch=master)](https://travis-ci.org/chef/knife-ec-backup)
+[![Build status](https://badge.buildkite.com/4bc85427aab66accafbd7abb2932b9dd7f9208162c5be33488.svg?branch=master)](https://buildkite.com/chef-oss/chef-knife-ec-backup-master-verify)
 [![Gem Version](https://badge.fury.io/rb/knife-ec-backup.svg)](https://badge.fury.io/rb/knife-ec-backup)
 
 **Umbrella Project**: [Knife](https://github.com/chef/chef-oss-practices/blob/master/projects/knife.md)
@@ -10,7 +10,7 @@
 
 **Pull Request [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md)**: 14 days
 
-# Description
+## Description
 
 knife-ec-backup can backup and restore the data in an Enterprise Chef
 Server installation, preserving the data in an intermediate, editable
@@ -21,26 +21,21 @@ Server API deficiencies.  The long-run goal is to improve `knife
 download`, `knife upload` and the Chef Server API and deprecate this
 tool.
 
-# Requirements
+## Requirements
 
 This knife plugin requires Chef Client 11.8+.
 
-## Chef 10
+### Server Support
 
-Users who are still using Chef 10 can use the most recent 1.x version
-of this gem.  Version 1.x additionally depends on knife-essentials.
-
-## Server Support
-
-This plugin currently supports Enterprise Chef 11 and Chef Server 12.
+This plugin currently supports Enterprise Chef 11 and Chef Server 12+.
 Support for the beta key rotation features is provided via the
 `--with-keys-sql` flag, but users of this feature should note that
 this may change once the Chef Server supports an API-based export of
 the key data.
 
-# Installation
+## Installation
 
-## Chef Server Install (Recommended)
+### Chef Server Install (Recommended)
 
 This gem is installed with chef-server-core 12.0.0 and newer.
 
@@ -53,7 +48,7 @@ downloading the .zip file. Once unpacked, run:
 /opt/opscode/embedded/bin/gem install knife-ec-backup*gem --no-ri --no-rdoc -V
 ```
 
-### Note on installing with existing development tools:
+#### Note on installing with existing development tools:
 
 The latest versions of knife-ec-backup require gems with native
 extensions, thus you must install a standard build toolchain.  To
@@ -84,17 +79,17 @@ Clone the git repository and run the following from inside:
     gem build knife-ec-backup.gemspec
     gem install knife-ec-backup*gem
 
-# Configuration
+## Configuration
 
-## Permissions
+### Permissions
 
 Note that most users in an EC installation lack the permissions to pull all of the data from all organizations and other users.
 This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Server.
 It is recommended that you run this from a frontend Enterprise Chef Server, you can use --user and --key to pass the pivotal information along.
 
-# Subcommands
+## Subcommands
 
-## Common Options
+### Common Options
 
 The following options are supported across all subcommands:
 
@@ -122,7 +117,7 @@ The following options are supported across all subcommands:
   * `--dry-run`:
     Report what actions would be taken without performing any. (default: false)
 
-## knife ec backup DEST_DIR (options)
+### knife ec backup DEST_DIR (options)
 
 *Path*: If you have chef-client installed as well, you may need to invoke this as `/opt/opscode/embedded/bin/knife ec backup backup`
 
@@ -214,7 +209,7 @@ This compares very closely with the "knife download /" from an OSC server:
     users
       <name>.json>
 
-## knife ec restore DEST_DIR (options)
+### knife ec restore DEST_DIR (options)
 
 Restores all data from the specified DEST_DIR to an Enterprise Chef /
 Private Chef server. DEST_DIR should be a backup directory created by
@@ -243,7 +238,7 @@ Private Chef server. DEST_DIR should be a backup directory created by
     also skip any auto-configured options (default: false)
 
   * `--[no-]skip-user-ids`:
-    Reuses user ids from the restore destination when updating existing 
+    Reuses user ids from the restore destination when updating existing
     users to avoid database conflicts (default: true)
 
   * `--with-user-sql`:
@@ -271,7 +266,7 @@ Private Chef server. DEST_DIR should be a backup directory created by
     Only donwload/restore objects in the named organization. Global
     objects such as users will still be downloaded/restored.
 
-## knife ec key export [FILENAME]
+### knife ec key export [FILENAME]
 
 Create a json representation of the users table from the Chef Server
 database.  If no argument is given, the name of the backup is
@@ -280,7 +275,7 @@ database.  If no argument is given, the name of the backup is
 Please note, most users should use `knife ec backup` with the
 `--with-user-sql` option rather than this command.
 
-## knife ec key import [FILENAME]
+### knife ec key import [FILENAME]
 
 Import a json representation of the users table from FILENAME to the
 the Chef Server database.  If no argument is given, the filename is
@@ -289,7 +284,7 @@ assumed to be `key_dump.json`.
 Please note, most user should use `knife ec restore` with the
 `--with-user-sql` option rather than this command.
 
-# Known Bugs
+## Known Bugs
 
 - knife-ec-backup cannot be installed in the embedded gemset of Chef
   Server 12.  This will be resolved in a future Chef Server release.
