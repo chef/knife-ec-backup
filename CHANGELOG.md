@@ -1,16 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 2.4.8 -->
-## [v2.4.8](https://github.com/chef/knife-ec-backup/tree/v2.4.8) (2020-06-24)
+<!-- latest_release 2.4.9 -->
+## [v2.4.9](https://github.com/chef/knife-ec-backup/tree/v2.4.9) (2020-06-24)
 
 #### Merged Pull Requests
-- Fix habitat package [#137](https://github.com/chef/knife-ec-backup/pull/137) ([jaym](https://github.com/jaym))
+- Fix the tests [#139](https://github.com/chef/knife-ec-backup/pull/139) ([jaym](https://github.com/jaym))
 <!-- latest_release -->
 
 <!-- release_rollup since=2.4.7 -->
 ### Changes not yet released to rubygems.org
 
 #### Merged Pull Requests
+- Fix the tests [#139](https://github.com/chef/knife-ec-backup/pull/139) ([jaym](https://github.com/jaym)) <!-- 2.4.9 -->
 - Fix habitat package [#137](https://github.com/chef/knife-ec-backup/pull/137) ([jaym](https://github.com/jaym)) <!-- 2.4.8 -->
 <!-- release_rollup -->
 
