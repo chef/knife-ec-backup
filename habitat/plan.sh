@@ -9,19 +9,18 @@ pkg_lib_dirs=(lib)
 pkg_svc_user=root
 pkg_svc_group=${pkg_svc_user}
 pkg_build_deps=(
-  core/bundler
   core/gcc-libs
   core/git
-  core/libffi
   core/make
   core/openssl
-  core/postgresql-client
   core/rsync
 )
 pkg_deps=(
   core/coreutils
   core/gcc
   core/ruby
+  core/postgresql-client
+  core/libffi
 )
 
 do_unpack() {
@@ -32,7 +31,7 @@ do_unpack() {
 
 do_build() {
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
-  bundle install --jobs 2 --retry 5 --path ./vendor/bundle --binstubs
+  bundle install --jobs 2 --retry 5 --path ./vendor/bundle --binstubs --standalone
   popd
 }
 
