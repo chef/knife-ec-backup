@@ -18,7 +18,7 @@ describe Chef::Knife::EcKeyBase do
   }
   describe "#load_config_from_file!" do
     before(:each) do
-      allow(File).to receive(:exists?).and_return(true)
+      allow(Chef::Automate).to receive(:is_installed?).and_return(false)
       allow(File).to receive(:size).and_return(1)
     end
     it "correctly sets sql options when they live under postgresql settings" do
