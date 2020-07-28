@@ -58,7 +58,7 @@ describe Chef::Knife::EcRestore do
       @knife.restore_open_invitations("foo")
     end
 
-    it "does NOT fail if an inivitation already exists" do
+    it "does NOT fail if an invitation already exists" do
       make_org "foo"
       allow(@rest).to receive(:post).with("organizations/foo/association_requests", {"user" => "bob"}).and_return(net_exception(409))
       allow(@rest).to receive(:post).with("organizations/foo/association_requests", {"user" => "jane"}).and_return(net_exception(409))

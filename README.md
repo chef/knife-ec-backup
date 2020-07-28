@@ -263,7 +263,7 @@ Private Chef server. DEST_DIR should be a backup directory created by
     Chef objects.
 
   * `--only-org ORG`:
-    Only donwload/restore objects in the named organization. Global
+    Only download/restore objects in the named organization. Global
     objects such as users will still be downloaded/restored.
 
 ### knife ec key export [FILENAME]

@@ -184,7 +184,7 @@ class Chef
             d.delete('id') if config[:skip_ids]
             # If the hash_type in the export,
             # we are dealing with a record where the password is still in the
-            # serialized_obejct.  Explictly setting these to nil ensures that the
+            # serialized_object. Explicitly setting these to nil ensures that the
             # password set in the restore is wiped out.
             unless d.has_key?('hash_type')
               d['hash_type'] = nil
