@@ -229,7 +229,7 @@ class Chef
           ui.msg "Restoring org admin data"
           chef_fs_config = Chef::ChefFS::Config.new
 
-          # Handle Admins, Billing Admins and Public Key Read Access seperately
+          # Handle Admins, Billing Admins and Public Key Read Access separately
           #
           # admins: We need to upload admins first so that we
           # can upload all of the other objects as a user in the org
