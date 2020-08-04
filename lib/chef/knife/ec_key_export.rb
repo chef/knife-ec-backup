@@ -42,7 +42,7 @@ class Chef
         begin
           export_keys(key_data_path) unless config[:skip_keys_table]
         rescue Sequel::DatabaseError => e
-          if e.message =~ /^PG::UndefinedTable/
+          if /^PG::UndefinedTable/.match?(e.message)
             ui.error "Keys table not found. The keys table only exists on Chef Server 12."
             ui.error "Chef Server 11 users should use the --skip-keys-table option to avoid this error."
             exit 1

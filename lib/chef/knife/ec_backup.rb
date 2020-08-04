@@ -231,7 +231,7 @@ class Chef
       end
 
       def normalize_path_name(path)
-        path=~/\.json\z/ ? path : path<<'.json'
+        /\.json\z/.match?(path) ? path : path<<'.json'
       end
 
       def chef_fs_paths(pattern_str, chef_fs_config, exclude=[])
