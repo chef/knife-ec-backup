@@ -1,5 +1,6 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec_helper"))
 require 'chef/knife/ec_key_base'
+require 'chef/automate'
 
 class KeyBaseTester < Chef::Knife
   include Chef::Knife::EcKeyBase
@@ -9,16 +10,17 @@ describe Chef::Knife::EcKeyBase do
   let (:knife) { KeyBaseTester.new }
 
   let(:running_server_postgresql_sql_config_json) {
-    '{"private_chef": { "opscode-erchef":{}, "postgresql": { "sql_user": "jiminy", "sql_password": "secret"} }, "postgresql": { "sql_user": "jiminy", "sql_password": "secret"} }'
+    '{"private_chef": { "opscode-erchef":{}, "postgresql": { "sql_user": "jiminy", "sql_password": "secret"} } }'
   }
 
 
   let(:running_server_erchef_config_json) {
-    '{"private_chef": { "opscode-erchef": { "sql_user": "cricket", "sql_password": "secrete"}}, "opscode_erchef": { "sql_user": "cricket", "sql_password": "secrete"}}'
+    '{"private_chef": { "opscode-erchef": { "sql_user": "cricket", "sql_password": "secrete"} } }'
   }
   describe "#load_config_from_file!" do
     before(:each) do
       allow(Chef::Automate).to receive(:is_installed?).and_return(false)
+      allow(File).to receive(:exists?).and_return(true)
       allow(File).to receive(:size).and_return(1)
     end
     it "correctly sets sql options when they live under postgresql settings" do
