@@ -121,7 +121,7 @@ class Chef
                         'postgresql'
                       end
             config[:sql_user] ||= running_config['private_chef'][hash_key]['sql_user']
-            config[:sql_password] = (running_config['private_chef'][hash_key]['sql_password'] || sql_password) unless config[:sql_password]
+            config[:sql_password] ||= (running_config['private_chef'][hash_key]['sql_password'] || sql_password)
             config[:sql_db] ||= 'opscode_chef'
           end
         end
