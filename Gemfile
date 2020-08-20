@@ -14,7 +14,7 @@ end
 group :development do
   gem 'rspec'
   gem 'rake'
-  gem 'simplecov'
+  gem 'simplecov', "~> 0.18.0" # remove pin when we drop Ruby 2.4 support
   gem 'fakefs'
   if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.6")
     gem "chef-zero", "~> 14"
