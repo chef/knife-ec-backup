@@ -1,5 +1,5 @@
 require 'bundler'
-require 'rubygems'
+require 'rubygems' unless defined?(Gem)
 require 'rubygems/package_task'
 require 'rdoc/task'
 require 'rspec/core/rake_task'

@@ -15,7 +15,7 @@ class Chef
         require 'chef/chef_fs/file_pattern'
         require 'chef/chef_fs/parallelizer'
         require_relative '../server'
-        require 'fileutils'
+        require 'fileutils' unless defined?(FileUtils)
       end
 
       def run

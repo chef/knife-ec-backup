@@ -27,7 +27,7 @@ class Chef
 
           deps do
             require 'sequel'
-            require 'json'
+            require 'json' unless defined?(JSON)
           end
 
           option :sql_host,

@@ -20,7 +20,7 @@ require 'chef/knife'
 require 'chef/server_api'
 require 'veil'
 require_relative 'ec_error_handler'
-require 'ffi_yajl'
+require 'ffi_yajl' unless defined?(FFI_Yajl)
 
 class Chef
   class Knife

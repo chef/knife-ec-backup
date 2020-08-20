@@ -33,7 +33,7 @@ class Chef
         # Work around bug in chef_fs
         require 'chef/chef_fs/command_line'
         require 'chef/chef_fs/data_handler/acl_data_handler'
-        require 'securerandom'
+        require 'securerandom' unless defined?(SecureRandom)
         require 'chef/chef_fs/parallelizer'
         require_relative '../tsorter'
         require_relative '../server'
