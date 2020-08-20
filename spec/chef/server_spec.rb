@@ -1,7 +1,7 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "spec_helper"))
 require 'chef/server'
 require 'chef/server_api'
-require 'stringio'
+require 'stringio' unless defined?(StringIO)
 
 describe Chef::Server do
   before(:each) do

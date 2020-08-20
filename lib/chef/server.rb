@@ -1,5 +1,5 @@
-require 'uri'
-require 'openssl'
+require 'uri' unless defined?(URI)
+require 'openssl' unless defined?(OpenSSL)
 require 'chef/server_api'
 
 class Chef

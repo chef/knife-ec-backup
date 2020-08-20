@@ -1,8 +1,8 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec_helper"))
 require 'chef/knife/ec_key_export'
 require 'sequel'
-require 'json'
-require 'securerandom'
+require 'json' unless defined?(JSON)
+require 'securerandom' unless defined?(SecureRandom)
 require 'fakefs/spec_helpers'
 
 def user_record(name)
