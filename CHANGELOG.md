@@ -1,16 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 2.4.11 -->
-## [v2.4.11](https://github.com/chef/knife-ec-backup/tree/v2.4.11) (2020-08-20)
+<!-- latest_release 2.4.12 -->
+## [v2.4.12](https://github.com/chef/knife-ec-backup/tree/v2.4.12) (2020-08-21)
 
 #### Merged Pull Requests
-- Optimize our requires [#142](https://github.com/chef/knife-ec-backup/pull/142) ([tas50](https://github.com/tas50))
+- Pin simplecov to fix Ruby 2.4 tests [#143](https://github.com/chef/knife-ec-backup/pull/143) ([tas50](https://github.com/tas50))
 <!-- latest_release -->
 
 <!-- release_rollup since=2.4.7 -->
 ### Changes not yet released to rubygems.org
 
 #### Merged Pull Requests
+- Pin simplecov to fix Ruby 2.4 tests [#143](https://github.com/chef/knife-ec-backup/pull/143) ([tas50](https://github.com/tas50)) <!-- 2.4.12 -->
 - Optimize our requires [#142](https://github.com/chef/knife-ec-backup/pull/142) ([tas50](https://github.com/tas50)) <!-- 2.4.11 -->
 - Fix minor spelling mistakes [#140](https://github.com/chef/knife-ec-backup/pull/140) ([tas50](https://github.com/tas50)) <!-- 2.4.10 -->
 - Fix the tests [#139](https://github.com/chef/knife-ec-backup/pull/139) ([jaym](https://github.com/jaym)) <!-- 2.4.9 -->
