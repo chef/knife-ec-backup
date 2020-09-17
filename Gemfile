@@ -1,4 +1,4 @@
-source :rubygems
+source 'https://rubygems.org'
 
 gem 'veil', git: 'https://github.com/chef/chef_secrets'
 gemspec

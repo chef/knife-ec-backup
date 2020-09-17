@@ -38,6 +38,8 @@ describe Chef::Knife::EcBackup do
     allow(@knife).to receive(:rest).and_return(@rest)
     allow(@knife).to receive(:user_acl_rest).and_return(@rest)
     allow_any_instance_of(Chef::Knife::EcBase).to receive(:dest_dir).and_return(dest_dir)
+    allow(@knife.ui).to receive(:msg)
+    allow(@knife.ui).to receive(:error)
   end
 
   describe "#for_each_user" do
