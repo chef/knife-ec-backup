@@ -18,24 +18,24 @@ text format.  It is similar to the `knife download` and `knife upload`
 commands and uses the same underlying libraries, but also includes
 workarounds for objects not yet supported by those tools and various
 Server API deficiencies.  The long-run goal is to improve `knife
-download`, `knife upload` and the Chef Server API and deprecate this
+download`, `knife upload` and the Chef Infra Server API and deprecate this
 tool.
 
 ## Requirements
 
-This knife plugin requires Chef Client 11.8+.
+This knife plugin requires Chef Infra Client 11.8+.
 
 ### Server Support
 
-This plugin currently supports Enterprise Chef 11 and Chef Server 12+.
+This plugin currently supports Enterprise Chef 11 and Chef Infra Server 12+.
 Support for the beta key rotation features is provided via the
 `--with-keys-sql` flag, but users of this feature should note that
-this may change once the Chef Server supports an API-based export of
+this may change once the Chef Infra Server supports an API-based export of
 the key data.
 
 ## Installation
 
-### Chef Server Install (Recommended)
+### Chef Infra Server Install (Recommended)
 
 This gem is installed with chef-server-core 12.0.0 and newer.
 
@@ -56,6 +56,24 @@ install knife-ec-backup without installing libpq development headers
 on your system, try the following:
 
    /opt/opscode/embedded/bin/gem install knife-ec-backup -- --with-pg-config=/opt/opscode/embedded/postgresql/9.2/bin/pg_config
+
+This uses the libpq headers that are included in the Chef Infra Server
+package installed in `/opt/opscode`.
+
+### Chef Workstation Install (Unsupported)
+
+On systems other than the Chef Infra Server, installation of this gem is not
+tested or supported. However, if you attempt to do so you will need the
+postgresql libraries installed.
+
+For example, on macOS:
+
+```
+brew install libpq
+gem install knife-ec-backup -- --with-pg-config=/usr/local/Cellar/libpq/9.2/bin/pg_config
+```
+
+The current location of pg_config can be determined with `brew info libpq`.
 
 ## Running tests
 
@@ -84,8 +102,8 @@ Clone the git repository and run the following from inside:
 ### Permissions
 
 Note that most users in an EC installation lack the permissions to pull all of the data from all organizations and other users.
-This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Server.
-It is recommended that you run this from a frontend Enterprise Chef Server, you can use --user and --key to pass the pivotal information along.
+This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Infra Server.
+It is recommended that you run this from a frontend Enterprise Chef Infra Server, you can use --user and --key to pass the pivotal information along.
 
 ## Subcommands
 
@@ -94,14 +112,14 @@ It is recommended that you run this from a frontend Enterprise Chef Server, you 
 The following options are supported across all subcommands:
 
   * `--sql-host`:
-    The hostname of the Chef Server's postgresql server. (default: localhost)
+    The hostname of the Chef Infra Server's postgresql server. (default: localhost)
 
   * `--sql-port`:
-    The postgresql listening port on the Chef Server. (default: 5432)
+    The postgresql listening port on the Chef Infra Server. (default: 5432)
 
   * `--sql-db`:
-    The postgresql Chef Server database name. (default: opscode_chef)
-    Specify 'automate-cs-oc-erchef' when using Automate Chef Server API
+    The postgresql Chef Infra Server database name. (default: opscode_chef)
+    Specify 'automate-cs-oc-erchef' when using Automate Chef Infra Server API
 
   * `--sql-user`:
     The username of postgresql user with access to the opscode_chef
@@ -139,8 +157,8 @@ The following options are supported across all subcommands:
 
   * `--with-key-sql`: Whether to backup/restore key data directly
     from the database.  This requires access to the listening
-    postgresql port on the Chef Server.  This is required to correctly
-    handle keys in Chef Servers with multikey support. This option
+    postgresql port on the Chef Infra Server.  This is required to correctly
+    handle keys in Chef Infra Servers with multikey support. This option
     will only work on `restore` if it was also used during the
     `backup`.
 
@@ -151,7 +169,7 @@ The following options are supported across all subcommands:
     Chef objects.
 
   * `--skip-version-check`:
-    Skip Chef Server version check. This will also skip any auto-configured options (default: false)
+    Skip Chef Infra Server version check. This will also skip any auto-configured options (default: false)
 
   * `--only-org ORG`:
     Only donwload/restore objects in the named organization. Global
@@ -234,7 +252,7 @@ Private Chef server. DEST_DIR should be a backup directory created by
     Server. (default: 10)
 
   * `--skip-version-check`:
-    Skip Chef Server version check. This will
+    Skip Chef Infra Server version check. This will
     also skip any auto-configured options (default: false)
 
   * `--[no-]skip-user-ids`:
@@ -251,8 +269,8 @@ Private Chef server. DEST_DIR should be a backup directory created by
 
   * `--with-key-sql`: Whether to backup/restore key data directly
     from the database.  This requires access to the listening
-    postgresql port on the Chef Server.  This is required to correctly
-    handle keys in Chef Servers with multikey support. This option
+    postgresql port on the Chef Infra Server.  This is required to correctly
+    handle keys in Chef Infra Servers with multikey support. This option
     will only work on `restore` if it was also used during the
     `backup`.
 
@@ -268,7 +286,7 @@ Private Chef server. DEST_DIR should be a backup directory created by
 
 ### knife ec key export [FILENAME]
 
-Create a json representation of the users table from the Chef Server
+Create a json representation of the users table from the Chef Infra Server
 database.  If no argument is given, the name of the backup is
 `key_dump.json`.
 
@@ -278,7 +296,7 @@ Please note, most users should use `knife ec backup` with the
 ### knife ec key import [FILENAME]
 
 Import a json representation of the users table from FILENAME to the
-the Chef Server database.  If no argument is given, the filename is
+the Chef Infra Server database.  If no argument is given, the filename is
 assumed to be `key_dump.json`.
 
 Please note, most user should use `knife ec restore` with the
@@ -287,11 +305,11 @@ Please note, most user should use `knife ec restore` with the
 ## Known Bugs
 
 - knife-ec-backup cannot be installed in the embedded gemset of Chef
-  Server 12.  This will be resolved in a future Chef Server release.
+  Server 12.  This will be resolved in a future Chef Infra Server release.
 
 - `knife ec restore` can fail to restore cookbooks, failing with an
   internal server error. A common cause of this problem is a
-  concurrency bug in Chef Server. Setting `--concurrency 1` can often
+  concurrency bug in Chef Infra Server. Setting `--concurrency 1` can often
   work around the issue.
 
 - `knife ec restore` can fail if the pool of pre-created organizations
