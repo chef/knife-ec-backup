@@ -1,16 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 2.4.14 -->
-## [v2.4.14](https://github.com/chef/knife-ec-backup/tree/v2.4.14) (2020-09-17)
+<!-- latest_release 2.4.15 -->
+## [v2.4.15](https://github.com/chef/knife-ec-backup/tree/v2.4.15) (2021-04-17)
 
 #### Merged Pull Requests
-- Update Chef -&gt; Chef Infra, add note on postgresql [#146](https://github.com/chef/knife-ec-backup/pull/146) ([btm](https://github.com/btm))
+- Fix the gemspec license value to be a valid value [#155](https://github.com/chef/knife-ec-backup/pull/155) ([tas50](https://github.com/tas50))
 <!-- latest_release -->
 
 <!-- release_rollup since=2.4.12 -->
 ### Changes not yet released to rubygems.org
 
 #### Merged Pull Requests
+- Fix the gemspec license value to be a valid value [#155](https://github.com/chef/knife-ec-backup/pull/155) ([tas50](https://github.com/tas50)) <!-- 2.4.15 -->
 - Update Chef -&gt; Chef Infra, add note on postgresql [#146](https://github.com/chef/knife-ec-backup/pull/146) ([btm](https://github.com/btm)) <!-- 2.4.14 -->
 - Add support to use the automate chef server [#138](https://github.com/chef/knife-ec-backup/pull/138) ([jaym](https://github.com/jaym)) <!-- 2.4.13 -->
 <!-- release_rollup -->
