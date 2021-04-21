@@ -1,22 +1,20 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 2.4.15 -->
-## [v2.4.15](https://github.com/chef/knife-ec-backup/tree/v2.4.15) (2021-04-17)
-
-#### Merged Pull Requests
-- Fix the gemspec license value to be a valid value [#155](https://github.com/chef/knife-ec-backup/pull/155) ([tas50](https://github.com/tas50))
+<!-- latest_release -->
 <!-- latest_release -->
 
-<!-- release_rollup since=2.4.12 -->
-### Changes not yet released to rubygems.org
-
-#### Merged Pull Requests
-- Fix the gemspec license value to be a valid value [#155](https://github.com/chef/knife-ec-backup/pull/155) ([tas50](https://github.com/tas50)) <!-- 2.4.15 -->
-- Update Chef -&gt; Chef Infra, add note on postgresql [#146](https://github.com/chef/knife-ec-backup/pull/146) ([btm](https://github.com/btm)) <!-- 2.4.14 -->
-- Add support to use the automate chef server [#138](https://github.com/chef/knife-ec-backup/pull/138) ([jaym](https://github.com/jaym)) <!-- 2.4.13 -->
+<!-- release_rollup -->
 <!-- release_rollup -->
 
 <!-- latest_stable_release -->
+## [v2.4.15](https://github.com/chef/knife-ec-backup/tree/v2.4.15) (2021-04-21)
+
+#### Merged Pull Requests
+- Add support to use the automate chef server [#138](https://github.com/chef/knife-ec-backup/pull/138) ([jaym](https://github.com/jaym))
+- Update Chef -&gt; Chef Infra, add note on postgresql [#146](https://github.com/chef/knife-ec-backup/pull/146) ([btm](https://github.com/btm))
+- Fix the gemspec license value to be a valid value [#155](https://github.com/chef/knife-ec-backup/pull/155) ([tas50](https://github.com/tas50))
+<!-- latest_stable_release -->
+
 ## [v2.4.12](https://github.com/chef/knife-ec-backup/tree/v2.4.12) (2020-08-21)
 
 #### Merged Pull Requests
@@ -25,7 +23,6 @@
 - Fix minor spelling mistakes [#140](https://github.com/chef/knife-ec-backup/pull/140) ([tas50](https://github.com/tas50))
 - Optimize our requires [#142](https://github.com/chef/knife-ec-backup/pull/142) ([tas50](https://github.com/tas50))
 - Pin simplecov to fix Ruby 2.4 tests [#143](https://github.com/chef/knife-ec-backup/pull/143) ([tas50](https://github.com/tas50))
-<!-- latest_stable_release -->
 
 ## [v2.4.7](https://github.com/chef/knife-ec-backup/tree/v2.4.7) (2020-04-19)
 
