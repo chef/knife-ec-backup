@@ -13,7 +13,11 @@ class Chef
         require 'chef/chef_fs/config'
         require 'chef/chef_fs/file_system'
         require 'chef/chef_fs/file_pattern'
-        require 'chef/chef_fs/parallelizer'
+        begin
+          require 'chef/chef_fs/parallelizer'
+        rescue LoadError
+          require 'chef-utils/parallel_map' unless defined?(ChefUtils::ParallelMap)
+        end
         require_relative '../server'
         require 'fileutils' unless defined?(FileUtils)
       end
