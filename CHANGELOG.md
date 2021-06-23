@@ -1,9 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release -->
+<!-- latest_release 2.4.16 -->
+## [v2.4.16](https://github.com/chef/knife-ec-backup/tree/v2.4.16) (2021-06-23)
+
+#### Merged Pull Requests
+- Upgrade to GitHub-native Dependabot [#156](https://github.com/chef/knife-ec-backup/pull/156) ([dependabot-preview[bot]](https://github.com/dependabot-preview[bot]))
 <!-- latest_release -->
 
-<!-- release_rollup -->
+<!-- release_rollup since=2.4.15 -->
+### Changes not yet released to rubygems.org
+
+#### Merged Pull Requests
+- Upgrade to GitHub-native Dependabot [#156](https://github.com/chef/knife-ec-backup/pull/156) ([dependabot-preview[bot]](https://github.com/dependabot-preview[bot])) <!-- 2.4.16 -->
 <!-- release_rollup -->
 
 <!-- latest_stable_release -->
