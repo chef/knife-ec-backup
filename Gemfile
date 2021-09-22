@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'veil', git: 'https://github.com/chef/chef_secrets'
+gem 'veil', git: 'https://github.com/chef/chef_secrets', branch: 'main'
 gemspec
 
 if vsn = ENV['TRAVIS_CHEF_VERSION']
