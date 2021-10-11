@@ -1,16 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 2.4.17 -->
-## [v2.4.17](https://github.com/chef/knife-ec-backup/tree/v2.4.17) (2021-09-22)
+<!-- latest_release 2.5.0 -->
+## [v2.5.0](https://github.com/chef/knife-ec-backup/tree/v2.5.0) (2021-10-11)
 
 #### Merged Pull Requests
-- Fix CI bundle install [#163](https://github.com/chef/knife-ec-backup/pull/163) ([jasonwbarnett](https://github.com/jasonwbarnett))
+- Require Ruby 2.6 or later [#165](https://github.com/chef/knife-ec-backup/pull/165) ([tas50](https://github.com/tas50))
 <!-- latest_release -->
 
 <!-- release_rollup since=2.4.15 -->
 ### Changes not yet released to rubygems.org
 
 #### Merged Pull Requests
+- Require Ruby 2.6 or later [#165](https://github.com/chef/knife-ec-backup/pull/165) ([tas50](https://github.com/tas50)) <!-- 2.5.0 -->
 - Fix CI bundle install [#163](https://github.com/chef/knife-ec-backup/pull/163) ([jasonwbarnett](https://github.com/jasonwbarnett)) <!-- 2.4.17 -->
 - Upgrade to GitHub-native Dependabot [#156](https://github.com/chef/knife-ec-backup/pull/156) ([dependabot-preview[bot]](https://github.com/dependabot-preview[bot])) <!-- 2.4.16 -->
 <!-- release_rollup -->
