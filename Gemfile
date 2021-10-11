@@ -3,23 +3,13 @@ source 'https://rubygems.org'
 gem 'veil', git: 'https://github.com/chef/chef_secrets', branch: 'main'
 gemspec
 
-if vsn = ENV['TRAVIS_CHEF_VERSION']
-  if m = /branch:(?<branch>.*)$/.match(vsn)
-    gem 'chef', git: 'https://github.com/chef/chef', branch: m[:branch]
-  else
-    gem 'chef', vsn
-  end
-end
-
 group :development do
   gem 'rspec'
   gem 'rake'
-  gem 'simplecov', "~> 0.18.0" # remove pin when we drop Ruby 2.4 support
   gem 'fakefs'
-  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.6")
-    gem "chef-zero", "~> 14"
-    gem "chef", "~> 14"
-  end
+  gem "chef-zero", "~> 15" # eval when we drop ruby 2.6
+  gem "chef", "~> 16" # eval when we drop ruby 2.6
+  gem "ohai", "~> 16" # eval when we drop ruby 2.6
 end
 
 # This is here instead of gemspec so that we can
