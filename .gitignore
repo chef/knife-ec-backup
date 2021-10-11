@@ -4,3 +4,4 @@ vendor/
 coverage
 *.gem
 results/
+Gemfile.lock
