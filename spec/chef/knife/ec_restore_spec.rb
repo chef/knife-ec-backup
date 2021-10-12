@@ -3,6 +3,7 @@ require 'chef/knife/ec_restore'
 require 'fakefs/spec_helpers'
 require_relative './ec_error_handler_spec'
 require "chef/chef_fs/file_system/repository/chef_repository_file_system_root_dir"
+require 'net/http'
 
 def make_user(username)
   FileUtils.mkdir_p("/users")
