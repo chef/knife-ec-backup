@@ -34,7 +34,11 @@ class Chef
         require 'chef/chef_fs/command_line'
         require 'chef/chef_fs/data_handler/acl_data_handler'
         require 'securerandom' unless defined?(SecureRandom)
-        require 'chef/chef_fs/parallelizer'
+        begin
+          require 'chef/chef_fs/parallelizer'
+        rescue LoadError
+          require 'chef-utils/parallel_map' unless defined?(ChefUtils::ParallelMap)
+        end
         require_relative '../tsorter'
         require_relative '../server'
       end

@@ -125,7 +125,11 @@ class Chef
         def configure_chef
           super
           Chef::Config[:concurrency] = config[:concurrency].to_i if config[:concurrency]
-          Chef::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
+          if defined?(Chef::ChefFS::Parallelizer)
+            Chef::ChefFS::Parallelizer.threads = (Chef::Config[:concurrency] || 10) - 1
+          elsif defined?(ChefUtils::DefaultThreadPool)
+            ChefUtils::DefaultThreadPool.instance.threads = (Chef::Config[:concurrency] || 10) - 1
+          end
         end
 
         def org_admin
