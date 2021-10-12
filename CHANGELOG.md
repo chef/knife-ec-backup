@@ -1,16 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 2.5.1 -->
-## [v2.5.1](https://github.com/chef/knife-ec-backup/tree/v2.5.1) (2021-10-12)
+<!-- latest_release 2.5.2 -->
+## [v2.5.2](https://github.com/chef/knife-ec-backup/tree/v2.5.2) (2021-10-12)
 
 #### Merged Pull Requests
-- Update to Sequel 5.9.0 [#164](https://github.com/chef/knife-ec-backup/pull/164) ([lbakerchef](https://github.com/lbakerchef))
+- Fix uninitialized constant Net::HTTPServerException [#166](https://github.com/chef/knife-ec-backup/pull/166) ([lbakerchef](https://github.com/lbakerchef))
 <!-- latest_release -->
 
 <!-- release_rollup since=2.4.15 -->
 ### Changes not yet released to rubygems.org
 
 #### Merged Pull Requests
+- Fix uninitialized constant Net::HTTPServerException [#166](https://github.com/chef/knife-ec-backup/pull/166) ([lbakerchef](https://github.com/lbakerchef)) <!-- 2.5.2 -->
 - Update to Sequel 5.9.0 [#164](https://github.com/chef/knife-ec-backup/pull/164) ([lbakerchef](https://github.com/lbakerchef)) <!-- 2.5.1 -->
 - Require Ruby 2.6 or later [#165](https://github.com/chef/knife-ec-backup/pull/165) ([tas50](https://github.com/tas50)) <!-- 2.5.0 -->
 - Fix CI bundle install [#163](https://github.com/chef/knife-ec-backup/pull/163) ([jasonwbarnett](https://github.com/jasonwbarnett)) <!-- 2.4.17 -->
