@@ -129,10 +129,16 @@ class Chef
         end
         ui.msg "Updating key data for user[#{d['name']}]"
         new_id = if config[:skip_ids]
-                   db[:users].where(:username => d['name']).first[:id]
+                   db[:users].where(:username => d['name']).first&.[](:id)
                  else
                    d['id']
                  end
+
+        if new_id.nil?
+          Chef::Log.warn("Unable to find user id for #{d['name']}")
+          return
+        end
+
         Chef::Log.debug("Found user id for #{d['name']}: #{new_id}")
         upsert_key_record(key_record_for_db(d, new_id))
       end
