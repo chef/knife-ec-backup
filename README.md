@@ -12,12 +12,12 @@
 
 ## Description
 
-knife-ec-backup can backup and restore the data in an Enterprise Chef
+knife-ec-backup can backup and restore the data in a Chef Infra
 Server installation, preserving the data in an intermediate, editable
 text format.  It is similar to the `knife download` and `knife upload`
 commands and uses the same underlying libraries, but also includes
 workarounds for objects not yet supported by those tools and various
-Server API deficiencies.  The long-run goal is to improve `knife
+Infra Server API deficiencies.  The long-run goal is to improve `knife
 download`, `knife upload` and the Chef Infra Server API and deprecate this
 tool.
 
@@ -27,7 +27,7 @@ This knife plugin requires Chef Infra Client 11.8+.
 
 ### Server Support
 
-This plugin currently supports Enterprise Chef 11 and Chef Infra Server 12+.
+This plugin currently supports Chef Infra Server 12+.
 Support for the beta key rotation features is provided via the
 `--with-keys-sql` flag, but users of this feature should note that
 this may change once the Chef Infra Server supports an API-based export of
@@ -37,28 +37,17 @@ the key data.
 
 ### Chef Infra Server Install (Recommended)
 
-This gem is installed with chef-server-core 12.0.0 and newer.
-
-For Private Chef 11 (or Enterprise Chef 11) you'll need to download and build
-locally to get the correct dependencies, either with `git clone` or by
-downloading the .zip file. Once unpacked, run:
+This gem is installed with Chef Infra Server 12 and later and the sub-commands are available with embedded copy of `knife`, e.g.:
 
 ```
-/opt/opscode/embedded/bin/gem build knife-ec-backup.gemspec
-/opt/opscode/embedded/bin/gem install knife-ec-backup*gem --no-ri --no-rdoc -V
+sudo /opt/opscode/bin/knife ec backup ~/chef-server-backup-directory
 ```
 
-#### Note on installing with existing development tools:
+If you need a newer version of `knife-ec-backup` than is on the server you wish to back up, you can install it using the embedded `gem` command.
 
-The latest versions of knife-ec-backup require gems with native
-extensions, thus you must install a standard build toolchain.  To
-install knife-ec-backup without installing libpq development headers
-on your system, try the following:
-
-   /opt/opscode/embedded/bin/gem install knife-ec-backup -- --with-pg-config=/opt/opscode/embedded/postgresql/9.2/bin/pg_config
-
-This uses the libpq headers that are included in the Chef Infra Server
-package installed in `/opt/opscode`.
+```
+/opt/opscode/embedded/bin/gem install knife-ec-backup --no-doc
+```
 
 ### Chef Workstation Install (Unsupported)
 
@@ -101,9 +90,9 @@ Clone the git repository and run the following from inside:
 
 ### Permissions
 
-Note that most users in an EC installation lack the permissions to pull all of the data from all organizations and other users.
+Note that most users in a Chef Infra Server installation lack the permissions to pull all of the data from all organizations and other users.
 This plugin **REQUIRES THE PIVOTAL KEY AND WEBUI KEY** from the Chef Infra Server.
-It is recommended that you run this from a frontend Enterprise Chef Infra Server, you can use --user and --key to pass the pivotal information along.
+It is recommended that you run this from a frontend Chef Infra Server. You can use `--user pivotal --key /path/to/pivotal.pem` to provide a path to the `pivotal` key.
 
 ## Subcommands
 
@@ -137,7 +126,7 @@ The following options are supported across all subcommands:
 
 ### knife ec backup DEST_DIR (options)
 
-*Path*: If you have chef-client installed as well, you may need to invoke this as `/opt/opscode/embedded/bin/knife ec backup backup`
+*Path*: If you have Chef Infra Client installed on this server, you may need to invoke this as `/opt/opscode/bin/knife ec backup BACKUP_DIRECTORY`
 
 *Options*
 
@@ -175,7 +164,7 @@ The following options are supported across all subcommands:
     Only donwload/restore objects in the named organization. Global
     objects such as users will still be downloaded/restored.
 
-Creates a repository of an entire Enterprise Chef / Private Chef server.
+Creates a repository of an entire Chef Infra Server
 
 The format of the repository is based on the `knife-essentials` (`knife download`) format and looks like this:
 
@@ -229,8 +218,7 @@ This compares very closely with the "knife download /" from an OSC server:
 
 ### knife ec restore DEST_DIR (options)
 
-Restores all data from the specified DEST_DIR to an Enterprise Chef /
-Private Chef server. DEST_DIR should be a backup directory created by
+Restores all data from the specified DEST_DIR to a Chef Infra Server. DEST_DIR should be a backup directory created by
 `knife ec backup`
 
 *Options*
@@ -299,26 +287,13 @@ Import a json representation of the users table from FILENAME to the
 the Chef Infra Server database.  If no argument is given, the filename is
 assumed to be `key_dump.json`.
 
-Please note, most user should use `knife ec restore` with the
+Please note, most users should use `knife ec restore` with the
 `--with-user-sql` option rather than this command.
 
 ## Known Bugs
-
-- knife-ec-backup cannot be installed in the embedded gemset of Chef
-  Server 12.  This will be resolved in a future Chef Infra Server release.
 
 - `knife ec restore` can fail to restore cookbooks, failing with an
   internal server error. A common cause of this problem is a
   concurrency bug in Chef Infra Server. Setting `--concurrency 1` can often
   work around the issue.
 
-- `knife ec restore` can fail if the pool of pre-created organizations
-  can not keep up with the newly created organizations.  This can
-  typically be resolved simply be restarting the restore.  To avoid
-  this error for backups with large number of organizations, try
-  setting (in /etc/opscode/private-chef.rb):
-
-        opscode_org_creator['ready_org_depth']
-
-  to the number of organizations in your backup and waiting for the
-  pool to fill before running `knife ec restore`
