@@ -72,7 +72,7 @@ describe Chef::Knife::EcBackup do
       expect{ |b| @knife.for_each_organization(&b) }.to yield_successive_args(org_response("bar"), org_response("foo"))
     end
 
-    it "skips unassigned (precreated) organizations on Chef Server 11" do
+    it "skips unassigned (precreated) organizations on Chef Infra Server 11" do
       server = double('Chef::Server')
       allow(Chef::Server).to receive(:new).and_return(server)
       allow(server).to receive(:version).and_return(Gem::Version.new("11.12.3"))
@@ -81,7 +81,7 @@ describe Chef::Knife::EcBackup do
       expect{ |b| @knife.for_each_organization(&b) }.to yield_successive_args(org_response("bar"))
     end
 
-    it "includes *all* organizations on Chef Server 12" do
+    it "includes *all* organizations on Chef Infra Server 12" do
       server = double('Chef::Server')
       allow(Chef::Server).to receive(:new).and_return(server)
       allow(server).to receive(:version).and_return(Gem::Version.new("12.0.0"))

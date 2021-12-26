@@ -34,7 +34,7 @@ class Chef
         for_each_user do |username, url|
           download_user(username, url)
           if config[:skip_useracl]
-            ui.warn("Skipping user ACL download for #{username}. To download this ACL, remove --skip-useracl or upgrade your Enterprise Chef Server.")
+            ui.warn("Skipping user ACL download for #{username}. To download this ACL, remove --skip-useracl.")
           else
             download_user_acl(username)
           end

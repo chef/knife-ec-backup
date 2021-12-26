@@ -59,7 +59,7 @@ class Chef
             :long => '--skip-version-check',
             :boolean => true,
             :default => false,
-            :description => "Skip Chef Server version check.  This will also skip any auto-configured options"
+            :description => "Skip Chef Infra Server version check.  This will also skip any auto-configured options"
 
           option :org,
             :long => "--only-org ORG",
@@ -77,7 +77,7 @@ class Chef
 
           option :sql_db,
             :long => '--sql-db DBNAME',
-            :description => 'Postgresql Chef Server database name (default: opscode_chef or automate-cs-oc-erchef)'
+            :description => 'Postgresql Chef Infra Server database name (default: opscode_chef or automate-cs-oc-erchef)'
 
           option :sql_user,
             :long => "--sql-user USERNAME",
