@@ -34,17 +34,17 @@ class Chef
 
           option :sql_host,
           :long => '--sql-host HOSTNAME',
-          :description => 'Postgresql database hostname (default: localhost)',
+          :description => 'PostgreSQL database hostname (default: localhost)',
           :default => "localhost"
 
           option :sql_port,
           :long => '--sql-port PORT',
-          :description => 'Postgresql database port (default: 5432)',
+          :description => 'PostgreSQL database port (default: 5432)',
           :default => 5432
 
           option :sql_db,
           :long => '--sql-db DBNAME',
-          :description => 'Postgresql Chef Infra Server database name (default: opscode_chef or automate-cs-oc-erchef)'
+          :description => 'PostgreSQL Chef Infra Server database name (default: opscode_chef or automate-cs-oc-erchef)'
 
           option :sql_user,
           :long => "--sql-user USERNAME",
