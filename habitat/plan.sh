@@ -1,7 +1,7 @@
 pkg_name=knife-ec-backup
 pkg_origin=chef
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
-pkg_description="A knife plugin for backup/restore of Chef Server data."
+pkg_description="A knife plugin for backup/restore of Chef Infra Server data."
 pkg_upstream_url="https://github.com/chef/knife-ec-backup"
 pkg_license=('Apache-2.0')
 pkg_bin_dirs=(bin)

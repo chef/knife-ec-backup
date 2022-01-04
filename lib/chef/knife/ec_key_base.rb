@@ -34,17 +34,17 @@ class Chef
 
           option :sql_host,
           :long => '--sql-host HOSTNAME',
-          :description => 'Postgresql database hostname (default: localhost)',
+          :description => 'PostgreSQL database hostname (default: localhost)',
           :default => "localhost"
 
           option :sql_port,
           :long => '--sql-port PORT',
-          :description => 'Postgresql database port (default: 5432)',
+          :description => 'PostgreSQL database port (default: 5432)',
           :default => 5432
 
           option :sql_db,
           :long => '--sql-db DBNAME',
-          :description => 'Postgresql Chef Server database name (default: opscode_chef or automate-cs-oc-erchef)'
+          :description => 'PostgreSQL Chef Infra Server database name (default: opscode_chef or automate-cs-oc-erchef)'
 
           option :sql_user,
           :long => "--sql-user USERNAME",
@@ -114,7 +114,7 @@ class Chef
             exit 1
           else
             running_config ||= JSON.parse(File.read("/etc/opscode/chef-server-running.json"))
-            # Latest versions of chef server put the database info under opscode-erchef.sql_user
+            # Latest versions of Chef Infra Server put the database info under opscode-erchef.sql_user
             hash_key = if running_config['private_chef']['opscode-erchef'].has_key? 'sql_user'
                         'opscode-erchef'
                       else

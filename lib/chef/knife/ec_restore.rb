@@ -65,7 +65,7 @@ class Chef
         restore_key_sql if config[:with_key_sql]
 
         if config[:skip_useracl]
-          ui.warn("Skipping user ACL update. To update user ACLs, remove --skip-useracl or upgrade your Enterprise Chef Server.")
+          ui.warn("Skipping user ACL update. To update user ACLs, remove --skip-useracl.")
         else
           restore_user_acls
         end
@@ -292,7 +292,7 @@ class Chef
           # Store organization data in a particular order:
           # - clients must be uploaded before groups (in top_level_paths)
           # - groups must be uploaded before any acl's
-          # - groups must be uploaded twice to account for Chef Server versions that don't
+          # - groups must be uploaded twice to account for Chef Infra Server versions that don't
           #   accept group members on POST
           (top_level_paths + group_paths*2 + group_acl_paths + acl_paths).each do |path|
             chef_fs_copy_pattern(path, chef_fs_config)
@@ -309,7 +309,7 @@ class Chef
       end
 
       # ChefFS copy pattern inside the EcRestore class will
-      # copy from the local_fs to the Chef Server.
+      # copy from the local_fs to the Chef Infra Server.
       #
       # NOTE: Do not get confused, this is the other way around
       # from how we implemented in EcBackup. Therefor we can't
