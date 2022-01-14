@@ -119,7 +119,8 @@ The following options are supported across all subcommands:
     The password for the sql-user.  (default: autoconfigured from /etc/opscode/chef-server-running.json)
 
   * `--purge`:
-    Whether to sync deletions from backup source to restore destination. (default: false)
+    Whether to sync user deletions from backup source to restore destination. (default: false)  
+    Note that this can only be used to sync **_user_** deletions.
 
   * `--dry-run`:
     Report what actions would be taken without performing any. (default: false)
