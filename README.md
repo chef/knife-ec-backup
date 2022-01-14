@@ -120,7 +120,7 @@ The following options are supported across all subcommands:
 
   * `--purge`:
     Whether to sync user deletions from backup source to restore destination. (default: false)  
-    Note that this can only be used to sync **_user_** deletions.
+    This option can only be used to sync **_user_** deletions. (default: false)  
 
   * `--dry-run`:
     Report what actions would be taken without performing any. (default: false)
