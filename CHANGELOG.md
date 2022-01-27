@@ -1,20 +1,18 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 3.0.0 -->
+<!-- latest_release -->
+<!-- latest_release -->
+
+<!-- release_rollup -->
+<!-- release_rollup -->
+
+<!-- latest_stable_release -->
 ## [v3.0.0](https://github.com/chef/knife-ec-backup/tree/v3.0.0) (2022-01-27)
 
 #### Merged Pull Requests
 - Delete node and client ALCs on --purge option. [#171](https://github.com/chef/knife-ec-backup/pull/171) ([lbakerchef](https://github.com/lbakerchef))
-<!-- latest_release -->
-
-<!-- release_rollup since=2.5.3 -->
-### Changes not yet released to rubygems.org
-
-#### Merged Pull Requests
-- Delete node and client ALCs on --purge option. [#171](https://github.com/chef/knife-ec-backup/pull/171) ([lbakerchef](https://github.com/lbakerchef)) <!-- 3.0.0 -->
-<!-- release_rollup -->
-
 <!-- latest_stable_release -->
+
 ## [v2.5.3](https://github.com/chef/knife-ec-backup/tree/v2.5.3) (2021-10-13)
 
 #### Merged Pull Requests
@@ -24,7 +22,6 @@
 - Update to Sequel 5.9.0 [#164](https://github.com/chef/knife-ec-backup/pull/164) ([lbakerchef](https://github.com/lbakerchef))
 - Fix uninitialized constant Net::HTTPServerException [#166](https://github.com/chef/knife-ec-backup/pull/166) ([lbakerchef](https://github.com/lbakerchef))
 - Gracefully handle missing parallelizer in Chef 17 [#158](https://github.com/chef/knife-ec-backup/pull/158) ([jasonwbarnett](https://github.com/jasonwbarnett))
-<!-- latest_stable_release -->
 
 ## [v2.4.15](https://github.com/chef/knife-ec-backup/tree/v2.4.15) (2021-04-21)
 
