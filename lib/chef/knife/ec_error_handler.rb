@@ -40,7 +40,16 @@ class Chef
                     end
 
         # exit handler
-        at_exit { display(@err_file) }
+        at_exit {
+          exit_status = $!
+          puts "Exit result: #{exit_status}"
+          if exit_status.respond_to?(:backtrace)
+            puts "Exception backtrace:"
+            puts exit_status.backtrace
+          end
+          display(@err_file)
+        }
+
       end
 
       # Add an exception to the error file.
