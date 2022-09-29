@@ -1,9 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release -->
+<!-- latest_release 3.0.1 -->
+## [v3.0.1](https://github.com/chef/knife-ec-backup/tree/v3.0.1) (2022-09-29)
+
+#### Merged Pull Requests
+- Updated code owners to current teams [#173](https://github.com/chef/knife-ec-backup/pull/173) ([vkarve-chef](https://github.com/vkarve-chef))
 <!-- latest_release -->
 
-<!-- release_rollup -->
+<!-- release_rollup since=3.0.0 -->
+### Changes not yet released to rubygems.org
+
+#### Merged Pull Requests
+- Updated code owners to current teams [#173](https://github.com/chef/knife-ec-backup/pull/173) ([vkarve-chef](https://github.com/vkarve-chef)) <!-- 3.0.1 -->
 <!-- release_rollup -->
 
 <!-- latest_stable_release -->
