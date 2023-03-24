@@ -1,14 +1,14 @@
 # Knife EC Backup
-[![Build status](https://badge.buildkite.com/4bc85427aab66accafbd7abb2932b9dd7f9208162c5be33488.svg?branch=master)](https://buildkite.com/chef-oss/chef-knife-ec-backup-master-verify)
+[![Build status](https://badge.buildkite.com/4bc85427aab66accafbd7abb2932b9dd7f9208162c5be33488.svg?branch=main)](https://buildkite.com/chef-oss/chef-knife-ec-backup-main-verify)
 [![Gem Version](https://badge.fury.io/rb/knife-ec-backup.svg)](https://badge.fury.io/rb/knife-ec-backup)
 
-**Umbrella Project**: [Knife](https://github.com/chef/chef-oss-practices/blob/master/projects/knife.md)
+**Umbrella Project**: [Knife](https://github.com/chef/chef-oss-practices/blob/main/projects/knife.md)
 
-**Project State**: [Active](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md#active)
+**Project State**: [Active](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md#active)
 
-**Issues [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md)**: 14 days
+**Issues [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md)**: 14 days
 
-**Pull Request [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/master/repo-management/repo-states.md)**: 14 days
+**Pull Request [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md)**: 14 days
 
 ## Description
 
