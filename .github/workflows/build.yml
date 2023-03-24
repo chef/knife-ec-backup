@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main # or the name of your main branch
+      - develop
+      - 'release/**'
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
