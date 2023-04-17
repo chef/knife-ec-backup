@@ -1,0 +1,1 @@
+{"virtualbox":{"/opt/a2-testing":{"create":true,"guestpath":"/opt/a2-testing","hostpath":"/home/cprey/forChef/knife-ec-backup/a2example/vagrantA2","disabled":false,"__vagrantfile":true}}}
