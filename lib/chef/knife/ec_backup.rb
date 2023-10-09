@@ -22,6 +22,11 @@ class Chef
         require 'fileutils' unless defined?(FileUtils)
       end
 
+      $users_hash = {"total" => 0, "success_count" => 0, "failed" => []}
+      $user_acls_hash = {"total" => 0, "success_count" => 0, "failed" => []}
+      $organizations_hash = {"total" => 0, "success_count" => 0, "failed" => [], "org_stats" => []}
+      $org_stats_hash = {}
+
       def run
         set_dest_dir_from_args!
         set_client_config!
@@ -57,6 +62,8 @@ class Chef
         warn_on_incorrect_clients_group(dest_dir, "backup")
 
         completion_banner
+
+        write_output
       end
 
       def users_for_purge
@@ -91,11 +98,13 @@ class Chef
 
       def for_each_organization
         rest.get('/organizations').each_pair do |name, url|
+          $organizations_hash["total"]+=1
           next unless (config[:org].nil? || config[:org] == name)
           ui.msg "Downloading organization object for #{name} from #{url}"
           begin
             org = rest.get(url)
           rescue Net::HTTPServerException => ex
+            $organizations_hash["failed"].append(name)
             ui.error "Failed to find organization '#{name}'."
             knife_ec_error_handler.add(ex)
             next
@@ -115,18 +124,24 @@ class Chef
       end
 
       def download_user(username, url)
+        $users_hash["total"]+=1
         File.open("#{dest_dir}/users/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(rest.get(url)))
         end
+        $users_hash["success_count"]+=1
       rescue Net::HTTPServerException => ex
+        $users_hash["failed"].append(username)
         knife_ec_error_handler.add(ex)
       end
 
       def download_user_acl(username)
+        $user_acls_hash["total"]+=1
         File.open("#{dest_dir}/user_acls/#{username}.json", 'w') do |file|
           file.write(Chef::JSONCompat.to_json_pretty(user_acl_rest.get("users/#{username}/_acl")))
         end
+        $user_acls_hash["success_count"]+=1
       rescue Net::HTTPServerException => ex
+        $user_acls_hash["failed"].append(username)
         knife_ec_error_handler.add(ex)
       end
 
@@ -213,9 +228,14 @@ class Chef
           # therefore we use normalize_path_name to add the .json extension
           # for example: /acls/environments/_default
 
+          $org_stats_hash = {}
+          
           top_level_paths.each do |path|
-            chef_fs_copy_pattern(path, chef_fs_config)
+            chef_fs_copy_pattern(path, chef_fs_config, name)
           end
+
+          $organizations_hash["org_stats"].append(name => $org_stats_hash)
+          $organizations_hash["success_count"]=$organizations_hash["success_count"]+1
         ensure
           Chef::Config.restore(old_config)
         end
@@ -232,17 +252,26 @@ class Chef
         list.map { |entry| normalize_path_name(entry.path) }
       end
 
-      def chef_fs_copy_pattern(pattern_str, chef_fs_config)
+      def chef_fs_copy_pattern(pattern_str, chef_fs_config, org_name)
         ui.msg "Copying #{pattern_str}"
         pattern = Chef::ChefFS::FilePattern.new(pattern_str)
-        Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs,
+        error, $pattern_hash = Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.chef_fs,
                                          chef_fs_config.local_fs, nil,
                                          config, ui,
                                          proc { |entry| chef_fs_config.format_path(entry) })
+        $org_stats_hash[pattern_str] = $pattern_hash
       rescue Net::HTTPServerException,
              Chef::ChefFS::FileSystem::NotFoundError,
              Chef::ChefFS::FileSystem::OperationFailedError => ex
+        $organizations_hash["failed"].append(name)
         knife_ec_error_handler.add(ex)
+      end
+
+      def write_output
+        result_hash = {"organizations" => $organizations_hash, "user_acls" => $user_acls_hash, "users" => $users_hash}
+        File.open("#{dest_dir}/result-#{Time.now.to_i}.json", 'w') do |file|
+          file.write(Chef::JSONCompat.to_json_pretty(result_hash))
+        end
       end
     end
   end
