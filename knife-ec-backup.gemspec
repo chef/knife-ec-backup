@@ -22,7 +22,6 @@ Gem::Specification.new do |s|
   s.add_dependency "sequel", "~> 5.9"
   s.add_dependency "pg"
   s.add_dependency "chef", "~> 18.0"
-  s.add_dependency "knife", "~> 18.0"
   s.add_dependency "veil"
   s.add_dependency "knife-tidy"
 
