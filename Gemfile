@@ -9,6 +9,6 @@ group :development do
   gem 'fakefs'
   gem 'simplecov'
   gem "chef-zero", "~> 15" # eval when we drop ruby 2.6
-  gem "chef", "~> 16" # eval when we drop ruby 2.6
-  gem "ohai", "~> 16" # eval when we drop ruby 2.6
+  gem "chef", "~> 18" # eval when we drop ruby 2.6
+  gem "ohai", "~> 18" # eval when we drop ruby 2.6
 end

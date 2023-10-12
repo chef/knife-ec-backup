@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.email = "jkeiser@chef.io"
   s.homepage = "https://www.chef.io"
 
-  s.required_ruby_version = ">= 2.7"
+  s.required_ruby_version = ">= 3.1"
 
   # We need a more recent version of mixlib-cli in order to support --no- options.
   # ... but, we can live with those options not working, if it means the plugin
@@ -21,11 +21,7 @@ Gem::Specification.new do |s|
   # s.add_dependency "mixlib-cli", ">= 1.2.2"
   s.add_dependency "sequel", "~> 5.9"
   s.add_dependency "pg"
-  if RUBY_VERSION.match?(/3.1/)
-    s.add_dependency "chef", "~> 18.0"
-  else
-    s.add_dependency "chef", ">= 16.0"
-  end
+  s.add_dependency "chef", "~> 18.0"
   s.add_dependency "veil"
   s.add_dependency "knife-tidy"
 
