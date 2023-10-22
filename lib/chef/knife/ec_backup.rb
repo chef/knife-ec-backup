@@ -85,7 +85,7 @@ class Chef
         remote_users.each_pair do |name, url|
           yield name, url
         end
-      rescue Net::HTTPServerException => ex
+      rescue Net::HTTPClientException => ex
         knife_ec_error_handler.add(ex)
       end
 
@@ -95,7 +95,7 @@ class Chef
           ui.msg "Downloading organization object for #{name} from #{url}"
           begin
             org = rest.get(url)
-          rescue Net::HTTPServerException => ex
+          rescue Net::HTTPClientException => ex
             ui.error "Failed to find organization '#{name}'."
             knife_ec_error_handler.add(ex)
             next

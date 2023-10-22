@@ -76,7 +76,7 @@ class Chef
       def create_organization(orgname)
         org = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/org.json"))
         rest.post('organizations', org)
-      rescue Net::HTTPServerException => ex
+      rescue Net::HTTPClientException => ex
         if ex.response.code == "409"
           rest.put("organizations/#{orgname}", org)
         else
@@ -89,7 +89,7 @@ class Chef
         invitations.each do |invitation|
           begin
             rest.post("organizations/#{orgname}/association_requests", { 'user' => invitation['username'] })
-          rescue Net::HTTPServerException => ex
+          rescue Net::HTTPClientException => ex
             if ex.response.code != "409"
               ui.error("Cannot create invitation #{invitation['id']}")
               knife_ec_error_handler.add(ex)
@@ -106,7 +106,7 @@ class Chef
             response = rest.post("organizations/#{orgname}/association_requests", { 'user' => username })
             association_id = response["uri"].split("/").last
             rest.put("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
-          rescue Net::HTTPServerException => ex
+          rescue Net::HTTPClientException => ex
             knife_ec_error_handler.add(ex) if ex.response.code != "409"
           end
         end
@@ -149,7 +149,7 @@ class Chef
             user_with_password = user.dup
             user_with_password['password'] = SecureRandom.hex
             rest.post('users', user_with_password)
-          rescue Net::HTTPServerException => ex
+          rescue Net::HTTPClientException => ex
             if ex.response.code == "409"
               rest.put("users/#{name}", user)
               next
@@ -175,7 +175,7 @@ class Chef
           ui.msg "Deleting user #{user} from remote (purge is on)"
           begin
             rest.delete("/users/#{user}")
-          rescue Net::HTTPServerException => e
+          rescue Net::HTTPClientException => e
             ui.warn "Failed deleting user #{user} from remote #{e}"
           end
         end
@@ -321,7 +321,7 @@ class Chef
                                          chef_fs_config.chef_fs, nil,
                                          config, ui,
                                          proc { |entry| chef_fs_config.format_path(entry) })
-      rescue Net::HTTPServerException,
+      rescue Net::HTTPClientException,
              Chef::ChefFS::FileSystem::NotFoundError,
              Chef::ChefFS::FileSystem::OperationFailedError => ex
         knife_ec_error_handler.add(ex)
@@ -387,7 +387,7 @@ class Chef
             rest.put("#{url}/#{permission}", { permission => acls[permission] })
           end
         end
-      rescue Net::HTTPServerException => ex
+      rescue Net::HTTPClientException => ex
         knife_ec_error_handler.add(ex)
       end
     end

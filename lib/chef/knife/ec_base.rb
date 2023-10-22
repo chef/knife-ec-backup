@@ -142,7 +142,7 @@ class Chef
           else
             admin_users[0]
           end
-        rescue Net::HTTPServerException => ex
+        rescue Net::HTTPClientException => ex
           knife_ec_error_handler.add(ex)
         end
       end

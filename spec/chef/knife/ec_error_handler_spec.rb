@@ -55,7 +55,7 @@ Error Summary Report
   "timestamp": "1988-04-17 00:00:00 \+0000",
   "message": "I'm not real!",
   "backtrace": null,
-  "exception": "Net::HTTPServerException"
+  "exception": "Net::HTTPClientException"
 }
 /).to_stdout
   end
@@ -66,22 +66,22 @@ Error Summary Report
   "timestamp": "1988-04-17 00:00:00 +0000",
   "message": "I'm not real!",
   "backtrace": null,
-  "exception": "Net::HTTPServerException"
+  "exception": "Net::HTTPClientException"
 }{
   "timestamp": "1988-04-17 00:00:00 +0000",
   "message": "I'm not real!",
   "backtrace": null,
-  "exception": "Net::HTTPServerException"
+  "exception": "Net::HTTPClientException"
 }{
   "timestamp": "1988-04-17 00:00:00 +0000",
   "message": "I'm not real!",
   "backtrace": null,
-  "exception": "Net::HTTPServerException"
+  "exception": "Net::HTTPClientException"
 }{
   "timestamp": "1988-04-17 00:00:00 +0000",
   "message": "I'm not real!",
   "backtrace": null,
-  "exception": "Net::HTTPServerException"
+  "exception": "Net::HTTPClientException"
 }{
   "timestamp": "1988-04-17 00:00:00 +0000",
   "message": "The reason",
