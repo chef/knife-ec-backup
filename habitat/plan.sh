@@ -18,7 +18,7 @@ pkg_build_deps=(
 pkg_deps=(
   core/coreutils
   core/gcc
-  core/ruby
+  core/ruby31
   core/postgresql-client
   core/libffi
 )
