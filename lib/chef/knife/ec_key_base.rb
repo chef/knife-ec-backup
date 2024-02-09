@@ -90,6 +90,9 @@ class Chef
                   server_uri = URI('postgres://')
                   server_uri.host = config[:sql_host]
                   server_uri.port = config[:sql_port]
+                  if config[:sql_db]
+                    server_uri.path = "/#{config[:sql_db]}"
+                  end
                   server_uri.user = URI.encode_www_form_component(config[:sql_user]) if config[:sql_user]
                   server_uri.password = URI.encode_www_form_component(config[:sql_password]) if config[:sql_password]
                   query_params = []
