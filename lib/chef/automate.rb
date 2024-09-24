@@ -1,7 +1,7 @@
 class Chef
   class Automate
     def self.is_installed?
-      File.exists?('/hab/svc/automate-cs-oc-erchef/')
+      File.exist?('/hab/svc/automate-cs-oc-erchef/')
     end
 
     def self.config

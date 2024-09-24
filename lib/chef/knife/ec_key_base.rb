@@ -109,7 +109,7 @@ class Chef
           ui.msg "Automate detected"
           config.merge! Chef::Automate.config {|key, v1, v2| v1}
         else
-          if ! File.exists?("/etc/opscode/chef-server-running.json")
+          if ! File.exist?("/etc/opscode/chef-server-running.json")
             ui.fatal "SQL User or Password not provided as option and running config cannot be found!"
             exit 1
           else
