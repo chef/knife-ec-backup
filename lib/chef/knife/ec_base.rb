@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+require 'chef'
 require 'chef/knife'
 require 'chef/server_api'
 require 'veil' unless defined?(Veil)

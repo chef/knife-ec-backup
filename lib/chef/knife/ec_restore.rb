@@ -1,3 +1,4 @@
+require 'chef'
 require 'chef/knife'
 require_relative 'ec_base'
 
@@ -214,6 +215,48 @@ class Chef
         k.config[:clients_only] = true
         k.run
       end
+      def upload_cookbooks_custom(cookbooks_dir)
+        Dir.glob("#{cookbooks_dir}/*/metadata.json").each do |metadata_path|
+          begin
+            metadata = JSON.parse(File.read(metadata_path))
+            cookbook_dir = File.dirname(metadata_path)
+            cookbook_name = metadata["name"]
+
+            if cookbook_name.nil? || cookbook_name.strip.empty?
+              ui.warn "Skipping cookbook in #{cookbook_dir} — no name in metadata.json"
+              next
+            end
+
+            frozen = metadata.delete("frozen")
+
+            upload_cmd = [
+              "knife", "cookbook", "upload", cookbook_name,
+              "-o", cookbooks_dir
+            ]
+
+            if frozen
+              upload_cmd += ["--freeze", "--force"]
+            end
+
+            ui.msg "Uploading cookbook #{cookbook_name} with command: #{upload_cmd.join(' ')}"
+            unless system(*upload_cmd)
+              ui.warn "Failed to upload cookbook #{cookbook_name}"
+              next
+            end
+
+            # Remove `"frozen": true` and rewrite metadata.json
+            if frozen
+              File.write(metadata_path, JSON.pretty_generate(metadata))
+              ui.msg "Removed 'frozen': true from #{metadata_path}"
+            end
+
+          rescue JSON::ParserError => e
+            ui.warn "Skipping invalid JSON in #{metadata_path}: #{e}"
+          rescue => e
+            ui.warn "Error processing cookbook at #{metadata_path}: #{e}"
+          end
+        end
+      end
 
       PATHS = %w(chef_repo_path cookbook_path environment_path data_bag_path role_path node_path client_path acl_path group_path container_path)
       def upload_org_data(name)
@@ -275,11 +318,14 @@ class Chef
                                    else
                                      server.supports_defaulting_to_pivotal? ? 'pivotal' : org_admin
                                    end
+          # Upload cookbooks with custom logic
+          cookbooks_dir = "#{dest_dir}/organizations/#{name}/cookbooks"
+          upload_cookbooks_custom(cookbooks_dir)
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
           ui.msg "Restoring the rest of the org"
           chef_fs_config = Chef::ChefFS::Config.new
-          top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
+          top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' && entry.name != 'cookbooks' }.map { |entry| entry.path }
 
           # Topologically sort groups for upload
           filenames = ['billing-admins.json', 'public_key_read_access.json']
@@ -316,7 +362,6 @@ class Chef
       # abstract it inside EcBase.
       def chef_fs_copy_pattern(pattern_str, chef_fs_config)
         ui.msg "Copying #{pattern_str}"
-        pattern = Chef::ChefFS::FilePattern.new(pattern_str)
         Chef::ChefFS::FileSystem.copy_to(pattern, chef_fs_config.local_fs,
                                          chef_fs_config.chef_fs, nil,
                                          config, ui,
