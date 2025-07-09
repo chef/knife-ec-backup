@@ -1,3 +1,5 @@
+export HAB_BLDR_CHANNEL='LTS-2024'
+export HAB_REFRESH_CHANNEL="LTS-2024"
 pkg_name=knife-ec-backup
 pkg_origin=chef
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
@@ -18,8 +20,8 @@ pkg_build_deps=(
 pkg_deps=(
   core/coreutils
   core/gcc
-  core/ruby31
-  core/postgresql-client
+  core/ruby3_1
+  core/postgresql13-client
   core/libffi
 )
 
