@@ -1,16 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 3.0.2 -->
-## [v3.0.2](https://github.com/chef/knife-ec-backup/tree/v3.0.2) (2024-02-05)
+<!-- latest_release 3.0.3 -->
+## [v3.0.3](https://github.com/chef/knife-ec-backup/tree/v3.0.3) (2024-11-12)
 
 #### Merged Pull Requests
-- upgrade ruby to v3.1 [#180](https://github.com/chef/knife-ec-backup/pull/180) ([timin](https://github.com/timin))
+- remove deprecated exists? for exist? [#183](https://github.com/chef/knife-ec-backup/pull/183) ([Stromweld](https://github.com/Stromweld))
 <!-- latest_release -->
 
 <!-- release_rollup since=3.0.1 -->
 ### Changes not yet released to rubygems.org
 
 #### Merged Pull Requests
+- remove deprecated exists? for exist? [#183](https://github.com/chef/knife-ec-backup/pull/183) ([Stromweld](https://github.com/Stromweld)) <!-- 3.0.3 -->
 - upgrade ruby to v3.1 [#180](https://github.com/chef/knife-ec-backup/pull/180) ([timin](https://github.com/timin)) <!-- 3.0.2 -->
 <!-- release_rollup -->
 
