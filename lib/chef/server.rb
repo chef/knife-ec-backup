@@ -16,11 +16,8 @@ class Chef
     end
 
     def parse_server_version(line)
-      # first line from the /version endpoint, which is either:
-      # - "chef-server 12.17.5\n" (standard Chef Server)
-      # - "Package: chef-server/chef-server-nginx/12.17.42/20180413212943\n" (Habitat install)
-      # In both cases, extracts the version number ("12.17.x"), stripping any build metadata after '+'
-
+      # first line from the /version endpoint will either be this format "chef-server 12.17.5\n"
+      # or, when habitat, this format "Package: chef-server/chef-server-nginx/12.17.42/20180413212943\n"
       version_str = if line.include?('/')
                       line.split('/')[2]
                     else
