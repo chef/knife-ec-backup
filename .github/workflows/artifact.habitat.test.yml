@@ -1,0 +1,58 @@
+name: Test LTS-2024 Habitat Package Artifacts on PR
+
+on: pull_request
+
+env:
+  BLDR_URL: 'https://bldr.habitat.sh/'
+  HAB_ORIGIN: 'chef'
+  HAB_AUTH_TOKEN: ${{ secrets.HAB_AUTH_TOKEN }}
+  HABITAT_VERSION_SET: 'latest'
+  CHEF_LICENSE: "accept-no-persist"
+  HAB_LICENSE: "accept-no-persist"
+  HAB_NONINTERACTIVE: "true"
+
+permissions:
+  contents: write
+
+jobs:
+  agent-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print OS
+        run: echo "--- ubuntu-latest"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install, Build, and Test Habitat Package (Linux)
+        shell: bash
+        env:
+          HAB_REFRESH_CHANNEL: "LTS-2024"
+          HAB_BLDR_CHANNEL: "LTS-2024"
+        run: |
+          echo "--- Installing Habitat CLI"
+          curl https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh | sudo bash -s -- -v "$HABITAT_VERSION_SET" -t "x86_64-linux"
+
+          echo "--- Accepting license and downloading origin keys"
+          hab license accept
+          hab origin key download $HAB_ORIGIN
+          hab origin key download --auth $HAB_AUTH_TOKEN --secret $HAB_ORIGIN
+
+          echo "--- Building the Habitat package"
+          hab pkg build .
+
+          echo "--- Loading package environment variables"
+          source results/last_build.env
+
+          echo "--- Installing built package: $pkg_artifact"
+          sudo hab pkg install -b "results/$pkg_artifact"
+
+          echo "--- Updating PATH to use built package's bin"
+          export PATH="$(hab pkg path "$pkg_ident")/bin:$PATH"
+
+          echo "--- Running Minitest artifact tests with rake"
+          pushd test/artifact
+          rake
+        

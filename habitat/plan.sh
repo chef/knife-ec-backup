@@ -52,4 +52,3 @@ do_before() {
   fi
   update_pkg_version
 }
-
