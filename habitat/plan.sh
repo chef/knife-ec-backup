@@ -52,7 +52,6 @@ do_build() {
 }
 
 do_install() {
-  # ruby_path="$(pkg_path_for "$ruby_pkg")/bin/ruby"
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
   
   echo "Contents of build directory:"
@@ -64,11 +63,43 @@ do_install() {
   echo "Contents of $pkg_prefix after copy:"
   ls -la "$pkg_prefix/"
   
+  # Check for broken symlinks or problematic files
+  echo "Checking for broken symlinks in $pkg_prefix:"
+  find "$pkg_prefix" -type l -exec test ! -e {} \; -print
+  
+  # Check permissions
+  echo "Checking file permissions in bin and lib directories:"
+  if [ -d "$pkg_prefix/bin" ]; then
+    ls -la "$pkg_prefix/bin/"
+  fi
+  if [ -d "$pkg_prefix/lib" ]; then
+    ls -la "$pkg_prefix/lib/"
+  fi
+  
+  # Remove unnecessary files that might cause issues
+  echo "Cleaning up unnecessary files:"
+  rm -rf "$pkg_prefix/spec" "$pkg_prefix/test" "$pkg_prefix/.bundle" "$pkg_prefix/results"
+  
+  # Ensure bin directory has executable files
+  if [ -d "$pkg_prefix/bin" ]; then
+    chmod +x "$pkg_prefix/bin"/*
+  fi
+  
   if [ -f "$pkg_prefix/bin/knife" ]; then
     fix_interpreter "$pkg_prefix/bin/knife" core/coreutils bin/env
   else
     echo "Warning: $pkg_prefix/bin/knife not found"
   fi
+  
+  # Final verification
+  echo "Final package contents:"
+  find "$pkg_prefix" -type f -exec ls -la {} \; | head -20
+
+  echo "Checking for zero-length files:"
+  find "$pkg_prefix" -type f -empty -print
+
+  echo "Testing manual blake2b hash generation:"
+  find "$pkg_prefix" -type f -exec blake2bsum {} \; | head -10
   
   popd
 }
