@@ -35,17 +35,17 @@ do_unpack() {
 
 do_build() {
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
-  export BUNDLE_SHEBANG="$(pkg_path_for "$ruby_pkg")/bin/ruby"
   bundle install --jobs 2 --retry 5 --path ./vendor/bundle --binstubs --standalone
   popd
 }
 
 do_install() {
-  ruby_path="$(pkg_path_for "$ruby_pkg")/bin/ruby"
+  # ruby_path="$(pkg_path_for "$ruby_pkg")/bin/ruby"
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
   cp -R . "$pkg_prefix/"
   
-  sed -i "1s|^#!.*$|#!${ruby_path}|" "$pkg_prefix/bin/knife"
+  # sed -i "1s|^#!.*$|#!${ruby_path}|" "$pkg_prefix/bin/knife"
+  fix_interpreter "$pkg_prefix/bin/knife" core/coreutils bin/env
   popd
 }
 
