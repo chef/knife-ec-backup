@@ -44,7 +44,7 @@ jobs:
           source results/last_build.env
           
           sudo hab license accept
-          sudo hab pkg install -b results/$pkg_artifact
+          sudo hab pkg install results/$pkg_artifact
           
           export PATH="$(hab pkg path chef/knife-ec-backup)/bin:$PATH"
           pushd "$PWD/test/artifact"
