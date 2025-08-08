@@ -5,7 +5,7 @@ pkg_description="A knife plugin for backup/restore of Chef Infra Server data."
 pkg_upstream_url="https://github.com/chef/knife-ec-backup"
 pkg_license=('Apache-2.0')
 pkg_bin_dirs=(bin)
-pkg_lib_dirs=(lib)
+# pkg_lib_dirs=(lib)
 pkg_svc_user=root
 pkg_svc_group=${pkg_svc_user}
 ruby_pkg=$([ "$HAB_BLDR_CHANNEL" == "LTS-2024" ] && echo core/ruby3_1 || echo core/ruby31)
@@ -40,7 +40,6 @@ do_build() {
 }
 
 do_install() {
-  mkdir -p "$pkg_prefix/lib"
   # ruby_path="$(pkg_path_for "$ruby_pkg")/bin/ruby"
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
   cp -R . "$pkg_prefix/"
