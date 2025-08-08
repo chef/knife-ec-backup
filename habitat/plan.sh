@@ -40,6 +40,7 @@ do_build() {
 }
 
 do_install() {
+  mkdir -p "$pkg_prefix/lib"
   # ruby_path="$(pkg_path_for "$ruby_pkg")/bin/ruby"
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
   cp -R . "$pkg_prefix/"
