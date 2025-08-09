@@ -5,7 +5,7 @@ module ArtifactHelper
   VALID_EXIT_CODES = [0, 1, 10].freeze
 
   def assert_knife_ec_command(command, expected_pattern)
-    stdout, stderr, status = Open3.capture3("bundle exec knife #{command}")
+    stdout, stderr, status = Open3.capture3("knife #{command}")
 
     assert_includes VALID_EXIT_CODES, status.exitstatus, <<~MSG
       Command 'knife #{command}' exited with #{status.exitstatus}, not in #{VALID_EXIT_CODES}.
