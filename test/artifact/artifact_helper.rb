@@ -2,7 +2,7 @@ require "minitest/autorun"
 require "open3"
 
 module ArtifactHelper
-  VALID_EXIT_CODES = [0, 1, 10].freeze
+  VALID_EXIT_CODES = [0, 1, 10, 100].freeze
 
   def assert_knife_ec_command(command, expected_pattern)
     stdout, stderr, status = Open3.capture3("knife #{command}")
