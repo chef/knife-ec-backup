@@ -45,13 +45,13 @@ do_install() {
   # echo "Removing unwanted directories"
   # rm -rf "$pkg_prefix/spec" "$pkg_prefix/test" "$pkg_prefix/.bundle" "$pkg_prefix/results"
 
-  echo "Deleting broken symlinks"
-  find "$pkg_prefix" -type l -exec test ! -e {} \; -delete
+  # echo "Deleting broken symlinks"
+  # find "$pkg_prefix" -type l -exec test ! -e {} \; -delete
 
-  # echo "Fixing permissions"
-  # if [ -d "$pkg_prefix/bin" ]; then
-  #   chmod +x "$pkg_prefix/bin"/*
-  # fi
+  echo "Fixing permissions"
+  if [ -d "$pkg_prefix/bin" ]; then
+    chmod +x "$pkg_prefix/bin"/*
+  fi
 
   fix_interpreter "$pkg_prefix/bin/knife" core/coreutils bin/env
   popd
