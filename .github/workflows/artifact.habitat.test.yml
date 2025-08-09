@@ -51,10 +51,10 @@ jobs:
           pkg_path=$(hab pkg path chef/knife-ec-backup)
           ruby_pkg=$(hab pkg path core/ruby3_1)   # or core/ruby3_2 depending on your gem's Ruby
 
-          fix_interpreter "$pkg_path/bin/knife" "$ruby_pkg" bin/ruby
-          fix_interpreter "$pkg_path/bin/rake" "$ruby_pkg" bin/ruby
+          sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/knife"
+          sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/rake"
 
           export PATH="$pkg_path/bin:$PATH"
-          
+
           pushd "$PWD/test/artifact"
           rake
