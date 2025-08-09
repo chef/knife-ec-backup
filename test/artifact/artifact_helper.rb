@@ -1,15 +1,23 @@
 require "minitest/autorun"
 require "open3"
 
-class ArtifactTest < Minitest::Test
-  # Accepts an exit code of 0 or 1 (some knife subcommands exit 1 even on help)
-  def assert_knife_ec_command(command)
-    stdout, stderr, status = Open3.capture3("knife #{command} --help")
-    acceptable_exit_codes = [0, 1]
+module ArtifactHelper
+  VALID_EXIT_CODES = [0, 1, 10].freeze
 
-    assert_includes acceptable_exit_codes, status.exitstatus, <<~MSG
-      Command 'knife #{command} --help' failed.
-      Exit status: #{status.exitstatus}
+  def assert_knife_ec_command(command, expected_pattern)
+    stdout, stderr, status = Open3.capture3("bundle exec knife #{command}")
+
+    assert_includes VALID_EXIT_CODES, status.exitstatus, <<~MSG
+      Command 'knife #{command}' exited with #{status.exitstatus}, not in #{VALID_EXIT_CODES}.
+      STDOUT:
+      #{stdout}
+      STDERR:
+      #{stderr}
+    MSG
+
+    assert_match expected_pattern, stdout + stderr, <<~MSG
+      Expected output for 'knife #{command}' to match:
+        #{expected_pattern.inspect}
       STDOUT:
       #{stdout}
       STDERR:
