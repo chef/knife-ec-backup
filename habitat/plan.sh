@@ -123,6 +123,8 @@ do_install() {
 
   if [ -f "$pkg_prefix/bin/knife" ]; then
     fix_interpreter "$pkg_prefix/bin/knife" core/coreutils bin/env
+    # fix_interpreter "$pkg_prefix/bin/knife" "$ruby_pkg" bin/ruby
+    # fix_interpreter "$pkg_prefix/bin/rake" "$ruby_pkg" bin/ruby
   fi
 
   popd
