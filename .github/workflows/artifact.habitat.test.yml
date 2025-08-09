@@ -51,8 +51,8 @@ jobs:
           pkg_path=$(hab pkg path chef/knife-ec-backup)
           ruby_pkg=$(hab pkg path core/ruby3_1)   # or core/ruby3_2 depending on your gem's Ruby
 
-          sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/knife"
-          sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/rake"
+          sudo sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/knife"
+          sudo sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/rake"
 
           export PATH="$pkg_path/bin:$PATH"
 
