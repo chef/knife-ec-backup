@@ -42,13 +42,10 @@ do_install() {
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
   cp -R . "$pkg_prefix/"
 
-  echo "Removing unwanted directories"
-  rm -rf "$pkg_prefix/spec" "$pkg_prefix/test" "$pkg_prefix/.bundle" "$pkg_prefix/results"
+  # rm -rf "$pkg_prefix/spec" "$pkg_prefix/test" "$pkg_prefix/.bundle" "$pkg_prefix/results"
 
-  echo "Deleting broken symlinks"
   find "$pkg_prefix" -type l -exec test ! -e {} \; -delete
 
-  echo "Fixing permissions"
   if [ -d "$pkg_prefix/bin" ]; then
     chmod +x "$pkg_prefix/bin"/*
   fi
