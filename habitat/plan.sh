@@ -48,7 +48,7 @@ do_install() {
   # rm -rf "$pkg_prefix/results"
 
   # Remove broken symlinks in the source before copying
-  find "$pkg_prefix" -type l -exec test ! -e {} \; -delete
+  # find "$pkg_prefix" -type l -exec test ! -e {} \; -delete
 
   fix_interpreter "$pkg_prefix/bin/knife" core/coreutils bin/env
   popd
