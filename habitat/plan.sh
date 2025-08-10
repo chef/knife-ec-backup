@@ -29,7 +29,6 @@ pkg_deps=(
 
 do_unpack() {
   mkdir -p "${HAB_CACHE_SRC_PATH}/${pkg_dirname}"
-  # rsync -a --exclude='.*' $PLAN_CONTEXT/../ ${HAB_CACHE_SRC_PATH}/${pkg_dirname}/
   rsync -a --exclude='.*' --exclude='results/' "$PLAN_CONTEXT/../" "${HAB_CACHE_SRC_PATH}/${pkg_dirname}/"
 }
 
@@ -42,14 +41,6 @@ do_build() {
 do_install() {
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
   cp -R . "$pkg_prefix/"
-
-  # rm -rf "$pkg_prefix/spec" "$pkg_prefix/test" "$pkg_prefix/.bundle" "$pkg_prefix/results"
-
-  # rm -rf "$pkg_prefix/results"
-
-  # Remove broken symlinks in the source before copying
-  # find "$pkg_prefix" -type l -exec test ! -e {} \; -delete
-
   fix_interpreter "$pkg_prefix/bin/knife" core/coreutils bin/env
   popd
 }
