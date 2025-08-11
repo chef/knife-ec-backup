@@ -8,6 +8,10 @@ pkg_bin_dirs=(bin)
 pkg_lib_dirs=(lib)
 pkg_svc_user=root
 pkg_svc_group=${pkg_svc_user}
+ruby_pkg=$([ "$HAB_BLDR_CHANNEL" == "LTS-2024" ] && echo core/ruby3_1 || echo core/ruby31)
+postgresql_package=$([ "$HAB_BLDR_CHANNEL" == "LTS-2024" ] && echo core/postgresql13-client || echo core/postgresql-client)
+echo "Using Ruby package: $ruby_pkg"
+
 pkg_build_deps=(
   core/gcc-libs
   core/git
@@ -18,16 +22,15 @@ pkg_build_deps=(
 pkg_deps=(
   core/coreutils
   core/gcc
-  core/ruby31
-  core/postgresql-client
+  "$ruby_pkg"
+  "$postgresql_package"
   core/libffi
 )
 
 do_unpack() {
   mkdir -p "${HAB_CACHE_SRC_PATH}/${pkg_dirname}"
-  rsync -a --exclude='.*' $PLAN_CONTEXT/../ ${HAB_CACHE_SRC_PATH}/${pkg_dirname}/
+  rsync -a --exclude='.*' --exclude='results/' "$PLAN_CONTEXT/../" "${HAB_CACHE_SRC_PATH}/${pkg_dirname}/"
 }
-
 
 do_build() {
   pushd "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" || exit 1
@@ -52,4 +55,3 @@ do_before() {
   fi
   update_pkg_version
 }
-
