@@ -43,16 +43,15 @@ jobs:
           hab pkg build .
           source results/last_build.env
           
-          sudo hab license accept
-          sudo hab pkg install results/$pkg_artifact
+          hab pkg install results/$pkg_artifact
           
           
           # Patch Ruby scripts just for tests
           pkg_path=$(hab pkg path chef/knife-ec-backup)
           ruby_pkg=$(hab pkg path core/ruby3_1)   # or core/ruby3_2 depending on your gem's Ruby
 
-          sudo sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/knife"
-          sudo sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/rake"
+          sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/knife"
+          sed -i "1s|.*|#!$ruby_pkg/bin/ruby|" "$pkg_path/bin/rake"
 
           export PATH="$pkg_path/bin:$PATH"
 
