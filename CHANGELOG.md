@@ -1,16 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 3.0.3 -->
-## [v3.0.3](https://github.com/chef/knife-ec-backup/tree/v3.0.3) (2024-11-12)
+<!-- latest_release 3.0.4 -->
+## [v3.0.4](https://github.com/chef/knife-ec-backup/tree/v3.0.4) (2025-08-11)
 
 #### Merged Pull Requests
-- remove deprecated exists? for exist? [#183](https://github.com/chef/knife-ec-backup/pull/183) ([Stromweld](https://github.com/Stromweld))
+- CHEF-24921 – Added support to build and test against LTS2024 channel and promoting package to LTS2024-current channel [#187](https://github.com/chef/knife-ec-backup/pull/187) ([nikhil2611](https://github.com/nikhil2611))
 <!-- latest_release -->
 
 <!-- release_rollup since=3.0.1 -->
 ### Changes not yet released to rubygems.org
 
 #### Merged Pull Requests
+- CHEF-24921 – Added support to build and test against LTS2024 channel and promoting package to LTS2024-current channel [#187](https://github.com/chef/knife-ec-backup/pull/187) ([nikhil2611](https://github.com/nikhil2611)) <!-- 3.0.4 -->
 - remove deprecated exists? for exist? [#183](https://github.com/chef/knife-ec-backup/pull/183) ([Stromweld](https://github.com/Stromweld)) <!-- 3.0.3 -->
 - upgrade ruby to v3.1 [#180](https://github.com/chef/knife-ec-backup/pull/180) ([timin](https://github.com/timin)) <!-- 3.0.2 -->
 <!-- release_rollup -->
