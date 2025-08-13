@@ -184,4 +184,194 @@ describe Chef::Knife::EcRestore do
       end
     end
   end
+
+  describe "#restore_cookbook_frozen_status" do
+    include FakeFS::SpecHelpers
+
+    let(:org_name) { "test_org" }
+    let(:chef_fs_config) { double("Chef::ChefFS::Config") }
+    let(:cookbooks_path) { "/organizations/#{org_name}/cookbooks" }
+
+    before(:each) do
+      allow(@knife).to receive(:dest_dir).and_return("")
+      allow(@knife).to receive(:ui).and_return(double("ui", :msg => nil, :warn => nil))
+    end
+
+    context "when cookbooks directory does not exist" do
+      it "returns early without processing" do
+        expect(@knife).not_to receive(:freeze_cookbook)
+        @knife.restore_cookbook_frozen_status(org_name, chef_fs_config)
+      end
+    end
+
+    context "when cookbooks directory exists" do
+      before(:each) do
+        FileUtils.mkdir_p(cookbooks_path)
+      end
+
+      context "with no cookbook directories" do
+        it "does not process any cookbooks" do
+          expect(@knife).not_to receive(:freeze_cookbook)
+          @knife.restore_cookbook_frozen_status(org_name, chef_fs_config)
+        end
+      end
+
+      context "with cookbook directories" do
+        let(:cookbook_name) { "apache2" }
+        let(:version) { "1.2.3" }
+        let(:cookbook_dir) { "#{cookbook_name}-#{version}" }
+        let(:cookbook_path) { File.join(cookbooks_path, cookbook_dir) }
+        let(:status_file) { File.join(cookbook_path, "status.json") }
+
+        before(:each) do
+          FileUtils.mkdir_p(cookbook_path)
+        end
+
+        context "when status.json does not exist" do
+          it "skips the cookbook" do
+            expect(@knife).not_to receive(:freeze_cookbook)
+            @knife.restore_cookbook_frozen_status(org_name, chef_fs_config)
+          end
+        end
+
+        context "when status.json exists" do
+          context "and cookbook is frozen" do
+            before(:each) do
+              File.write(status_file, '{"frozen": true}')
+            end
+
+            it "calls freeze_cookbook with correct parameters" do
+              expect(@knife).to receive(:freeze_cookbook).with(cookbook_name, version, org_name)
+              @knife.restore_cookbook_frozen_status(org_name, chef_fs_config)
+            end
+          end
+
+          context "and cookbook is not frozen" do
+            before(:each) do
+              File.write(status_file, '{"frozen": false}')
+            end
+
+            it "does not call freeze_cookbook" do
+              expect(@knife).not_to receive(:freeze_cookbook)
+              @knife.restore_cookbook_frozen_status(org_name, chef_fs_config)
+            end
+          end
+
+          context "and status.json has invalid JSON" do
+            before(:each) do
+              File.write(status_file, 'invalid json')
+            end
+
+            it "warns about parse error and continues" do
+              ui = double("ui")
+              allow(@knife).to receive(:ui).and_return(ui)
+              expect(ui).to receive(:msg).with("Restoring cookbook frozen status")
+              expect(ui).to receive(:warn).with(/Failed to parse status\.json/)
+              expect(@knife).not_to receive(:freeze_cookbook)
+              @knife.restore_cookbook_frozen_status(org_name, chef_fs_config)
+            end
+          end
+
+          context "with multiple cookbooks" do
+            let(:frozen_cookbook) { "frozen-cookbook-2.0.0" }
+            let(:unfrozen_cookbook) { "unfrozen-cookbook-1.5.0" }
+
+            before(:each) do
+              # Create frozen cookbook
+              FileUtils.mkdir_p(File.join(cookbooks_path, frozen_cookbook))
+              File.write(File.join(cookbooks_path, frozen_cookbook, "status.json"), '{"frozen": true}')
+
+              # Create unfrozen cookbook
+              FileUtils.mkdir_p(File.join(cookbooks_path, unfrozen_cookbook))
+              File.write(File.join(cookbooks_path, unfrozen_cookbook, "status.json"), '{"frozen": false}')
+            end
+
+            it "only freezes the frozen cookbook" do
+              expect(@knife).to receive(:freeze_cookbook).with("frozen-cookbook", "2.0.0", org_name).once
+              expect(@knife).not_to receive(:freeze_cookbook).with("unfrozen-cookbook", "1.5.0", org_name)
+              @knife.restore_cookbook_frozen_status(org_name, chef_fs_config)
+            end
+          end
+
+          context "with cookbook name containing hyphens" do
+            let(:cookbook_name) { "multi-word-cookbook" }
+            let(:version) { "1.0.0" }
+
+            before(:each) do
+              cookbook_dir = "#{cookbook_name}-#{version}"
+              cookbook_path = File.join(cookbooks_path, cookbook_dir)
+              FileUtils.mkdir_p(cookbook_path)
+              File.write(File.join(cookbook_path, "status.json"), '{"frozen": true}')
+            end
+
+            it "correctly parses cookbook name with hyphens" do
+              expect(@knife).to receive(:freeze_cookbook).with(cookbook_name, version, org_name)
+              @knife.restore_cookbook_frozen_status(org_name, chef_fs_config)
+            end
+          end
+        end
+      end
+    end
+  end
+
+  describe "#freeze_cookbook" do
+    let(:cookbook_name) { "apache2" }
+    let(:version) { "1.2.3" }
+    let(:org_name) { "test_org" }
+    let(:manifest) { { "name" => cookbook_name, "version" => version, "frozen?" => false } }
+
+    before(:each) do
+      allow(@knife).to receive(:ui).and_return(double("ui", :msg => nil, :warn => nil))
+    end
+
+    context "when cookbook is not already frozen" do
+      before(:each) do
+        allow(@rest).to receive(:get).with("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}").and_return(manifest)
+      end
+
+      it "freezes the cookbook successfully" do
+        frozen_manifest = manifest.dup.tap { |h| h["frozen?"] = true }
+        expect(@rest).to receive(:put).with("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}?freeze=true", frozen_manifest)
+        @knife.freeze_cookbook(cookbook_name, version, org_name)
+      end
+    end
+
+    context "when cookbook is already frozen" do
+      let(:frozen_manifest) { { "name" => cookbook_name, "version" => version, "frozen?" => true } }
+
+      before(:each) do
+        allow(@rest).to receive(:get).with("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}").and_return(frozen_manifest)
+      end
+
+      it "skips freezing and warns" do
+        ui = double("ui")
+        allow(@knife).to receive(:ui).and_return(ui)
+        expect(ui).to receive(:msg).with("Freezing cookbook #{cookbook_name} version #{version}")
+        expect(ui).to receive(:warn).with(/already frozen/)
+        expect(@rest).not_to receive(:put)
+        @knife.freeze_cookbook(cookbook_name, version, org_name)
+      end
+    end
+
+    context "when API call fails" do
+      before(:each) do
+        allow(@rest).to receive(:get).with("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}").and_return(manifest)
+        allow(@rest).to receive(:put).and_raise(net_exception(500))
+        allow(@knife).to receive(:knife_ec_error_handler).and_return(double("error_handler", :add => nil))
+      end
+
+      it "handles the exception and adds to error handler" do
+        ui = double("ui")
+        error_handler = double("error_handler")
+        allow(@knife).to receive(:ui).and_return(ui)
+        allow(@knife).to receive(:knife_ec_error_handler).and_return(error_handler)
+
+        expect(ui).to receive(:msg).with("Freezing cookbook #{cookbook_name} version #{version}")
+        expect(ui).to receive(:warn).with(/Failed to freeze cookbook/)
+        expect(error_handler).to receive(:add)
+
+        @knife.freeze_cookbook(cookbook_name, version, org_name)
+      end
+    end
+  end
 end
