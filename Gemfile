@@ -1,6 +1,7 @@
 source 'https://rubygems.org'
 
 gem 'veil', git: 'https://github.com/chef/chef_secrets', branch: 'main'
+gem "knife-tidy", git: "https://github.com/chef/knife-tidy.git", branch: "nikhil/CHEF-12436-update-ruby-3.3"
 gemspec
 
 group :development do

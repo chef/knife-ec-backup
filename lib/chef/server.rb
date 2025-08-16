@@ -18,7 +18,13 @@ class Chef
     def parse_server_version(line)
       # first line from the /version endpoint will either be this format "chef-server 12.17.5\n"
       # or, when habitat, this format "Package: chef-server/chef-server-nginx/12.17.42/20180413212943\n"
-      Gem::Version.new(line.include?('/') ? line.split('/')[2] : line.split(' ').last.gsub(/\+.*$/, ''))
+      version_str = if line.include?('/')
+                      line.split('/')[2]
+                    else
+                      line.split(' ').last.partition('+').first
+                    end
+
+      Gem::Version.new(version_str)
     end
 
     def version

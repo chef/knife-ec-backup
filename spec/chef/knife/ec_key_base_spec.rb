@@ -23,13 +23,15 @@ describe Chef::Knife::EcKeyBase do
       allow(File).to receive(:exists?).and_return(true)
       allow(File).to receive(:size).and_return(1)
     end
-    it "correctly sets sql options when they live under postgresql settings" do
+    ## skipping status test because of the missing file in automate - /etc/opscode/chef-server-running.json
+    ## adding smoke tag or else all the test will be considered skipping only the status test
+    it "correctly sets sql options when they live under postgresql settings", :smoke do
       allow(IO).to receive(:read).and_return(running_server_postgresql_sql_config_json)
       knife.load_config_from_file!
       expect(knife.config[:sql_user]).to eq("jiminy")
       expect(knife.config[:sql_password]).to eq("secret")
     end
-    it "correctly sets sql options when they live under opscode-erchef settings" do
+    it "correctly sets sql options when they live under opscode-erchef settings", :smoke do
       allow(IO).to receive(:read).and_return(running_server_erchef_config_json)
       knife.load_config_from_file!
       expect(knife.config[:sql_user]).to eq("cricket")
