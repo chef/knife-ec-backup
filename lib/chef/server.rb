@@ -21,6 +21,7 @@ class Chef
       version_str = if line.include?('/')
                       line.split('/')[2]
                     else
+                      # Use partition instead of regex to avoid ReDoS vulnerability
                       line.split(' ').last.partition('+').first
                     end
 
