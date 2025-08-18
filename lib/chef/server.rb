@@ -21,7 +21,9 @@ class Chef
       version_str = if line.include?('/')
                       line.split('/')[2]
                     else
-                      # Use partition instead of regex to avoid ReDoS vulnerability
+                      # Strip everything after '+' using String#partition.
+                      # We avoid regex here since Ruby < 3.2 is vulnerable to ReDoS,
+                      # and we support Ruby 3.1 in pipelines.
                       line.split(' ').last.partition('+').first
                     end
 
