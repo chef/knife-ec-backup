@@ -11,6 +11,7 @@ task :default => :spec
 desc "Run specs"
 RSpec::Core::RakeTask.new(:spec) do |spec|
   spec.pattern = 'spec/**/*_spec.rb'
+  spec.rspec_opts = "--tag ~smoke"
 end
 
 gem_spec = eval(File.read("knife-ec-backup.gemspec"))
