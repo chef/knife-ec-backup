@@ -124,6 +124,9 @@ The following options are supported across all subcommands:
   * `--dry-run`:
     Report what actions would be taken without performing any. (default: false)
 
+  * `--skip-frozen-cookbook-status`:
+    Skip backing up and restoring cookbook frozen status. When this option is used, cookbook frozen status will not be preserved during backup/restore operations. (default: false)
+
 ### knife ec backup DEST_DIR (options)
 
 *Path*: If you have Chef Infra Client installed on this server, you may need to invoke this as `/opt/opscode/bin/knife ec backup BACKUP_DIRECTORY`
@@ -183,6 +186,7 @@ The format of the repository is based on the `knife-essentials` (`knife download
           <name>.json
         cookbooks
           <name>-<version>
+            status.json (contains frozen status information)
         data_bags
           <bag name>
             <item name>
@@ -272,6 +276,9 @@ Restores all data from the specified DEST_DIR to a Chef Infra Server. DEST_DIR s
     Only download/restore objects in the named organization. Global
     objects such as users will still be downloaded/restored.
 
+  * `--skip-frozen-cookbook-status`:
+    Skip restoring cookbook frozen status. When this option is used, any `status.json` files in the backup will be ignored and cookbook frozen status will not be applied during restore. (default: false)
+
 ### knife ec key export [FILENAME]
 
 Create a json representation of the users table from the Chef Infra Server
@@ -289,6 +296,21 @@ assumed to be `key_dump.json`.
 
 Please note, most users should use `knife ec restore` with the
 `--with-user-sql` option rather than this command.
+
+## Cookbook Frozen Status
+
+This plugin supports backing up and restoring cookbook frozen status. When a cookbook is frozen on the Chef Infra Server, this status is preserved during backup operations by creating a `status.json` file within each cookbook directory that contains the frozen state information.
+
+During restore operations, the plugin will automatically restore the frozen status of cookbooks by reading the `status.json` files and applying the frozen state to the Chef Infra Server using the appropriate API calls.
+
+### Skipping Frozen Status
+
+If you want to skip backing up or restoring cookbook frozen status, you can use the `--skip-frozen-cookbook-status` option with both `knife ec backup` and `knife ec restore` commands. When this option is used:
+
+- During backup: `status.json` files will not be created for cookbooks
+- During restore: Any existing `status.json` files will be ignored and cookbook frozen status will not be applied
+
+This can be useful when migrating between Chef Infra Server versions that may handle frozen cookbooks differently, or when you specifically want to unfreeze all cookbooks during the restore process.
 
 ## Known Bugs
 

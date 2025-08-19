@@ -118,6 +118,12 @@ class Chef
             :boolean => true | false,
             :default => false,
             :description => 'Report what actions would be taken without performing any.'
+
+          option :skip_frozen_cookbook_status,
+            :long => '--skip-frozen-cookbook-status',
+            :boolean => true | false,
+            :default => false,
+            :description => "This will skip creating a status.json file for each cookbook, which includes the frozen status. This is useful when you dont want to persist cookbook's frozen status."
         end
 
         attr_accessor :dest_dir

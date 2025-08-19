@@ -382,6 +382,8 @@ class Chef
 
       # Restore cookbook frozen status from status.json files
       def restore_cookbook_frozen_status(org_name, chef_fs_config)
+        return if config[:skip_frozen_cookbook_status]
+
         ui.msg "Restoring cookbook frozen status"
         cookbooks_path = "#{dest_dir}/organizations/#{org_name}/cookbooks"
 
