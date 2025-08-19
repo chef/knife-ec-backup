@@ -298,6 +298,9 @@ class Chef
             chef_fs_copy_pattern(path, chef_fs_config)
           end
 
+          # Apply frozen status to cookbooks after they are uploaded
+          restore_cookbook_frozen_status(name, chef_fs_config)
+
           # restore clients to groups, using the pivotal user again
           Chef::Config[:node_name] = 'pivotal'
           groups.each do |group|
@@ -375,6 +378,61 @@ class Chef
         group.write(members.to_json)
       rescue Chef::ChefFS::FileSystem::NotFoundError
         Chef::Log.warn "Could not find #{group.display_path} on disk. Will not restore."
+      end
+
+      # Restore cookbook frozen status from status.json files
+      def restore_cookbook_frozen_status(org_name, chef_fs_config)
+        return if config[:skip_frozen_cookbook_status]
+
+        ui.msg "Restoring cookbook frozen status"
+        cookbooks_path = "#{dest_dir}/organizations/#{org_name}/cookbooks"
+
+        return unless File.directory?(cookbooks_path)
+
+        Dir.foreach(cookbooks_path) do |cookbook_entry|
+          next if cookbook_entry == '.' || cookbook_entry == '..'
+          cookbook_path = File.join(cookbooks_path, cookbook_entry)
+          next unless File.directory?(cookbook_path)
+
+          # cookbook_entry is in format "cookbook_name-version"
+          # Extract cookbook name and version
+          if cookbook_entry =~ /^(.+)-(\d+\.\d+\.\d+.*)$/
+            cookbook_name = $1
+            version = $2
+
+            status_file = File.join(cookbook_path, 'status.json')
+            next unless File.exist?(status_file)
+
+            begin
+              status_data = JSON.parse(File.read(status_file))
+              if status_data['frozen'] == true
+                freeze_cookbook(cookbook_name, version, org_name)
+              end
+            rescue JSON::ParserError => e
+              ui.warn "Failed to parse status.json for #{cookbook_name} #{version}: #{e.message}"
+            rescue => e
+              ui.warn "Failed to restore frozen status for #{cookbook_name} #{version}: #{e.message}"
+            end
+          end
+        end
+      end
+
+      # Freeze a cookbook on the Chef Server
+      def freeze_cookbook(cookbook_name, version, org_name)
+        ui.msg "Freezing cookbook #{cookbook_name} version #{version}"
+
+        # Get the current cookbook manifest
+        manifest = rest.get("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}")
+
+        if manifest['frozen?'] # Ignore if already frozen
+          ui.warn "Freezing cookbook #{cookbook_name} version #{version} skipped since it is already frozen!"
+          return
+        end
+
+        rest.put("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}?freeze=true", manifest.tap { |h| h["frozen?"] = true })
+      rescue Net::HTTPClientException => ex
+        ui.warn "Failed to freeze cookbook #{cookbook_name} #{version}: #{ex.message}"
+        knife_ec_error_handler.add(ex)
       end
 
       PERMISSIONS = %w{create read update delete grant}.freeze
