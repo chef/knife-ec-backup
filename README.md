@@ -4,12 +4,6 @@
 
 **Umbrella Project**: [Knife](https://github.com/chef/chef-oss-practices/blob/main/projects/knife.md)
 
-**Project State**: [Active](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md#active)
-
-**Issues [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md)**: 14 days
-
-**Pull Request [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md)**: 14 days
-
 ## Description
 
 knife-ec-backup can backup and restore the data in a Chef Infra
