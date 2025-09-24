@@ -1,9 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release -->
+<!-- latest_release 3.0.6 -->
+## [v3.0.6](https://github.com/chef/knife-ec-backup/tree/v3.0.6) (2025-09-24)
+
+#### Merged Pull Requests
+- [CHEF-21785][CHEF-21788] Updated the restore method to preserve the frozen cookbook status [#188](https://github.com/chef/knife-ec-backup/pull/188) ([ashiqueps](https://github.com/ashiqueps))
 <!-- latest_release -->
 
-<!-- release_rollup -->
+<!-- release_rollup since=3.0.5 -->
+### Changes not yet released to rubygems.org
+
+#### Merged Pull Requests
+- [CHEF-21785][CHEF-21788] Updated the restore method to preserve the frozen cookbook status [#188](https://github.com/chef/knife-ec-backup/pull/188) ([ashiqueps](https://github.com/ashiqueps)) <!-- 3.0.6 -->
 <!-- release_rollup -->
 
 <!-- latest_stable_release -->
