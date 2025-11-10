@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+require 'chef'
 require 'chef/knife'
 require_relative 'ec_key_base'
 require_relative '../org_id_cache'
