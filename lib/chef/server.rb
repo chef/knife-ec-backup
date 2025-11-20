@@ -32,8 +32,20 @@ class Chef
 
     def version
       @version ||= begin
-                     ver_line = Chef::ServerAPI.new(root_url).get('version').each_line.first
-                     parse_server_version(ver_line)
+                     version_response = Chef::ServerAPI.new(root_url).get('version')
+                     
+                     # Handle both text response (chef-server) and JSON response (dsm-nginx)
+                     if version_response.is_a?(Hash)
+                       # JSON response from dsm-nginx: {"version": "v1.3.27", ...}
+                       version_string = version_response['version'] || version_response[:version] || 'unknown'
+                       # Remove 'v' prefix if present (e.g., "v1.3.27" -> "1.3.27")
+                       version_string = version_string.start_with?('v') ? version_string[1..-1] : version_string
+                       Gem::Version.new(version_string)
+                     else
+                       # Text response from chef-server: "chef-server 12.17.5\n" or habitat format
+                       ver_line = version_response.each_line.first
+                       parse_server_version(ver_line)
+                     end
                    end
     end
 
