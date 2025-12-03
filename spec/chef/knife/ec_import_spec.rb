@@ -3,6 +3,17 @@ require 'chef/knife/ec_import'
 require 'fakefs/spec_helpers'
 require 'net/http'
 
+# Test constants to avoid duplication
+NODES_PATH = "/nodes"
+TEST_ORG_FOO = "organizations/foo"
+ERROR_500 = "500 Error"
+ASSOCIATION_REQUESTS_PATH = "organizations/foo/association_requests"
+HANDLES_ERRORS = "handles errors"
+COOKBOOK_PATH = "/backup/organizations/foo/cookbooks/mycb-1.0.0"
+STATUS_JSON_PATH = "/backup/organizations/foo/cookbooks/mycb-1.0.0/status.json"
+FROZEN_KEY = "frozen?"
+GROUPS_FOO_JSON = "/groups/foo.json"
+
 def make_user(username)
   FileUtils.mkdir_p("/backup/users")
   File.write("/backup/users/#{username}.json", "{\"username\": \"#{username}\"}")
@@ -122,7 +133,7 @@ describe Chef::Knife::EcImport do
       @knife.upload_org_data("foo")
       
       expect(@knife).to have_received(:restore_group).at_least(:once)
-      expect(@knife).to have_received(:chef_fs_copy_pattern).with("/nodes", @chef_fs_config)
+      expect(@knife).to have_received(:chef_fs_copy_pattern).with(NODES_PATH, @chef_fs_config)
     end
     
     it "uploads all top-level Chef objects including environments, roles, nodes, and data_bags" do
@@ -130,7 +141,7 @@ describe Chef::Knife::EcImport do
       cookbooks_entry = double("cookbooks_entry", :name => "cookbooks", :path => "/cookbooks")
       environments_entry = double("environments_entry", :name => "environments", :path => "/environments")
       roles_entry = double("roles_entry", :name => "roles", :path => "/roles")
-      nodes_entry = double("nodes_entry", :name => "nodes", :path => "/nodes")
+      nodes_entry = double("nodes_entry", :name => "nodes", :path => NODES_PATH)
       data_bags_entry = double("data_bags_entry", :name => "data_bags", :path => "/data_bags")
       clients_entry = double("clients_entry", :name => "clients", :path => "/clients")
       containers_entry = double("containers_entry", :name => "containers", :path => "/containers")
@@ -147,7 +158,7 @@ describe Chef::Knife::EcImport do
       expect(@knife).to have_received(:chef_fs_copy_pattern).with("/cookbooks", @chef_fs_config)
       expect(@knife).to have_received(:chef_fs_copy_pattern).with("/environments", @chef_fs_config)
       expect(@knife).to have_received(:chef_fs_copy_pattern).with("/roles", @chef_fs_config)
-      expect(@knife).to have_received(:chef_fs_copy_pattern).with("/nodes", @chef_fs_config)
+      expect(@knife).to have_received(:chef_fs_copy_pattern).with(NODES_PATH, @chef_fs_config)
       expect(@knife).to have_received(:chef_fs_copy_pattern).with("/data_bags", @chef_fs_config)
       expect(@knife).to have_received(:chef_fs_copy_pattern).with("/clients", @chef_fs_config)
       expect(@knife).to have_received(:chef_fs_copy_pattern).with("/containers", @chef_fs_config)
@@ -213,19 +224,19 @@ describe Chef::Knife::EcImport do
 
   describe "#organization_exists?" do
     it "returns true if org exists" do
-      allow(@rest).to receive(:get).with("organizations/foo").and_return({})
+      allow(@rest).to receive(:get).with(TEST_ORG_FOO).and_return({})
       expect(@knife.organization_exists?("foo")).to be true
     end
 
     it "returns false if org returns 404" do
       exception = Net::HTTPClientException.new("404 Not Found", double("response", :code => "404"))
-      allow(@rest).to receive(:get).with("organizations/foo").and_raise(exception)
+      allow(@rest).to receive(:get).with(TEST_ORG_FOO).and_raise(exception)
       expect(@knife.organization_exists?("foo")).to be false
     end
 
     it "adds error and returns false on other errors" do
-      exception = Net::HTTPClientException.new("500 Error", double("response", :code => "500"))
-      allow(@rest).to receive(:get).with("organizations/foo").and_raise(exception)
+      exception = Net::HTTPClientException.new(ERROR_500, double("response", :code => "500"))
+      allow(@rest).to receive(:get).with(TEST_ORG_FOO).and_raise(exception)
       expect(@knife.knife_ec_error_handler).to receive(:add).with(exception)
       expect(@knife.organization_exists?("foo")).to be false
     end
@@ -268,8 +279,8 @@ describe Chef::Knife::EcImport do
 
     it "posts invitation" do
       make_org("foo")
-      expect(@rest).to receive(:post).with("organizations/foo/association_requests", { 'user' => 'bob' })
-      expect(@rest).to receive(:post).with("organizations/foo/association_requests", { 'user' => 'jane' })
+      expect(@rest).to receive(:post).with(ASSOCIATION_REQUESTS_PATH, { 'user' => 'bob' })
+      expect(@rest).to receive(:post).with(ASSOCIATION_REQUESTS_PATH, { 'user' => 'jane' })
       @knife.restore_open_invitations("foo")
     end
 
@@ -283,7 +294,7 @@ describe Chef::Knife::EcImport do
 
     it "records other errors" do
       make_org("foo")
-      exception = Net::HTTPClientException.new("500 Error", double("response", :code => "500"))
+      exception = Net::HTTPClientException.new(ERROR_500, double("response", :code => "500"))
       allow(@rest).to receive(:post).and_raise(exception)
       expect(@knife.ui).to receive(:error).with(/Cannot create invitation/)
       expect(@knife.knife_ec_error_handler).to receive(:add).with(exception)
@@ -296,7 +307,7 @@ describe Chef::Knife::EcImport do
 
     it "adds user and accepts invitation" do
       make_org("foo")
-      allow(@rest).to receive(:post).with("organizations/foo/association_requests", { 'user' => 'bob' }).and_return({"uri" => "http://server/assoc/123"})
+      allow(@rest).to receive(:post).with(ASSOCIATION_REQUESTS_PATH, { 'user' => 'bob' }).and_return({"uri" => "http://server/assoc/123"})
       expect(@rest).to receive(:put).with("users/bob/association_requests/123", { 'response' => 'accept' })
       @knife.add_users_to_org("foo")
     end
@@ -309,9 +320,9 @@ describe Chef::Knife::EcImport do
       @knife.add_users_to_org("foo")
     end
 
-    it "records other errors" do
+    it HANDLES_ERRORS do
       make_org("foo")
-      exception = Net::HTTPClientException.new("500 Error", double("response", :code => "500"))
+      exception = Net::HTTPClientException.new(ERROR_500, double("response", :code => "500"))
       allow(@rest).to receive(:post).and_raise(exception)
       expect(@knife.knife_ec_error_handler).to receive(:add).with(exception)
       @knife.add_users_to_org("foo")
@@ -376,7 +387,7 @@ describe Chef::Knife::EcImport do
       @knife.put_acl(@rest, "url", {"create" => ["same"]})
     end
     
-    it "handles errors" do
+    it HANDLES_ERRORS do
       allow(@rest).to receive(:get).and_raise(net_exception(500))
       expect(@error_handler).to receive(:add)
       @knife.put_acl(@rest, "url", {})
@@ -394,8 +405,8 @@ describe Chef::Knife::EcImport do
 
     it "freezes cookbook if status is frozen" do
       @knife.config[:skip_frozen_cookbook_status] = false
-      FileUtils.mkdir_p("/backup/organizations/foo/cookbooks/mycb-1.0.0")
-      File.write("/backup/organizations/foo/cookbooks/mycb-1.0.0/status.json", "{\"frozen\": true}")
+      FileUtils.mkdir_p(COOKBOOK_PATH)
+      File.write(STATUS_JSON_PATH, "{\"frozen\": true}")
       
       expect(@knife).to receive(:freeze_cookbook).with("mycb", "1.0.0", "foo")
       @knife.restore_cookbook_frozen_status("foo", nil)
@@ -403,8 +414,8 @@ describe Chef::Knife::EcImport do
 
     it "does not freeze if status is not frozen" do
       @knife.config[:skip_frozen_cookbook_status] = false
-      FileUtils.mkdir_p("/backup/organizations/foo/cookbooks/mycb-1.0.0")
-      File.write("/backup/organizations/foo/cookbooks/mycb-1.0.0/status.json", "{\"frozen\": false}")
+      FileUtils.mkdir_p(COOKBOOK_PATH)
+      File.write(STATUS_JSON_PATH, "{\"frozen\": false}")
       
       expect(@knife).not_to receive(:freeze_cookbook)
       @knife.restore_cookbook_frozen_status("foo", nil)
@@ -412,17 +423,17 @@ describe Chef::Knife::EcImport do
 
     it "handles JSON parse error" do
       @knife.config[:skip_frozen_cookbook_status] = false
-      FileUtils.mkdir_p("/backup/organizations/foo/cookbooks/mycb-1.0.0")
-      File.write("/backup/organizations/foo/cookbooks/mycb-1.0.0/status.json", "{invalid_json}")
+      FileUtils.mkdir_p(COOKBOOK_PATH)
+      File.write(STATUS_JSON_PATH, "{invalid_json}")
       
       expect(@knife.ui).to receive(:warn).with(/Failed to parse status.json/)
       @knife.restore_cookbook_frozen_status("foo", nil)
     end
 
-    it "handles other errors" do
+    it HANDLES_ERRORS do
       @knife.config[:skip_frozen_cookbook_status] = false
-      FileUtils.mkdir_p("/backup/organizations/foo/cookbooks/mycb-1.0.0")
-      File.write("/backup/organizations/foo/cookbooks/mycb-1.0.0/status.json", "{\"frozen\": true}")
+      FileUtils.mkdir_p(COOKBOOK_PATH)
+      File.write(STATUS_JSON_PATH, "{\"frozen\": true}")
       
       allow(@knife).to receive(:freeze_cookbook).and_raise("Boom")
       expect(@knife.ui).to receive(:warn).with(/Failed to restore frozen status/)
@@ -455,7 +466,7 @@ describe Chef::Knife::EcImport do
 
     it "skips if status.json missing" do
       @knife.config[:skip_frozen_cookbook_status] = false
-      FileUtils.mkdir_p("/backup/organizations/foo/cookbooks/mycb-1.0.0")
+      FileUtils.mkdir_p(COOKBOOK_PATH)
       
       expect(@knife).not_to receive(:freeze_cookbook)
       @knife.restore_cookbook_frozen_status("foo", nil)
@@ -464,18 +475,18 @@ describe Chef::Knife::EcImport do
 
   describe "#freeze_cookbook" do
     it "freezes the cookbook if not already frozen" do
-      allow(@rest).to receive(:get).and_return({"frozen?" => false})
-      expect(@rest).to receive(:put).with("organizations/foo/cookbooks/mycb/1.0.0?freeze=true", {"frozen?" => true})
+      allow(@rest).to receive(:get).and_return({FROZEN_KEY => false})
+      expect(@rest).to receive(:put).with("organizations/foo/cookbooks/mycb/1.0.0?freeze=true", {FROZEN_KEY => true})
       @knife.freeze_cookbook("mycb", "1.0.0", "foo")
     end
 
     it "skips if already frozen" do
-      allow(@rest).to receive(:get).and_return({"frozen?" => true})
+      allow(@rest).to receive(:get).and_return({FROZEN_KEY => true})
       expect(@rest).not_to receive(:put)
       @knife.freeze_cookbook("mycb", "1.0.0", "foo")
     end
 
-    it "handles errors" do
+    it HANDLES_ERRORS do
       allow(@rest).to receive(:get).and_raise(net_exception(500))
       expect(@error_handler).to receive(:add)
       expect(@knife.ui).to receive(:warn).with(/Failed to freeze cookbook/)
@@ -520,10 +531,10 @@ describe Chef::Knife::EcImport do
       allow(chef_fs_config).to receive(:local_fs).and_return(local_fs)
       
       remote_group = double("remote_group")
-      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, "/groups/foo.json").and_return(remote_group)
+      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, GROUPS_FOO_JSON).and_return(remote_group)
       
       local_group = double("local_group", :read => "[\"users\"]")
-      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, "/groups/foo.json").and_return(local_group)
+      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, GROUPS_FOO_JSON).and_return(local_group)
       
       expect(remote_group).to receive(:write).with("[\"users\"]")
       
@@ -537,10 +548,10 @@ describe Chef::Knife::EcImport do
       allow(chef_fs_config).to receive(:chef_fs).and_return(chef_fs)
       allow(chef_fs_config).to receive(:local_fs).and_return(local_fs)
       
-      remote_group = double("remote_group", :display_path => "/groups/foo.json")
-      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, "/groups/foo.json").and_return(remote_group)
+      remote_group = double("remote_group", :display_path => GROUPS_FOO_JSON)
+      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, GROUPS_FOO_JSON).and_return(remote_group)
       
-      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, "/groups/foo.json").and_raise(Chef::ChefFS::FileSystem::NotFoundError.new("oops", nil))
+      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, GROUPS_FOO_JSON).and_raise(Chef::ChefFS::FileSystem::NotFoundError.new("oops", nil))
       
       expect(Chef::Log).to receive(:warn)
       @knife.restore_group(chef_fs_config, "foo")
@@ -554,10 +565,10 @@ describe Chef::Knife::EcImport do
       allow(chef_fs_config).to receive(:local_fs).and_return(local_fs)
       
       remote_group = double("remote_group")
-      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, "/groups/foo.json").and_return(remote_group)
+      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, GROUPS_FOO_JSON).and_return(remote_group)
       
       local_group = double("local_group", :read => "[\"users\", \"clients\", \"other\"]")
-      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, "/groups/foo.json").and_return(local_group)
+      expect(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, GROUPS_FOO_JSON).and_return(local_group)
       
       # Default includes users and clients, so all should be there
       expect(remote_group).to receive(:write).with("[\"users\",\"clients\",\"other\"]")
@@ -573,10 +584,10 @@ describe Chef::Knife::EcImport do
       allow(chef_fs_config).to receive(:local_fs).and_return(local_fs)
       
       remote_group = double("remote_group")
-      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, "/groups/foo.json").and_return(remote_group)
+      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, GROUPS_FOO_JSON).and_return(remote_group)
       
       local_group = double("local_group", :read => "[\"users\", \"clients\"]")
-      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, "/groups/foo.json").and_return(local_group)
+      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, GROUPS_FOO_JSON).and_return(local_group)
       
       # Should filter out 'users' string? No, the code logic is:
       # member == 'users' if includes[:users]
@@ -665,10 +676,10 @@ describe Chef::Knife::EcImport do
       allow(chef_fs_config).to receive(:local_fs).and_return(local_fs)
       
       remote_group = double("remote_group")
-      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, "/groups/foo.json").and_return(remote_group)
+      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, GROUPS_FOO_JSON).and_return(remote_group)
       
       local_group = double("local_group", :read => "[\"users\", \"clients\"]")
-      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, "/groups/foo.json").and_return(local_group)
+      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, GROUPS_FOO_JSON).and_return(local_group)
       
       # If I pass {:users => false}, clients should default to true.
       # So it should write ["clients"].
