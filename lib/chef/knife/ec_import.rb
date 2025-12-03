@@ -362,8 +362,9 @@ class Chef
 
         # cookbook_entry is in format "cookbook_name-version"
         # Extract cookbook name and version
-        # Use non-greedy match and more specific pattern to avoid ReDoS
-        return unless cookbook_entry =~ /^(.+?)-(\d+\.\d+\.\d+(?:\..+)?)$/
+        # Use character class negation to prevent backtracking (ReDoS)
+        # Match: name-X.Y.Z or name-X.Y.Z.suffix (e.g., mycb-1.0.0 or mycb-1.0.0.beta1)
+        return unless cookbook_entry =~ /^([^-]+(?:-[^-]+)*?)-(\d+\.\d+\.\d+(?:\.[^.]+)*)$/
         
         cookbook_name = $1
         version = $2
