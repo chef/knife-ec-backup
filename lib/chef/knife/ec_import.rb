@@ -26,8 +26,79 @@ class Chef
       # Constants for duplicated strings
       PUBLIC_KEY_READ_ACCESS_JSON = 'public_key_read_access.json'
       FROZEN_STATUS_KEY = 'frozen?'
+      ADMIN_GROUPS = ['admins', 'billing-admins'].freeze
+      ADMIN_GROUP_FILES = ['billing-admins.json', 'public_key_read_access.json'].freeze
+      CONFLICT_STATUS = '409'
+      NOT_FOUND_STATUS = '404'
 
       deps do
+      end
+
+      # Helper method to read JSON file from backup directory
+      def read_json_file(path)
+        JSONCompat.from_json(File.read(path))
+      end
+
+      # Helper method to construct organization file path
+      def org_file_path(orgname, *path_parts)
+        File.join(dest_dir, 'organizations', orgname, *path_parts)
+      end
+
+      # Helper method to construct organization URL
+      def org_url(orgname, *path_parts)
+        path = path_parts.join('/')
+        path.empty? ? "organizations/#{orgname}" : "organizations/#{orgname}/#{path}"
+      end
+
+      # Helper method to construct cookbook URL
+      def cookbook_url(org_name, cookbook_name, version, params = nil)
+        url = org_url(org_name, 'cookbooks', cookbook_name, version)
+        params ? "#{url}?#{params}" : url
+      end
+
+      # Helper method to handle HTTP calls with conflict (409) tolerance
+      def http_request_ignore_conflicts(error_message = nil)
+        yield
+      rescue Net::HTTPClientException => ex
+        if ex.response.code != CONFLICT_STATUS
+          ui.error(error_message) if error_message
+          knife_ec_error_handler.add(ex)
+        end
+      end
+
+      # Helper method to create association request
+      def create_association_request(orgname, username)
+        rest.post(org_url(orgname, 'association_requests'), { 'user' => username })
+      end
+
+      # Helper method to accept association request
+      def accept_association_request(username, association_id)
+        rest.put("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
+      end
+
+      # Helper method to check if public key read access group exists
+      def public_key_read_access_exists?(chef_fs_config, type = 'groups')
+        ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths[type], 'groups', PUBLIC_KEY_READ_ACCESS_JSON))
+      end
+
+      # Helper method to list ChefFS entries with pattern and filter
+      def list_chef_fs_entries(chef_fs_config, pattern, exclude_files = [])
+        Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new(pattern))
+          .select { |entry| !exclude_files.include?(entry.name) }
+      end
+
+      # Helper method to get admin groups based on what exists
+      def get_admin_groups(chef_fs_config)
+        groups = ADMIN_GROUPS.dup
+        groups.push('public_key_read_access') if public_key_read_access_exists?(chef_fs_config, 'groups')
+        groups
+      end
+
+      # Helper method to get admin group ACL paths
+      def get_admin_group_acl_paths(chef_fs_config)
+        acl_paths = ['/acls/groups/billing-admins.json']
+        acl_paths.push('/acls/groups/public_key_read_access.json') if public_key_read_access_exists?(chef_fs_config, 'acls')
+        acl_paths
       end
 
       def run
@@ -68,43 +139,34 @@ class Chef
       end
 
       def organization_exists?(orgname)
-        begin
-          rest.get("organizations/#{orgname}")
-          true
-        rescue Net::HTTPClientException => ex
-          if ex.response.code == '404'
-            false
-          else
-            knife_ec_error_handler.add(ex)
-            false
-          end
+        rest.get(org_url(orgname))
+        true
+      rescue Net::HTTPClientException => ex
+        if ex.response.code == NOT_FOUND_STATUS
+          false
+        else
+          knife_ec_error_handler.add(ex)
+          false
         end
       end
 
       def restore_open_invitations(orgname)
-        invitations = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/invitations.json"))
+        invitations = read_json_file(org_file_path(orgname, 'invitations.json'))
         invitations.each do |invitation|
-          begin
-            rest.post("organizations/#{orgname}/association_requests", { 'user' => invitation['username'] })
-          rescue Net::HTTPClientException => ex
-            if ex.response.code != '409'
-              ui.error("Cannot create invitation #{invitation['id']}")
-              knife_ec_error_handler.add(ex)
-            end
+          http_request_ignore_conflicts("Cannot create invitation #{invitation['id']}") do
+            create_association_request(orgname, invitation['username'])
           end
         end
       end
 
       def add_users_to_org(orgname)
-        members = JSONCompat.from_json(File.read("#{dest_dir}/organizations/#{orgname}/members.json"))
+        members = read_json_file(org_file_path(orgname, 'members.json'))
         members.each do |member|
           username = member['user']['username']
-          begin
-            response = rest.post("organizations/#{orgname}/association_requests", { 'user' => username })
+          http_request_ignore_conflicts do
+            response = create_association_request(orgname, username)
             association_id = response['uri'].split('/').last
-            rest.put("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
-          rescue Net::HTTPClientException => ex
-            knife_ec_error_handler.add(ex) if ex.response.code != '409'
+            accept_association_request(username, association_id)
           end
         end
       end
@@ -112,7 +174,7 @@ class Chef
       def restore_user_acls
         ui.msg 'Restoring user ACLs'
         for_each_user do |name|
-          user_acl = JSONCompat.from_json(File.read("#{dest_dir}/user_acls/#{name}.json"))
+          user_acl = read_json_file(File.join(dest_dir, 'user_acls', "#{name}.json"))
           put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
         end
       end
@@ -160,17 +222,13 @@ class Chef
           chef_fs_config = Chef::ChefFS::Config.new
 
           # Handle Admins, Billing Admins and Public Key Read Access separately
-          groups = ['admins', 'billing-admins']
-          groups.push('public_key_read_access') if
-            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['groups'], PUBLIC_KEY_READ_ACCESS_JSON))
+          groups = get_admin_groups(chef_fs_config)
 
           groups.each do |group|
             restore_group(chef_fs_config, group, :clients => false)
           end
 
-          acls_groups_paths = ['/acls/groups/billing-admins.json']
-          acls_groups_paths.push('/acls/groups/public_key_read_access.json') if
-            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['acls'], 'groups', PUBLIC_KEY_READ_ACCESS_JSON))
+          acls_groups_paths = get_admin_group_acl_paths(chef_fs_config)
 
           acls_groups_paths.each do |acl|
             chef_fs_copy_pattern(acl, chef_fs_config)
@@ -188,12 +246,15 @@ class Chef
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
 
           # Topologically sort groups for upload
-          filenames = ['billing-admins.json', 'public_key_read_access.json']
-          unsorted_groups = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/groups/*')).select { |entry| ! filenames.include?(entry.name) }.map { |entry| JSON.parse(entry.read) }
+          unsorted_groups = list_chef_fs_entries(chef_fs_config, '/groups/*', ADMIN_GROUP_FILES)
+                              .map { |entry| JSON.parse(entry.read) }
           group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
 
-          group_acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/groups/*')).select { |entry| ! filenames.include?(entry.name) }.map { |entry| entry.path }
-          acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*')).select { |entry| entry.name != 'groups' }.map { |entry| entry.path }
+          group_acl_paths = list_chef_fs_entries(chef_fs_config, '/acls/groups/*', ADMIN_GROUP_FILES)
+                              .map { |entry| entry.path }
+          acl_paths = Chef::ChefFS::FileSystem.list(chef_fs_config.local_fs, Chef::ChefFS::FilePattern.new('/acls/*'))
+                        .select { |entry| entry.name != 'groups' }
+                        .map { |entry| entry.path }
 
           # Store organization data in a particular order:
           # - clients must be uploaded before groups (in top_level_paths)
@@ -282,35 +343,38 @@ class Chef
         return if config[:skip_frozen_cookbook_status]
 
         ui.msg 'Restoring cookbook frozen status'
-        cookbooks_path = "#{dest_dir}/organizations/#{org_name}/cookbooks"
+        cookbooks_path = org_file_path(org_name, 'cookbooks')
 
         return unless File.directory?(cookbooks_path)
 
         Dir.foreach(cookbooks_path) do |cookbook_entry|
           next if cookbook_entry == '.' || cookbook_entry == '..'
-          cookbook_path = File.join(cookbooks_path, cookbook_entry)
-          next unless File.directory?(cookbook_path)
+          
+          process_cookbook_frozen_status(cookbooks_path, cookbook_entry, org_name)
+        end
+      end
 
-          # cookbook_entry is in format "cookbook_name-version"
-          # Extract cookbook name and version
-          if cookbook_entry =~ /^(.+)-(\d+\.\d+\.\d+.*)$/
-            cookbook_name = $1
-            version = $2
+      def process_cookbook_frozen_status(cookbooks_path, cookbook_entry, org_name)
+        cookbook_path = File.join(cookbooks_path, cookbook_entry)
+        return unless File.directory?(cookbook_path)
 
-            status_file = File.join(cookbook_path, 'status.json')
-            next unless File.exist?(status_file)
+        # cookbook_entry is in format "cookbook_name-version"
+        # Extract cookbook name and version
+        return unless cookbook_entry =~ /^(.+)-(\d+\.\d+\.\d+.*)$/
+        
+        cookbook_name = $1
+        version = $2
 
-            begin
-              status_data = JSON.parse(File.read(status_file))
-              if status_data['frozen'] == true
-                freeze_cookbook(cookbook_name, version, org_name)
-              end
-            rescue JSON::ParserError => e
-              ui.warn "Failed to parse status.json for #{cookbook_name} #{version}: #{e.message}"
-            rescue => e
-              ui.warn "Failed to restore frozen status for #{cookbook_name} #{version}: #{e.message}"
-            end
-          end
+        status_file = File.join(cookbook_path, 'status.json')
+        return unless File.exist?(status_file)
+
+        begin
+          status_data = JSON.parse(File.read(status_file))
+          freeze_cookbook(cookbook_name, version, org_name) if status_data['frozen'] == true
+        rescue JSON::ParserError => e
+          ui.warn "Failed to parse status.json for #{cookbook_name} #{version}: #{e.message}"
+        rescue => e
+          ui.warn "Failed to restore frozen status for #{cookbook_name} #{version}: #{e.message}"
         end
       end
 
@@ -318,14 +382,15 @@ class Chef
         ui.msg "Freezing cookbook #{cookbook_name} version #{version}"
 
         # Get the current cookbook manifest
-        manifest = rest.get("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}")
+        manifest = rest.get(cookbook_url(org_name, cookbook_name, version))
 
         if manifest[FROZEN_STATUS_KEY] # Ignore if already frozen
           ui.warn "Freezing cookbook #{cookbook_name} version #{version} skipped since it is already frozen!"
           return
         end
 
-        rest.put("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}?freeze=true", manifest.tap { |h| h[FROZEN_STATUS_KEY] = true })
+        rest.put(cookbook_url(org_name, cookbook_name, version, 'freeze=true'), 
+                 manifest.tap { |h| h[FROZEN_STATUS_KEY] = true })
       rescue Net::HTTPClientException => ex
         ui.warn "Failed to freeze cookbook #{cookbook_name} #{version}: #{ex.message}"
         knife_ec_error_handler.add(ex)
