@@ -1,3 +1,6 @@
+require_relative '../tsorter'
+require_relative '../server'
+require 'securerandom' unless defined?(SecureRandom)
 require 'chef/knife'
 require_relative 'ec_base'
 require 'chef/json_compat'
@@ -6,14 +9,13 @@ require 'chef/chef_fs/file_system'
 require 'chef/chef_fs/file_pattern'
 require 'chef/chef_fs/command_line'
 require 'chef/chef_fs/data_handler/acl_data_handler'
-require 'securerandom' unless defined?(SecureRandom)
+
 begin
   require 'chef/chef_fs/parallelizer'
 rescue LoadError
   require 'chef-utils/parallel_map' unless defined?(ChefUtils::ParallelMap)
 end
-require_relative '../tsorter'
-require_relative '../server'
+
 
 class Chef
   class Knife
