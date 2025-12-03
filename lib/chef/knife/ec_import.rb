@@ -360,7 +360,8 @@ class Chef
 
         # cookbook_entry is in format "cookbook_name-version"
         # Extract cookbook name and version
-        return unless cookbook_entry =~ /^(.+)-(\d+\.\d+\.\d+.*)$/
+        # Use non-greedy match and more specific pattern to avoid ReDoS
+        return unless cookbook_entry =~ /^(.+?)-(\d+\.\d+\.\d+(?:\..+)?)$/
         
         cookbook_name = $1
         version = $2
