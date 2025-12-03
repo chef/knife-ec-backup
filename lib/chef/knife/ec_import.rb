@@ -1,5 +1,19 @@
 require 'chef/knife'
 require_relative 'ec_base'
+require 'chef/json_compat'
+require 'chef/chef_fs/config'
+require 'chef/chef_fs/file_system'
+require 'chef/chef_fs/file_pattern'
+require 'chef/chef_fs/command_line'
+require 'chef/chef_fs/data_handler/acl_data_handler'
+require 'securerandom' unless defined?(SecureRandom)
+begin
+  require 'chef/chef_fs/parallelizer'
+rescue LoadError
+  require 'chef-utils/parallel_map' unless defined?(ChefUtils::ParallelMap)
+end
+require_relative '../tsorter'
+require_relative '../server'
 
 class Chef
   class Knife
@@ -9,22 +23,11 @@ class Chef
 
       banner 'knife ec import DIRECTORY'
 
+      # Constants for duplicated strings
+      PUBLIC_KEY_READ_ACCESS_JSON = 'public_key_read_access.json'
+      FROZEN_STATUS_KEY = 'frozen?'
+
       deps do
-        require 'chef/json_compat'
-        require 'chef/chef_fs/config'
-        require 'chef/chef_fs/file_system'
-        require 'chef/chef_fs/file_pattern'
-        # Work around bug in chef_fs
-        require 'chef/chef_fs/command_line'
-        require 'chef/chef_fs/data_handler/acl_data_handler'
-        require 'securerandom' unless defined?(SecureRandom)
-        begin
-          require 'chef/chef_fs/parallelizer'
-        rescue LoadError
-          require 'chef-utils/parallel_map' unless defined?(ChefUtils::ParallelMap)
-        end
-        require_relative '../tsorter'
-        require_relative '../server'
       end
 
       def run
@@ -159,7 +162,7 @@ class Chef
           # Handle Admins, Billing Admins and Public Key Read Access separately
           groups = ['admins', 'billing-admins']
           groups.push('public_key_read_access') if
-            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['groups'], 'public_key_read_access.json'))
+            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['groups'], PUBLIC_KEY_READ_ACCESS_JSON))
 
           groups.each do |group|
             restore_group(chef_fs_config, group, :clients => false)
@@ -167,7 +170,7 @@ class Chef
 
           acls_groups_paths = ['/acls/groups/billing-admins.json']
           acls_groups_paths.push('/acls/groups/public_key_read_access.json') if
-            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['acls'], 'groups', 'public_key_read_access.json'))
+            ::File.exist?(::File.join(chef_fs_config.local_fs.child_paths['acls'], 'groups', PUBLIC_KEY_READ_ACCESS_JSON))
 
           acls_groups_paths.each do |acl|
             chef_fs_copy_pattern(acl, chef_fs_config)
@@ -261,7 +264,7 @@ class Chef
         ).read
 
         members = JSON.parse(members_json).select do |member|
-          if includes[:users] and includes[:clients]
+          if includes[:users] && includes[:clients]
             member
           elsif includes[:users]
             member == 'users'
@@ -317,12 +320,12 @@ class Chef
         # Get the current cookbook manifest
         manifest = rest.get("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}")
 
-        if manifest['frozen?'] # Ignore if already frozen
+        if manifest[FROZEN_STATUS_KEY] # Ignore if already frozen
           ui.warn "Freezing cookbook #{cookbook_name} version #{version} skipped since it is already frozen!"
           return
         end
 
-        rest.put("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}?freeze=true", manifest.tap { |h| h['frozen?'] = true })
+        rest.put("organizations/#{org_name}/cookbooks/#{cookbook_name}/#{version}?freeze=true", manifest.tap { |h| h[FROZEN_STATUS_KEY] = true })
       rescue Net::HTTPClientException => ex
         ui.warn "Failed to freeze cookbook #{cookbook_name} #{version}: #{ex.message}"
         knife_ec_error_handler.add(ex)
