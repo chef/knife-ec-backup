@@ -9,21 +9,22 @@ TEST_ORG_FOO = "organizations/foo"
 ERROR_500 = "500 Error"
 ASSOCIATION_REQUESTS_PATH = "organizations/foo/association_requests"
 HANDLES_ERRORS = "handles errors"
-COOKBOOK_PATH = "/backup/organizations/foo/cookbooks/mycb-1.0.0"
-STATUS_JSON_PATH = "/backup/organizations/foo/cookbooks/mycb-1.0.0/status.json"
+TEST_DEST_DIR = "/tmp/test_backup"
+COOKBOOK_PATH = "#{TEST_DEST_DIR}/organizations/foo/cookbooks/mycb-1.0.0"
+STATUS_JSON_PATH = "#{TEST_DEST_DIR}/organizations/foo/cookbooks/mycb-1.0.0/status.json"
 FROZEN_KEY = "frozen?"
 GROUPS_FOO_JSON = "/groups/foo.json"
 
-def make_user(username)
-  FileUtils.mkdir_p("/backup/users")
-  File.write("/backup/users/#{username}.json", "{\"username\": \"#{username}\"}")
+def make_user(username, dest_dir = TEST_DEST_DIR)
+  FileUtils.mkdir_p("#{dest_dir}/users")
+  File.write("#{dest_dir}/users/#{username}.json", "{\"username\": \"#{username}\"}")
 end
 
-def make_org(orgname)
-  FileUtils.mkdir_p("/backup/organizations/#{orgname}")
-  File.write("/backup/organizations/#{orgname}/org.json", "{\"name\": \"#{orgname}\"}")
-  File.write("/backup/organizations/#{orgname}/invitations.json", "[{\"username\": \"bob\"}, {\"username\": \"jane\"}]")
-  File.write("/backup/organizations/#{orgname}/members.json", "[{\"user\": {\"username\": \"bob\"}}]")
+def make_org(orgname, dest_dir = TEST_DEST_DIR)
+  FileUtils.mkdir_p("#{dest_dir}/organizations/#{orgname}")
+  File.write("#{dest_dir}/organizations/#{orgname}/org.json", "{\"name\": \"#{orgname}\"}")
+  File.write("#{dest_dir}/organizations/#{orgname}/invitations.json", "[{\"username\": \"bob\"}, {\"username\": \"jane\"}]")
+  File.write("#{dest_dir}/organizations/#{orgname}/members.json", "[{\"user\": {\"username\": \"bob\"}}]")
 end
 
 def net_exception(code)
@@ -40,7 +41,7 @@ describe Chef::Knife::EcImport do
     allow(@knife).to receive(:rest).and_return(@rest)
     allow(@knife).to receive(:user_acl_rest).and_return(@rest)
     allow(@knife).to receive(:ui).and_return(double('ui', :msg => nil, :error => nil, :warn => nil))
-    @dest_dir = "/backup"
+    @dest_dir = TEST_DEST_DIR
     allow(@knife).to receive(:dest_dir).and_return(@dest_dir)
     
     # Mock error handler
@@ -334,8 +335,8 @@ describe Chef::Knife::EcImport do
 
     it "restores ACLs for users" do
       make_user("bob")
-      FileUtils.mkdir_p("/backup/user_acls")
-      File.write("/backup/user_acls/bob.json", "{\"read\": true}")
+      FileUtils.mkdir_p("#{TEST_DEST_DIR}/user_acls")
+      File.write("#{TEST_DEST_DIR}/user_acls/bob.json", "{\"read\": true}")
       
       # Mock put_acl
       expect(@knife).to receive(:put_acl).with(@rest, "users/bob/_acl", {"read" => true})
@@ -442,15 +443,15 @@ describe Chef::Knife::EcImport do
 
     it "skips if cookbooks dir does not exist" do
       @knife.config[:skip_frozen_cookbook_status] = false
-      allow(File).to receive(:directory?).with("/backup/organizations/foo/cookbooks").and_return(false)
+      allow(File).to receive(:directory?).with("#{TEST_DEST_DIR}/organizations/foo/cookbooks").and_return(false)
       expect(Dir).not_to receive(:foreach)
       @knife.restore_cookbook_frozen_status("foo", nil)
     end
 
     it "skips non-directory entries" do
       @knife.config[:skip_frozen_cookbook_status] = false
-      FileUtils.mkdir_p("/backup/organizations/foo/cookbooks")
-      File.write("/backup/organizations/foo/cookbooks/file", "")
+      FileUtils.mkdir_p("#{TEST_DEST_DIR}/organizations/foo/cookbooks")
+      File.write("#{TEST_DEST_DIR}/organizations/foo/cookbooks/file", "")
       
       expect(@knife).not_to receive(:freeze_cookbook)
       @knife.restore_cookbook_frozen_status("foo", nil)
@@ -458,7 +459,7 @@ describe Chef::Knife::EcImport do
 
     it "skips entries not matching regex" do
       @knife.config[:skip_frozen_cookbook_status] = false
-      FileUtils.mkdir_p("/backup/organizations/foo/cookbooks/invalid_name")
+      FileUtils.mkdir_p("#{TEST_DEST_DIR}/organizations/foo/cookbooks/invalid_name")
       
       expect(@knife).not_to receive(:freeze_cookbook)
       @knife.restore_cookbook_frozen_status("foo", nil)
