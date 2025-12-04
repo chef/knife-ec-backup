@@ -15,19 +15,20 @@ STATUS_JSON_PATH = "#{TEST_DEST_DIR}/organizations/foo/cookbooks/mycb-1.0.0/stat
 FROZEN_KEY = "frozen?"
 GROUPS_FOO_JSON = "/groups/foo.json"
 
-def make_user(username, dest_dir = TEST_DEST_DIR)
+# Use unique method names to avoid conflicts with other spec files
+def make_import_user(username, dest_dir = TEST_DEST_DIR)
   FileUtils.mkdir_p("#{dest_dir}/users")
   File.write("#{dest_dir}/users/#{username}.json", "{\"username\": \"#{username}\"}")
 end
 
-def make_org(orgname, dest_dir = TEST_DEST_DIR)
+def make_import_org(orgname, dest_dir = TEST_DEST_DIR)
   FileUtils.mkdir_p("#{dest_dir}/organizations/#{orgname}")
   File.write("#{dest_dir}/organizations/#{orgname}/org.json", "{\"name\": \"#{orgname}\"}")
   File.write("#{dest_dir}/organizations/#{orgname}/invitations.json", "[{\"username\": \"bob\"}, {\"username\": \"jane\"}]")
   File.write("#{dest_dir}/organizations/#{orgname}/members.json", "[{\"user\": {\"username\": \"bob\"}}]")
 end
 
-def net_exception(code)
+def import_net_exception(code)
   s = double("status", :code => code.to_s)
   Net::HTTPServerException.new("I'm not real!", s)
 end
@@ -245,15 +246,24 @@ describe Chef::Knife::EcImport do
 
   describe "#for_each_organization" do
     include FakeFS::SpecHelpers
+    
+    before(:each) do
+      # Re-setup dest_dir mock after FakeFS activates
+      @dest_dir = TEST_DEST_DIR
+      allow(@knife).to receive(:dest_dir).and_return(@dest_dir)
+      # Ensure base directory structure exists in FakeFS
+      FileUtils.mkdir_p(TEST_DEST_DIR)
+    end
+    
     it "iterates over all organizations with a folder on disk" do
-      make_org("acme")
-      make_org("wombats")
+      make_import_org("acme")
+      make_import_org("wombats")
       expect{|b| @knife.for_each_organization &b }.to yield_successive_args("acme", "wombats")
     end
 
     it "only returns config[:org] when the option is specified" do
-      make_org("acme")
-      make_org("wombats")
+      make_import_org("acme")
+      make_import_org("wombats")
       @knife.config[:org] = "wombats"
       expect{|b| @knife.for_each_organization &b }.to yield_with_args("wombats")
     end
@@ -261,16 +271,25 @@ describe Chef::Knife::EcImport do
 
   describe "#for_each_user" do
     include FakeFS::SpecHelpers
+    
+    before(:each) do
+      # Re-setup dest_dir mock after FakeFS activates
+      @dest_dir = TEST_DEST_DIR
+      allow(@knife).to receive(:dest_dir).and_return(@dest_dir)
+      # Ensure base directory structure exists in FakeFS
+      FileUtils.mkdir_p(TEST_DEST_DIR)
+    end
+    
     it "iterates over all users with files on disk" do
-      make_user("bob")
-      make_user("jane")
+      make_import_user("bob")
+      make_import_user("jane")
       expect{|b| @knife.for_each_user &b }.to yield_successive_args("bob", "jane")
     end
 
     it "skips pivotal always" do
-      make_user("bob")
-      make_user("pivotal")
-      make_user("jane")
+      make_import_user("bob")
+      make_import_user("pivotal")
+      make_import_user("jane")
       expect{|b| @knife.for_each_user &b }.to yield_successive_args("bob", "jane")
     end
   end
@@ -278,15 +297,23 @@ describe Chef::Knife::EcImport do
   describe "#restore_open_invitations" do
     include FakeFS::SpecHelpers
 
+    before(:each) do
+      # Re-setup dest_dir mock after FakeFS activates
+      @dest_dir = TEST_DEST_DIR
+      allow(@knife).to receive(:dest_dir).and_return(@dest_dir)
+      # Ensure base directory structure exists in FakeFS
+      FileUtils.mkdir_p(TEST_DEST_DIR)
+    end
+
     it "posts invitation" do
-      make_org("foo")
+      make_import_org("foo")
       expect(@rest).to receive(:post).with(ASSOCIATION_REQUESTS_PATH, { 'user' => 'bob' })
       expect(@rest).to receive(:post).with(ASSOCIATION_REQUESTS_PATH, { 'user' => 'jane' })
       @knife.restore_open_invitations("foo")
     end
 
     it "ignores 409 conflict" do
-      make_org("foo")
+      make_import_org("foo")
       exception = Net::HTTPClientException.new("409 Conflict", double("response", :code => "409"))
       allow(@rest).to receive(:post).and_raise(exception)
       expect(@knife.knife_ec_error_handler).not_to receive(:add)
@@ -294,7 +321,7 @@ describe Chef::Knife::EcImport do
     end
 
     it "records other errors" do
-      make_org("foo")
+      make_import_org("foo")
       exception = Net::HTTPClientException.new(ERROR_500, double("response", :code => "500"))
       allow(@rest).to receive(:post).and_raise(exception)
       expect(@knife.ui).to receive(:error).with(/Cannot create invitation/)
@@ -306,15 +333,23 @@ describe Chef::Knife::EcImport do
   describe "#add_users_to_org" do
     include FakeFS::SpecHelpers
 
+    before(:each) do
+      # Re-setup dest_dir mock after FakeFS activates
+      @dest_dir = TEST_DEST_DIR
+      allow(@knife).to receive(:dest_dir).and_return(@dest_dir)
+      # Ensure base directory structure exists in FakeFS
+      FileUtils.mkdir_p(TEST_DEST_DIR)
+    end
+
     it "adds user and accepts invitation" do
-      make_org("foo")
+      make_import_org("foo")
       allow(@rest).to receive(:post).with(ASSOCIATION_REQUESTS_PATH, { 'user' => 'bob' }).and_return({"uri" => "http://server/assoc/123"})
       expect(@rest).to receive(:put).with("users/bob/association_requests/123", { 'response' => 'accept' })
       @knife.add_users_to_org("foo")
     end
 
     it "ignores 409 conflict" do
-      make_org("foo")
+      make_import_org("foo")
       exception = Net::HTTPClientException.new("409 Conflict", double("response", :code => "409"))
       allow(@rest).to receive(:post).and_raise(exception)
       expect(@knife.knife_ec_error_handler).not_to receive(:add)
@@ -322,7 +357,7 @@ describe Chef::Knife::EcImport do
     end
 
     it HANDLES_ERRORS do
-      make_org("foo")
+      make_import_org("foo")
       exception = Net::HTTPClientException.new(ERROR_500, double("response", :code => "500"))
       allow(@rest).to receive(:post).and_raise(exception)
       expect(@knife.knife_ec_error_handler).to receive(:add).with(exception)
@@ -333,8 +368,16 @@ describe Chef::Knife::EcImport do
   describe "#restore_user_acls" do
     include FakeFS::SpecHelpers
 
+    before(:each) do
+      # Re-setup dest_dir mock after FakeFS activates
+      @dest_dir = TEST_DEST_DIR
+      allow(@knife).to receive(:dest_dir).and_return(@dest_dir)
+      # Ensure base directory structure exists in FakeFS
+      FileUtils.mkdir_p(TEST_DEST_DIR)
+    end
+
     it "restores ACLs for users" do
-      make_user("bob")
+      make_import_user("bob")
       FileUtils.mkdir_p("#{TEST_DEST_DIR}/user_acls")
       File.write("#{TEST_DEST_DIR}/user_acls/bob.json", "{\"read\": true}")
       
@@ -389,7 +432,7 @@ describe Chef::Knife::EcImport do
     end
     
     it HANDLES_ERRORS do
-      allow(@rest).to receive(:get).and_raise(net_exception(500))
+      allow(@rest).to receive(:get).and_raise(import_net_exception(500))
       expect(@error_handler).to receive(:add)
       @knife.put_acl(@rest, "url", {})
     end
@@ -488,7 +531,7 @@ describe Chef::Knife::EcImport do
     end
 
     it HANDLES_ERRORS do
-      allow(@rest).to receive(:get).and_raise(net_exception(500))
+      allow(@rest).to receive(:get).and_raise(import_net_exception(500))
       expect(@error_handler).to receive(:add)
       expect(@knife.ui).to receive(:warn).with(/Failed to freeze cookbook/)
       @knife.freeze_cookbook("mycb", "1.0.0", "foo")
