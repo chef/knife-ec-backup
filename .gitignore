@@ -5,3 +5,6 @@ coverage
 *.gem
 results/
 Gemfile.lock
+
+.idea
+.vscode
