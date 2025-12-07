@@ -271,6 +271,34 @@ Restores all data from the specified DEST_DIR to a Chef Infra Server. DEST_DIR s
   * `--skip-frozen-cookbook-status`:
     Skip restoring cookbook frozen status. When this option is used, any `status.json` files in the backup will be ignored and cookbook frozen status will not be applied during restore. (default: false)
 
+### knife ec import DIRECTORY (options)
+
+Imports Chef objects (cookbooks, roles, nodes, etc.) into **existing** organizations from the specified DIRECTORY. This command is designed for environments where identity (users and organizations) is managed externally (e.g., by IAM in Chef 360 DSM).
+
+Unlike `restore`, this command:
+- Does **NOT** create users
+- Does **NOT** create organizations (validates they exist)
+- Does **NOT** import user passwords or keys
+- Does **NOT** support direct database access (`--with-user-sql` / `--with-key-sql`)
+
+*Options*
+
+  * `--concurrency THREAD_COUNT`:
+    The maximum number of concurrent requests to make to the Chef
+    Server. (default: 10)
+
+  * `--webui-key`:
+    Used to set the path to the WebUI Key (default: /etc/opscode/webui_priv.pem)
+
+  * `--skip-useracl`:
+    Skip restoring User ACLs.
+
+  * `--only-org ORG`:
+    Only import objects in the named organization.
+
+  * `--skip-frozen-cookbook-status`:
+    Skip restoring cookbook frozen status.
+
 ### knife ec key export [FILENAME]
 
 Create a json representation of the users table from the Chef Infra Server
