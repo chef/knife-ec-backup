@@ -1,5 +1,6 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec_helper"))
 require 'chef/knife/ec_base'
+require 'chef'
 require 'chef/knife'
 require 'chef/config'
 require 'stringio' unless defined?(StringIO)
