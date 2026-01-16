@@ -311,3 +311,6 @@ This can be useful when migrating between Chef Infra Server versions that may ha
   concurrency bug in Chef Infra Server. Setting `--concurrency 1` can often
   work around the issue.
 
+# Copyright
+
+See [COPYRIGHT.md](./COPYRIGHT.md).
