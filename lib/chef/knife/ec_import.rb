@@ -33,6 +33,10 @@ class Chef
       CONFLICT_STATUS = '409'
       NOT_FOUND_STATUS = '404'
 
+      option :tenant_id_header,
+        :long => '--tenant-id TENANT_ID',
+        :description => 'Tenant identifier added as X-Tenant-Id header for import requests'
+
       deps do
       end
 
@@ -103,6 +107,29 @@ class Chef
         acl_paths
       end
 
+      # Override set_skip_user_acl! to avoid calling server.version
+      def set_skip_user_acl!
+        # Skip user ACLs only if explicitly requested via --skip-useracl flag
+        # Default behavior: assume user ACLs are supported
+        config[:skip_useracl] ||= false
+      end
+
+      # Override user_acl_rest to avoid calling server.version
+      def user_acl_rest
+        @user_acl_rest ||= rest
+      end
+
+      # Override rest to append the tenant header when provided
+      def rest
+        @rest ||= begin
+          options = { :api_version => "0" }
+          if config[:tenant_id_header]
+            options[:headers] = { 'Tenant-Id' => config[:tenant_id_header] }
+          end
+          Chef::ServerAPI.new(server.root_url, options)
+        end
+      end
+
       def run
         set_dest_dir_from_args!
         set_client_config!
@@ -165,6 +192,7 @@ class Chef
         members = read_json_file(org_file_path(orgname, 'members.json'))
         members.each do |member|
           username = member['user']['username']
+          next if username == 'pivotal'
           http_request_ignore_conflicts do
             response = create_association_request(orgname, username)
             association_id = response['uri'].split('/').last
