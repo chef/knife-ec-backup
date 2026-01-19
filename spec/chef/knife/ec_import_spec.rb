@@ -33,6 +33,135 @@ def import_net_exception(code)
   Net::HTTPServerException.new("I'm not real!", s)
 end
 
+describe TenantIdMiddleware do
+  before(:each) do
+    TenantIdMiddleware.tenant_id = nil
+  end
+
+  after(:each) do
+    TenantIdMiddleware.tenant_id = nil
+  end
+
+  describe ".tenant_id" do
+    it "allows setting and getting tenant_id" do
+      TenantIdMiddleware.tenant_id = "test-tenant-123"
+      expect(TenantIdMiddleware.tenant_id).to eq("test-tenant-123")
+    end
+  end
+
+  describe "#handle_request" do
+    it "adds Tenant-Id header when tenant_id is set" do
+      TenantIdMiddleware.tenant_id = "my-tenant-id"
+      middleware = TenantIdMiddleware.new
+      
+      method, url, headers, data = middleware.handle_request(:get, "http://example.com", {}, nil)
+      
+      expect(headers['Tenant-Id']).to eq("my-tenant-id")
+      expect(method).to eq(:get)
+      expect(url).to eq("http://example.com")
+    end
+
+    it "does not add Tenant-Id header when tenant_id is nil" do
+      TenantIdMiddleware.tenant_id = nil
+      middleware = TenantIdMiddleware.new
+      
+      method, url, headers, data = middleware.handle_request(:get, "http://example.com", {}, nil)
+      
+      expect(headers).not_to have_key('Tenant-Id')
+    end
+
+    it "preserves existing headers" do
+      TenantIdMiddleware.tenant_id = "tenant-abc"
+      middleware = TenantIdMiddleware.new
+      
+      method, url, headers, data = middleware.handle_request(:post, "http://example.com", {'Content-Type' => 'application/json'}, "body")
+      
+      expect(headers['Content-Type']).to eq('application/json')
+      expect(headers['Tenant-Id']).to eq("tenant-abc")
+      expect(data).to eq("body")
+    end
+  end
+
+  describe "#handle_response" do
+    it "passes through response unchanged" do
+      middleware = TenantIdMiddleware.new
+      http_response = double("response")
+      rest_request = double("request")
+      return_value = "result"
+      
+      result = middleware.handle_response(http_response, rest_request, return_value)
+      
+      expect(result).to eq([http_response, rest_request, return_value])
+    end
+  end
+
+  describe "#handle_stream_complete" do
+    it "passes through stream complete unchanged" do
+      middleware = TenantIdMiddleware.new
+      http_response = double("response")
+      rest_request = double("request")
+      return_value = "result"
+      
+      result = middleware.handle_stream_complete(http_response, rest_request, return_value)
+      
+      expect(result).to eq([http_response, rest_request, return_value])
+    end
+  end
+end
+
+describe ServerAPIWithTenantHeader do
+  let(:server_api) { double('Chef::ServerAPI') }
+  let(:tenant_id) { "test-tenant-uuid" }
+  let(:wrapper) { ServerAPIWithTenantHeader.new(server_api, tenant_id) }
+
+  describe "#get" do
+    it "adds Tenant-Id header to GET requests" do
+      expect(server_api).to receive(:get).with("/path", {'Tenant-Id' => tenant_id})
+      wrapper.get("/path")
+    end
+
+    it "merges Tenant-Id with existing headers" do
+      expect(server_api).to receive(:get).with("/path", {'Accept' => 'application/json', 'Tenant-Id' => tenant_id})
+      wrapper.get("/path", {'Accept' => 'application/json'})
+    end
+  end
+
+  describe "#post" do
+    it "adds Tenant-Id header to POST requests" do
+      expect(server_api).to receive(:post).with("/path", {data: "test"}, {'Tenant-Id' => tenant_id})
+      wrapper.post("/path", {data: "test"})
+    end
+  end
+
+  describe "#put" do
+    it "adds Tenant-Id header to PUT requests" do
+      expect(server_api).to receive(:put).with("/path", {data: "test"}, {'Tenant-Id' => tenant_id})
+      wrapper.put("/path", {data: "test"})
+    end
+  end
+
+  describe "#delete" do
+    it "adds Tenant-Id header to DELETE requests" do
+      expect(server_api).to receive(:delete).with("/path", {'Tenant-Id' => tenant_id})
+      wrapper.delete("/path")
+    end
+  end
+
+  describe "#method_missing" do
+    it "delegates unknown methods to underlying server_api" do
+      expect(server_api).to receive(:some_other_method).with("arg1", "arg2")
+      wrapper.some_other_method("arg1", "arg2")
+    end
+  end
+
+  describe "#respond_to_missing?" do
+    it "returns true for methods the server_api responds to" do
+      allow(server_api).to receive(:respond_to?).with(:custom_method, false).and_return(true)
+      expect(wrapper.respond_to?(:custom_method)).to be true
+    end
+  end
+end
+
 describe Chef::Knife::EcImport do
 
   before(:each) do
@@ -53,6 +182,18 @@ describe Chef::Knife::EcImport do
     
     # Mock JSONCompat to avoid yajl issues
     allow(Chef::JSONCompat).to receive(:from_json) { |json| JSON.parse(json) }
+  end
+
+  describe "--tenant-id option" do
+    it "has the tenant_id_header option defined" do
+      expect(Chef::Knife::EcImport.options).to have_key(:tenant_id_header)
+    end
+
+    it "accepts tenant-id as a CLI option" do
+      knife = Chef::Knife::EcImport.new(['--tenant-id', 'my-tenant-uuid'])
+      knife.parse_options(['--tenant-id', 'my-tenant-uuid'])
+      expect(knife.config[:tenant_id_header]).to eq('my-tenant-uuid')
+    end
   end
 
   describe "#run" do
@@ -204,11 +345,12 @@ describe Chef::Knife::EcImport do
       expect(Chef::Config).to have_received(:node_name=).with("pivotal")
     end
 
-    it "uses org_admin if pivotal not supported" do
+    it "uses pivotal by default when not skip_version (version check bypassed)" do
       @knife.config[:skip_version] = false
-      allow(@knife.server).to receive(:supports_defaulting_to_pivotal?).and_return(false)
+      # Note: The code now defaults to 'pivotal' without version checking
+      # because server.supports_defaulting_to_pivotal? can trigger version endpoint issues
       @knife.upload_org_data("foo")
-      expect(Chef::Config).to have_received(:node_name=).with("admin")
+      expect(Chef::Config).to have_received(:node_name=).with("pivotal")
     end
 
     it "skips public_key_read_access if not present" do

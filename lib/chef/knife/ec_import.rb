@@ -9,11 +9,81 @@ require 'chef/chef_fs/file_system'
 require 'chef/chef_fs/file_pattern'
 require 'chef/chef_fs/command_line'
 require 'chef/chef_fs/data_handler/acl_data_handler'
+require 'chef/http'
 
 begin
   require 'chef/chef_fs/parallelizer'
 rescue LoadError
   require 'chef-utils/parallel_map' unless defined?(ChefUtils::ParallelMap)
+end
+
+# Global HTTP middleware to inject Tenant-Id header into every HTTP request
+# This middleware is added to Chef::HTTP's middleware stack globally
+class TenantIdMiddleware
+  class << self
+    attr_accessor :tenant_id
+  end
+
+  def initialize(opts = {})
+    @opts = opts
+  end
+
+  def handle_request(method, url, headers = {}, data = false)
+    if TenantIdMiddleware.tenant_id
+      headers['Tenant-Id'] = TenantIdMiddleware.tenant_id
+    end
+    [method, url, headers, data]
+  end
+
+  def handle_response(http_response, rest_request, return_value)
+    [http_response, rest_request, return_value]
+  end
+
+  def handle_stream_complete(http_response, rest_request, return_value)
+    [http_response, rest_request, return_value]
+  end
+end
+
+# Module to inject the TenantIdMiddleware into Chef::HTTP's initialize
+module TenantIdMiddlewareInjector
+  def initialize(url, options = {})
+    super
+    # Add our middleware at the beginning so it runs first
+    @middlewares.unshift(TenantIdMiddleware.new(options)) unless @middlewares.any? { |m| m.is_a?(TenantIdMiddleware) }
+  end
+end
+
+# Wrapper class to inject Tenant-Id header into every HTTP request
+class ServerAPIWithTenantHeader
+  def initialize(server_api, tenant_id)
+    @server_api = server_api
+    @tenant_id = tenant_id
+  end
+
+  def get(path, headers = {})
+    @server_api.get(path, headers.merge('Tenant-Id' => @tenant_id))
+  end
+
+  def post(path, data, headers = {})
+    @server_api.post(path, data, headers.merge('Tenant-Id' => @tenant_id))
+  end
+
+  def put(path, data, headers = {})
+    @server_api.put(path, data, headers.merge('Tenant-Id' => @tenant_id))
+  end
+
+  def delete(path, headers = {})
+    @server_api.delete(path, headers.merge('Tenant-Id' => @tenant_id))
+  end
+
+  # Delegate any other methods to the underlying server_api
+  def method_missing(method, *args, &block)
+    @server_api.send(method, *args, &block)
+  end
+
+  def respond_to_missing?(method, include_private = false)
+    @server_api.respond_to?(method, include_private) || super
+  end
 end
 
 
@@ -122,11 +192,12 @@ class Chef
       # Override rest to append the tenant header when provided
       def rest
         @rest ||= begin
-          options = { :api_version => "0" }
+          client = Chef::ServerAPI.new(server.root_url, { :api_version => "0" })
           if config[:tenant_id_header]
-            options[:headers] = { 'Tenant-Id' => config[:tenant_id_header] }
+            ServerAPIWithTenantHeader.new(client, config[:tenant_id_header])
+          else
+            client
           end
-          Chef::ServerAPI.new(server.root_url, options)
         end
       end
 
@@ -135,6 +206,13 @@ class Chef
         set_client_config!
         ensure_webui_key_exists!
         set_skip_user_acl!
+
+        # Set up global tenant ID middleware if tenant-id is provided
+        if config[:tenant_id_header]
+          TenantIdMiddleware.tenant_id = config[:tenant_id_header]
+          # Prepend middleware to Chef::HTTP so it runs for ALL HTTP requests
+          Chef::HTTP.send(:prepend, TenantIdMiddlewareInjector)
+        end
 
         warn_on_incorrect_clients_group(dest_dir, 'import')
 
@@ -264,11 +342,9 @@ class Chef
             chef_fs_copy_pattern(acl, chef_fs_config)
           end
 
-          Chef::Config.node_name = if config[:skip_version]
-                                     org_admin
-                                   else
-                                     server.supports_defaulting_to_pivotal? ? 'pivotal' : org_admin
-                                   end
+          # For import command, we default to using 'pivotal' as node_name
+          # since we assume modern Chef Server (version check is skipped)
+          Chef::Config.node_name = config[:skip_version] ? org_admin : 'pivotal'
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
           ui.msg 'Restoring the rest of the org'
