@@ -9,83 +9,12 @@ require 'chef/chef_fs/file_system'
 require 'chef/chef_fs/file_pattern'
 require 'chef/chef_fs/command_line'
 require 'chef/chef_fs/data_handler/acl_data_handler'
-require 'chef/http'
 
 begin
   require 'chef/chef_fs/parallelizer'
 rescue LoadError
   require 'chef-utils/parallel_map' unless defined?(ChefUtils::ParallelMap)
 end
-
-# Global HTTP middleware to inject Tenant-Id header into every HTTP request
-# This middleware is added to Chef::HTTP's middleware stack globally
-class TenantIdMiddleware
-  class << self
-    attr_accessor :tenant_id
-  end
-
-  def initialize(opts = {})
-    @opts = opts
-  end
-
-  def handle_request(method, url, headers = {}, data = false)
-    if TenantIdMiddleware.tenant_id
-      headers['Tenant-Id'] = TenantIdMiddleware.tenant_id
-    end
-    [method, url, headers, data]
-  end
-
-  def handle_response(http_response, rest_request, return_value)
-    [http_response, rest_request, return_value]
-  end
-
-  def handle_stream_complete(http_response, rest_request, return_value)
-    [http_response, rest_request, return_value]
-  end
-end
-
-# Module to inject the TenantIdMiddleware into Chef::HTTP's initialize
-module TenantIdMiddlewareInjector
-  def initialize(url, options = {})
-    super
-    # Add our middleware at the beginning so it runs first
-    @middlewares.unshift(TenantIdMiddleware.new(options)) unless @middlewares.any? { |m| m.is_a?(TenantIdMiddleware) }
-  end
-end
-
-# Wrapper class to inject Tenant-Id header into every HTTP request
-class ServerAPIWithTenantHeader
-  def initialize(server_api, tenant_id)
-    @server_api = server_api
-    @tenant_id = tenant_id
-  end
-
-  def get(path, headers = {})
-    @server_api.get(path, headers.merge('Tenant-Id' => @tenant_id))
-  end
-
-  def post(path, data, headers = {})
-    @server_api.post(path, data, headers.merge('Tenant-Id' => @tenant_id))
-  end
-
-  def put(path, data, headers = {})
-    @server_api.put(path, data, headers.merge('Tenant-Id' => @tenant_id))
-  end
-
-  def delete(path, headers = {})
-    @server_api.delete(path, headers.merge('Tenant-Id' => @tenant_id))
-  end
-
-  # Delegate any other methods to the underlying server_api
-  def method_missing(method, *args, &block)
-    @server_api.send(method, *args, &block)
-  end
-
-  def respond_to_missing?(method, include_private = false)
-    @server_api.respond_to?(method, include_private) || super
-  end
-end
-
 
 class Chef
   class Knife
@@ -177,6 +106,14 @@ class Chef
         acl_paths
       end
 
+      # Override set_client_config! to add Tenant-Id header when provided
+      def set_client_config!
+        super
+        if config[:tenant_id_header]
+          Chef::Config.custom_http_headers = (Chef::Config.custom_http_headers || {}).merge({'Tenant-Id' => config[:tenant_id_header]})
+        end
+      end
+
       # Override set_skip_user_acl! to avoid calling server.version
       def set_skip_user_acl!
         # Skip user ACLs only if explicitly requested via --skip-useracl flag
@@ -189,30 +126,11 @@ class Chef
         @user_acl_rest ||= rest
       end
 
-      # Override rest to append the tenant header when provided
-      def rest
-        @rest ||= begin
-          client = Chef::ServerAPI.new(server.root_url, { :api_version => "0" })
-          if config[:tenant_id_header]
-            ServerAPIWithTenantHeader.new(client, config[:tenant_id_header])
-          else
-            client
-          end
-        end
-      end
-
       def run
         set_dest_dir_from_args!
         set_client_config!
         ensure_webui_key_exists!
         set_skip_user_acl!
-
-        # Set up global tenant ID middleware if tenant-id is provided
-        if config[:tenant_id_header]
-          TenantIdMiddleware.tenant_id = config[:tenant_id_header]
-          # Prepend middleware to Chef::HTTP so it runs for ALL HTTP requests
-          Chef::HTTP.send(:prepend, TenantIdMiddlewareInjector)
-        end
 
         warn_on_incorrect_clients_group(dest_dir, 'import')
 
@@ -220,7 +138,7 @@ class Chef
         # We assume users already exist (managed by IAM)
 
         for_each_organization do |orgname|
-          ui.msg "Importing organization[#{orgname}]"
+          ui.msg "Verifying organization[#{orgname}]"
           
           # Unlike restore, we do NOT create the organization
           # We validate it exists instead

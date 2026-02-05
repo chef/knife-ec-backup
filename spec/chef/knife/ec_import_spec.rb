@@ -33,135 +33,6 @@ def import_net_exception(code)
   Net::HTTPServerException.new("I'm not real!", s)
 end
 
-describe TenantIdMiddleware do
-  before(:each) do
-    TenantIdMiddleware.tenant_id = nil
-  end
-
-  after(:each) do
-    TenantIdMiddleware.tenant_id = nil
-  end
-
-  describe ".tenant_id" do
-    it "allows setting and getting tenant_id" do
-      TenantIdMiddleware.tenant_id = "test-tenant-123"
-      expect(TenantIdMiddleware.tenant_id).to eq("test-tenant-123")
-    end
-  end
-
-  describe "#handle_request" do
-    it "adds Tenant-Id header when tenant_id is set" do
-      TenantIdMiddleware.tenant_id = "my-tenant-id"
-      middleware = TenantIdMiddleware.new
-      
-      method, url, headers, data = middleware.handle_request(:get, "http://example.com", {}, nil)
-      
-      expect(headers['Tenant-Id']).to eq("my-tenant-id")
-      expect(method).to eq(:get)
-      expect(url).to eq("http://example.com")
-    end
-
-    it "does not add Tenant-Id header when tenant_id is nil" do
-      TenantIdMiddleware.tenant_id = nil
-      middleware = TenantIdMiddleware.new
-      
-      method, url, headers, data = middleware.handle_request(:get, "http://example.com", {}, nil)
-      
-      expect(headers).not_to have_key('Tenant-Id')
-    end
-
-    it "preserves existing headers" do
-      TenantIdMiddleware.tenant_id = "tenant-abc"
-      middleware = TenantIdMiddleware.new
-      
-      method, url, headers, data = middleware.handle_request(:post, "http://example.com", {'Content-Type' => 'application/json'}, "body")
-      
-      expect(headers['Content-Type']).to eq('application/json')
-      expect(headers['Tenant-Id']).to eq("tenant-abc")
-      expect(data).to eq("body")
-    end
-  end
-
-  describe "#handle_response" do
-    it "passes through response unchanged" do
-      middleware = TenantIdMiddleware.new
-      http_response = double("response")
-      rest_request = double("request")
-      return_value = "result"
-      
-      result = middleware.handle_response(http_response, rest_request, return_value)
-      
-      expect(result).to eq([http_response, rest_request, return_value])
-    end
-  end
-
-  describe "#handle_stream_complete" do
-    it "passes through stream complete unchanged" do
-      middleware = TenantIdMiddleware.new
-      http_response = double("response")
-      rest_request = double("request")
-      return_value = "result"
-      
-      result = middleware.handle_stream_complete(http_response, rest_request, return_value)
-      
-      expect(result).to eq([http_response, rest_request, return_value])
-    end
-  end
-end
-
-describe ServerAPIWithTenantHeader do
-  let(:server_api) { double('Chef::ServerAPI') }
-  let(:tenant_id) { "test-tenant-uuid" }
-  let(:wrapper) { ServerAPIWithTenantHeader.new(server_api, tenant_id) }
-
-  describe "#get" do
-    it "adds Tenant-Id header to GET requests" do
-      expect(server_api).to receive(:get).with("/path", {'Tenant-Id' => tenant_id})
-      wrapper.get("/path")
-    end
-
-    it "merges Tenant-Id with existing headers" do
-      expect(server_api).to receive(:get).with("/path", {'Accept' => 'application/json', 'Tenant-Id' => tenant_id})
-      wrapper.get("/path", {'Accept' => 'application/json'})
-    end
-  end
-
-  describe "#post" do
-    it "adds Tenant-Id header to POST requests" do
-      expect(server_api).to receive(:post).with("/path", {data: "test"}, {'Tenant-Id' => tenant_id})
-      wrapper.post("/path", {data: "test"})
-    end
-  end
-
-  describe "#put" do
-    it "adds Tenant-Id header to PUT requests" do
-      expect(server_api).to receive(:put).with("/path", {data: "test"}, {'Tenant-Id' => tenant_id})
-      wrapper.put("/path", {data: "test"})
-    end
-  end
-
-  describe "#delete" do
-    it "adds Tenant-Id header to DELETE requests" do
-      expect(server_api).to receive(:delete).with("/path", {'Tenant-Id' => tenant_id})
-      wrapper.delete("/path")
-    end
-  end
-
-  describe "#method_missing" do
-    it "delegates unknown methods to underlying server_api" do
-      expect(server_api).to receive(:some_other_method).with("arg1", "arg2")
-      wrapper.some_other_method("arg1", "arg2")
-    end
-  end
-
-  describe "#respond_to_missing?" do
-    it "returns true for methods the server_api responds to" do
-      allow(server_api).to receive(:respond_to?).with(:custom_method, false).and_return(true)
-      expect(wrapper.respond_to?(:custom_method)).to be true
-    end
-  end
-end
-
 describe Chef::Knife::EcImport do
 
   before(:each) do
@@ -193,6 +64,52 @@ describe Chef::Knife::EcImport do
       knife = Chef::Knife::EcImport.new(['--tenant-id', 'my-tenant-uuid'])
       knife.parse_options(['--tenant-id', 'my-tenant-uuid'])
       expect(knife.config[:tenant_id_header]).to eq('my-tenant-uuid')
+    end
+  end
+
+  describe "#set_client_config!" do
+    before do
+      allow(@knife).to receive(:webui_key).and_return('/path/to/webui_priv.pem')
+      allow(@knife).to receive(:server).and_return(double('server', :root_url => 'https://chef.example.com'))
+      # Clear any existing custom headers
+      Chef::Config.custom_http_headers = nil
+    end
+
+    after do
+      # Clean up custom headers after each test
+      Chef::Config.custom_http_headers = nil
+    end
+
+    it "adds Tenant-Id header when tenant_id_header config is set" do
+      @knife.config[:tenant_id_header] = 'my-tenant-uuid'
+      @knife.set_client_config!
+      
+      expect(Chef::Config.custom_http_headers).to include('Tenant-Id' => 'my-tenant-uuid')
+    end
+
+    it "does not add Tenant-Id header when tenant_id_header config is not set" do
+      @knife.config[:tenant_id_header] = nil
+      @knife.set_client_config!
+      
+      if Chef::Config.custom_http_headers
+        expect(Chef::Config.custom_http_headers).not_to have_key('Tenant-Id')
+      end
+    end
+
+    it "preserves existing custom headers when adding Tenant-Id" do
+      Chef::Config.custom_http_headers = {'X-Custom-Header' => 'custom-value'}
+      @knife.config[:tenant_id_header] = 'my-tenant-uuid'
+      @knife.set_client_config!
+      
+      expect(Chef::Config.custom_http_headers).to include('X-Custom-Header' => 'custom-value')
+      expect(Chef::Config.custom_http_headers).to include('Tenant-Id' => 'my-tenant-uuid')
+    end
+
+    it "includes x-ops-request-source header from parent" do
+      @knife.config[:tenant_id_header] = 'my-tenant-uuid'
+      @knife.set_client_config!
+      
+      expect(Chef::Config.custom_http_headers).to include('x-ops-request-source' => 'web')
     end
   end
 
