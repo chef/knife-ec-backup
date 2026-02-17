@@ -264,6 +264,22 @@ describe Chef::Knife::EcImport do
       expect(Chef::Config).to have_received(:node_name=).with("pivotal")
     end
 
+    it "excludes members.json and invitations.json from top-level upload" do
+      # Mock top-level entries including members.json and invitations.json
+      nodes_entry = double("nodes_entry", :name => "nodes", :path => NODES_PATH)
+      members_entry = double("members_entry", :name => "members.json", :path => "/members.json")
+      invitations_entry = double("invitations_entry", :name => "invitations.json", :path => "/invitations.json")
+
+      allow(@local_fs).to receive(:children).and_return([nodes_entry, members_entry, invitations_entry])
+
+      @knife.upload_org_data("foo")
+
+      # Verify nodes are uploaded but members and invitations are NOT
+      expect(@knife).to have_received(:chef_fs_copy_pattern).with(NODES_PATH, @chef_fs_config)
+      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/members.json", @chef_fs_config)
+      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/invitations.json", @chef_fs_config)
+    end
+
     it "skips public_key_read_access if not present" do
       allow(File).to receive(:exist?).and_return(false)
       @knife.upload_org_data("foo")

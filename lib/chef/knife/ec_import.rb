@@ -225,7 +225,10 @@ class Chef
           # Restore the entire org skipping the admin data and restoring groups and acls last
           ui.msg 'Restoring the rest of the org'
           chef_fs_config = Chef::ChefFS::Config.new
-          top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
+          # Exclude acls, groups (handled separately), and members/invitations
+          # (user-org membership is managed by the platform, not by import)
+          skip_entries = %w(acls groups members.json invitations.json)
+          top_level_paths = chef_fs_config.local_fs.children.select { |entry| !skip_entries.include?(entry.name) }.map { |entry| entry.path }
 
           # Topologically sort groups for upload
           unsorted_groups = list_chef_fs_entries(chef_fs_config, '/groups/*', ADMIN_GROUP_FILES)
