@@ -7,7 +7,6 @@ require 'net/http'
 NODES_PATH = "/nodes"
 TEST_ORG_FOO = "organizations/foo"
 ERROR_500 = "500 Error"
-ASSOCIATION_REQUESTS_PATH = "organizations/foo/association_requests"
 HANDLES_ERRORS = "handles errors"
 TEST_DEST_DIR = "/tmp/test_backup"
 COOKBOOK_PATH = "#{TEST_DEST_DIR}/organizations/foo/cookbooks/mycb-1.0.0"
@@ -123,8 +122,6 @@ describe Chef::Knife::EcImport do
       allow(@knife).to receive(:completion_banner)
       allow(@knife).to receive(:for_each_organization).and_yield("org1")
       allow(@knife).to receive(:organization_exists?).and_return(true)
-      allow(@knife).to receive(:restore_open_invitations)
-      allow(@knife).to receive(:add_users_to_org)
       allow(@knife).to receive(:upload_org_data)
       allow(@knife).to receive(:restore_user_acls)
     end
@@ -133,8 +130,6 @@ describe Chef::Knife::EcImport do
       @knife.run
       expect(@knife).to have_received(:for_each_organization)
       expect(@knife).to have_received(:organization_exists?).with("org1")
-      expect(@knife).to have_received(:restore_open_invitations).with("org1")
-      expect(@knife).to have_received(:add_users_to_org).with("org1")
       expect(@knife).to have_received(:upload_org_data).with("org1")
       expect(@knife).to have_received(:restore_user_acls)
     end
@@ -143,7 +138,6 @@ describe Chef::Knife::EcImport do
       allow(@knife).to receive(:organization_exists?).and_return(false)
       @knife.run
       expect(@knife).to have_received(:organization_exists?).with("org1")
-      expect(@knife).not_to have_received(:restore_open_invitations)
       expect(@knife).not_to have_received(:upload_org_data)
     end
 
@@ -270,6 +264,22 @@ describe Chef::Knife::EcImport do
       expect(Chef::Config).to have_received(:node_name=).with("pivotal")
     end
 
+    it "excludes members.json and invitations.json from top-level upload" do
+      # Mock top-level entries including members.json and invitations.json
+      nodes_entry = double("nodes_entry", :name => "nodes", :path => NODES_PATH)
+      members_entry = double("members_entry", :name => "members.json", :path => "/members.json")
+      invitations_entry = double("invitations_entry", :name => "invitations.json", :path => "/invitations.json")
+
+      allow(@local_fs).to receive(:children).and_return([nodes_entry, members_entry, invitations_entry])
+
+      @knife.upload_org_data("foo")
+
+      # Verify nodes are uploaded but members and invitations are NOT
+      expect(@knife).to have_received(:chef_fs_copy_pattern).with(NODES_PATH, @chef_fs_config)
+      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/members.json", @chef_fs_config)
+      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/invitations.json", @chef_fs_config)
+    end
+
     it "skips public_key_read_access if not present" do
       allow(File).to receive(:exist?).and_return(false)
       @knife.upload_org_data("foo")
@@ -350,77 +360,6 @@ describe Chef::Knife::EcImport do
       make_import_user("pivotal")
       make_import_user("jane")
       expect{|b| @knife.for_each_user &b }.to yield_successive_args("bob", "jane")
-    end
-  end
-  
-  describe "#restore_open_invitations" do
-    include FakeFS::SpecHelpers
-
-    before(:each) do
-      # Re-setup dest_dir mock after FakeFS activates
-      @dest_dir = TEST_DEST_DIR
-      allow(@knife).to receive(:dest_dir).and_return(@dest_dir)
-      # Ensure base directory structure exists in FakeFS
-      FileUtils.mkdir_p(TEST_DEST_DIR)
-    end
-
-    it "posts invitation" do
-      make_import_org("foo")
-      expect(@rest).to receive(:post).with(ASSOCIATION_REQUESTS_PATH, { 'user' => 'bob' })
-      expect(@rest).to receive(:post).with(ASSOCIATION_REQUESTS_PATH, { 'user' => 'jane' })
-      @knife.restore_open_invitations("foo")
-    end
-
-    it "ignores 409 conflict" do
-      make_import_org("foo")
-      exception = Net::HTTPClientException.new("409 Conflict", double("response", :code => "409"))
-      allow(@rest).to receive(:post).and_raise(exception)
-      expect(@knife.knife_ec_error_handler).not_to receive(:add)
-      @knife.restore_open_invitations("foo")
-    end
-
-    it "records other errors" do
-      make_import_org("foo")
-      exception = Net::HTTPClientException.new(ERROR_500, double("response", :code => "500"))
-      allow(@rest).to receive(:post).and_raise(exception)
-      expect(@knife.ui).to receive(:error).with(/Cannot create invitation/)
-      expect(@knife.knife_ec_error_handler).to receive(:add).with(exception)
-      @knife.restore_open_invitations("foo")
-    end
-  end
-
-  describe "#add_users_to_org" do
-    include FakeFS::SpecHelpers
-
-    before(:each) do
-      # Re-setup dest_dir mock after FakeFS activates
-      @dest_dir = TEST_DEST_DIR
-      allow(@knife).to receive(:dest_dir).and_return(@dest_dir)
-      # Ensure base directory structure exists in FakeFS
-      FileUtils.mkdir_p(TEST_DEST_DIR)
-    end
-
-    it "adds user and accepts invitation" do
-      make_import_org("foo")
-      allow(@rest).to receive(:post).with(ASSOCIATION_REQUESTS_PATH, { 'user' => 'bob' }).and_return({"uri" => "http://server/assoc/123"})
-      expect(@rest).to receive(:put).with("users/bob/association_requests/123", { 'response' => 'accept' })
-      @knife.add_users_to_org("foo")
-    end
-
-    it "ignores 409 conflict" do
-      make_import_org("foo")
-      exception = Net::HTTPClientException.new("409 Conflict", double("response", :code => "409"))
-      allow(@rest).to receive(:post).and_raise(exception)
-      expect(@knife.knife_ec_error_handler).not_to receive(:add)
-      @knife.add_users_to_org("foo")
-    end
-
-    it HANDLES_ERRORS do
-      make_import_org("foo")
-      exception = Net::HTTPClientException.new(ERROR_500, double("response", :code => "500"))
-      allow(@rest).to receive(:post).and_raise(exception)
-      expect(@knife.knife_ec_error_handler).to receive(:add).with(exception)
-      @knife.add_users_to_org("foo")
     end
   end
 
