@@ -158,8 +158,13 @@ class Chef
       def restore_user_acls
         ui.msg 'Restoring user ACLs'
         for_each_user do |name|
-          user_acl = read_json_file(File.join(dest_dir, 'user_acls', "#{name}.json"))
-          put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
+          begin
+            user_acl = read_json_file(File.join(dest_dir, 'user_acls', "#{name}.json"))
+            put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
+          rescue Chef::Exceptions::JSON::ParseError, JSON::ParserError => ex
+            ui.warn "Failed to parse user ACL for #{name}: #{ex.message}. Skipping."
+            knife_ec_error_handler.add(ex)
+          end
         end
       end
 
@@ -223,16 +228,24 @@ class Chef
           Chef::Config.node_name = config[:skip_version] ? org_admin : 'pivotal'
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
+          # Also skip members.json and invitations.json since user-org membership
+          # is managed by the platform, not by import
           ui.msg 'Restoring the rest of the org'
           chef_fs_config = Chef::ChefFS::Config.new
-          # Exclude acls, groups (handled separately), and members/invitations
-          # (user-org membership is managed by the platform, not by import)
           skip_entries = %w(acls groups members.json invitations.json)
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| !skip_entries.include?(entry.name) }.map { |entry| entry.path }
 
           # Topologically sort groups for upload
           unsorted_groups = list_chef_fs_entries(chef_fs_config, '/groups/*', ADMIN_GROUP_FILES)
-                              .map { |entry| JSON.parse(entry.read) }
+                              .filter_map do |entry|
+                                begin
+                                  JSON.parse(entry.read)
+                                rescue JSON::ParserError, Chef::Exceptions::JSON::ParseError => e
+                                  ui.warn "Failed to parse group file #{entry.name}: #{e.message}. Skipping."
+                                  knife_ec_error_handler.add(e)
+                                  nil
+                                end
+                              end
           group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
 
           group_acl_paths = list_chef_fs_entries(chef_fs_config, '/acls/groups/*', ADMIN_GROUP_FILES)
@@ -272,7 +285,10 @@ class Chef
                                          proc { |entry| chef_fs_config.format_path(entry) })
       rescue Net::HTTPClientException,
              Chef::ChefFS::FileSystem::NotFoundError,
-             Chef::ChefFS::FileSystem::OperationFailedError => ex
+             Chef::ChefFS::FileSystem::OperationFailedError,
+             Chef::Exceptions::JSON::ParseError,
+             JSON::ParserError => ex
+        ui.error "#{pattern_str} failed to copy: #{ex.message}"
         knife_ec_error_handler.add(ex)
       end
 
@@ -322,6 +338,9 @@ class Chef
         group.write(members.to_json)
       rescue Chef::ChefFS::FileSystem::NotFoundError
         Chef::Log.warn "Could not find #{group.display_path} on disk. Will not restore."
+      rescue JSON::ParserError, Chef::Exceptions::JSON::ParseError => ex
+        ui.warn "Failed to parse group file #{group_name}.json: #{ex.message}. Skipping group restore."
+        knife_ec_error_handler.add(ex)
       end
 
       def restore_cookbook_frozen_status(org_name, chef_fs_config)

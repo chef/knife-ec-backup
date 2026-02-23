@@ -191,7 +191,7 @@ describe Chef::Knife::EcImport do
     end
     
     it "uploads all top-level Chef objects including environments, roles, nodes, and data_bags" do
-      # Mock multiple top-level entries
+      # Mock multiple top-level entries including ones that should be skipped
       cookbooks_entry = double("cookbooks_entry", :name => "cookbooks", :path => "/cookbooks")
       environments_entry = double("environments_entry", :name => "environments", :path => "/environments")
       roles_entry = double("roles_entry", :name => "roles", :path => "/roles")
@@ -199,11 +199,16 @@ describe Chef::Knife::EcImport do
       data_bags_entry = double("data_bags_entry", :name => "data_bags", :path => "/data_bags")
       clients_entry = double("clients_entry", :name => "clients", :path => "/clients")
       containers_entry = double("containers_entry", :name => "containers", :path => "/containers")
+      acls_entry = double("acls_entry", :name => "acls", :path => "/acls")
+      groups_entry = double("groups_entry", :name => "groups", :path => "/groups")
+      members_entry = double("members_entry", :name => "members.json", :path => "/members.json")
+      invitations_entry = double("invitations_entry", :name => "invitations.json", :path => "/invitations.json")
       
-      # Update the mock to return all entries
+      # Update the mock to return all entries including skip entries
       allow(@local_fs).to receive(:children).and_return([
         cookbooks_entry, environments_entry, roles_entry, nodes_entry, 
-        data_bags_entry, clients_entry, containers_entry
+        data_bags_entry, clients_entry, containers_entry,
+        acls_entry, groups_entry, members_entry, invitations_entry
       ])
       
       @knife.upload_org_data("foo")
@@ -216,6 +221,12 @@ describe Chef::Knife::EcImport do
       expect(@knife).to have_received(:chef_fs_copy_pattern).with("/data_bags", @chef_fs_config)
       expect(@knife).to have_received(:chef_fs_copy_pattern).with("/clients", @chef_fs_config)
       expect(@knife).to have_received(:chef_fs_copy_pattern).with("/containers", @chef_fs_config)
+
+      # Verify skip entries are NOT uploaded as top-level paths
+      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/acls", @chef_fs_config)
+      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/groups", @chef_fs_config)
+      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/members.json", @chef_fs_config)
+      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/invitations.json", @chef_fs_config)
     end
     
     it "uploads groups and acls" do
@@ -264,26 +275,31 @@ describe Chef::Knife::EcImport do
       expect(Chef::Config).to have_received(:node_name=).with("pivotal")
     end
 
-    it "excludes members.json and invitations.json from top-level upload" do
-      # Mock top-level entries including members.json and invitations.json
-      nodes_entry = double("nodes_entry", :name => "nodes", :path => NODES_PATH)
-      members_entry = double("members_entry", :name => "members.json", :path => "/members.json")
-      invitations_entry = double("invitations_entry", :name => "invitations.json", :path => "/invitations.json")
-
-      allow(@local_fs).to receive(:children).and_return([nodes_entry, members_entry, invitations_entry])
-
-      @knife.upload_org_data("foo")
-
-      # Verify nodes are uploaded but members and invitations are NOT
-      expect(@knife).to have_received(:chef_fs_copy_pattern).with(NODES_PATH, @chef_fs_config)
-      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/members.json", @chef_fs_config)
-      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/invitations.json", @chef_fs_config)
-    end
-
     it "skips public_key_read_access if not present" do
       allow(File).to receive(:exist?).and_return(false)
       @knife.upload_org_data("foo")
       expect(@knife).not_to have_received(:restore_group).with(anything, "public_key_read_access", anything)
+    end
+
+    it "handles corrupted group files during topological sort" do
+      # Mock File.exist? for public_key_read_access
+      allow(File).to receive(:exist?).and_return(false)
+
+      # Mock groups listing with one valid and one corrupted entry (first call for /groups/*)
+      valid_entry = double("valid_entry", :name => "valid.json", :read => '{"name": "valid"}')
+      corrupt_entry = double("corrupt_entry", :name => "corrupt.json", :read => '{invalid json}')
+
+      # Mock group acl entries (second call for /acls/groups/*)
+      acl_entry = double("acl_entry", :name => "valid.json", :path => "/acls/groups/valid.json")
+
+      allow(@knife).to receive(:list_chef_fs_entries).with(anything, '/groups/*', anything).and_return([valid_entry, corrupt_entry])
+      allow(@knife).to receive(:list_chef_fs_entries).with(anything, '/acls/groups/*', anything).and_return([acl_entry])
+      allow(@knife).to receive(:sort_groups_for_upload).with([{"name" => "valid"}]).and_return(["valid"])
+
+      expect(@knife.ui).to receive(:warn).with(/Failed to parse group file corrupt\.json/)
+      expect(@error_handler).to receive(:add)
+
+      @knife.upload_org_data("foo")
     end
 
     it "restores config" do
@@ -391,6 +407,19 @@ describe Chef::Knife::EcImport do
       allow(@knife).to receive(:user_acl_rest).and_return(user_acl_rest)
       
       expect(@knife).to receive(:put_acl).with(user_acl_rest, "users/bob/_acl", {"read" => true})
+      @knife.restore_user_acls
+    end
+
+    it "handles JSON parse errors in user ACL files and continues" do
+      make_import_user("bob")
+      make_import_user("jane")
+      FileUtils.mkdir_p("#{TEST_DEST_DIR}/user_acls")
+      File.write("#{TEST_DEST_DIR}/user_acls/bob.json", "{invalid json}")
+      File.write("#{TEST_DEST_DIR}/user_acls/jane.json", '{"read": true}')
+
+      expect(@knife.ui).to receive(:warn).with(/Failed to parse user ACL for bob/)
+      expect(@error_handler).to receive(:add)
+      expect(@knife).to receive(:put_acl).with(@rest, "users/jane/_acl", {"read" => true})
       @knife.restore_user_acls
     end
   end
@@ -548,6 +577,22 @@ describe Chef::Knife::EcImport do
     it "handles errors" do
       chef_fs_config = double("config", :local_fs => double, :chef_fs => double)
       allow(Chef::ChefFS::FileSystem).to receive(:copy_to).and_raise(Chef::ChefFS::FileSystem::NotFoundError.new("oops", nil))
+      expect(@error_handler).to receive(:add)
+      @knife.chef_fs_copy_pattern("/foo", chef_fs_config)
+    end
+
+    it "handles JSON parse errors" do
+      chef_fs_config = double("config", :local_fs => double, :chef_fs => double)
+      allow(Chef::ChefFS::FileSystem).to receive(:copy_to).and_raise(JSON::ParserError.new("unexpected token"))
+      expect(@knife.ui).to receive(:error).with(/\/foo failed to copy:.*unexpected token/)
+      expect(@error_handler).to receive(:add)
+      @knife.chef_fs_copy_pattern("/foo", chef_fs_config)
+    end
+
+    it "handles Chef JSON ParseError" do
+      chef_fs_config = double("config", :local_fs => double, :chef_fs => double)
+      allow(Chef::ChefFS::FileSystem).to receive(:copy_to).and_raise(Chef::Exceptions::JSON::ParseError.new("lexical error: invalid char in json text"))
+      expect(@knife.ui).to receive(:error).with(/\/foo failed to copy:.*lexical error/)
       expect(@error_handler).to receive(:add)
       @knife.chef_fs_copy_pattern("/foo", chef_fs_config)
     end
@@ -727,6 +772,25 @@ describe Chef::Knife::EcImport do
       # So it should write ["clients"].
       expect(remote_group).to receive(:write).with("[\"clients\"]")
       @knife.restore_group(chef_fs_config, "foo", :users => false)
+    end
+
+    it "handles JSON parse errors in group file" do
+      chef_fs_config = double("config")
+      chef_fs = double("chef_fs")
+      local_fs = double("local_fs")
+      allow(chef_fs_config).to receive(:chef_fs).and_return(chef_fs)
+      allow(chef_fs_config).to receive(:local_fs).and_return(local_fs)
+
+      remote_group = double("remote_group")
+      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(chef_fs, GROUPS_FOO_JSON).and_return(remote_group)
+
+      local_group = double("local_group", :read => "{invalid json}")
+      allow(Chef::ChefFS::FileSystem).to receive(:resolve_path).with(local_fs, GROUPS_FOO_JSON).and_return(local_group)
+
+      expect(@knife.ui).to receive(:warn).with(/Failed to parse group file foo\.json/)
+      expect(@error_handler).to receive(:add)
+      expect(remote_group).not_to receive(:write)
+      @knife.restore_group(chef_fs_config, "foo")
     end
   end
 end
