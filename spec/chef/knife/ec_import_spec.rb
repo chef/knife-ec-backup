@@ -201,6 +201,7 @@ describe Chef::Knife::EcImport do
       containers_entry = double("containers_entry", :name => "containers", :path => "/containers")
       acls_entry = double("acls_entry", :name => "acls", :path => "/acls")
       groups_entry = double("groups_entry", :name => "groups", :path => "/groups")
+      org_json_entry = double("org_json_entry", :name => "org.json", :path => "/org.json")
       members_entry = double("members_entry", :name => "members.json", :path => "/members.json")
       invitations_entry = double("invitations_entry", :name => "invitations.json", :path => "/invitations.json")
       
@@ -208,7 +209,7 @@ describe Chef::Knife::EcImport do
       allow(@local_fs).to receive(:children).and_return([
         cookbooks_entry, environments_entry, roles_entry, nodes_entry, 
         data_bags_entry, clients_entry, containers_entry,
-        acls_entry, groups_entry, members_entry, invitations_entry
+        acls_entry, groups_entry, org_json_entry, members_entry, invitations_entry
       ])
       
       @knife.upload_org_data("foo")
@@ -225,6 +226,7 @@ describe Chef::Knife::EcImport do
       # Verify skip entries are NOT uploaded as top-level paths
       expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/acls", @chef_fs_config)
       expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/groups", @chef_fs_config)
+      expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/org.json", @chef_fs_config)
       expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/members.json", @chef_fs_config)
       expect(@knife).not_to have_received(:chef_fs_copy_pattern).with("/invitations.json", @chef_fs_config)
     end

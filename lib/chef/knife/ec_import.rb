@@ -228,11 +228,13 @@ class Chef
           Chef::Config.node_name = config[:skip_version] ? org_admin : 'pivotal'
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
-          # Also skip members.json and invitations.json since user-org membership
-          # is managed by the platform, not by import
+          # Also skip:
+          #   - org.json: organization metadata is not managed by import (org must pre-exist)
+          #   - members.json, invitations.json: user-org membership is managed by the platform
+          #   - acls, groups: handled separately below in the correct order
           ui.msg 'Restoring the rest of the org'
           chef_fs_config = Chef::ChefFS::Config.new
-          skip_entries = %w(acls groups members.json invitations.json)
+          skip_entries = %w(acls groups org.json members.json invitations.json)
           top_level_paths = chef_fs_config.local_fs.children.select { |entry| !skip_entries.include?(entry.name) }.map { |entry| entry.path }
 
           # Topologically sort groups for upload
