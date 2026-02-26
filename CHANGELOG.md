@@ -1,16 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 3.0.7 -->
-## [v3.0.7](https://github.com/chef/knife-ec-backup/tree/v3.0.7) (2026-02-09)
+<!-- latest_release 3.0.8 -->
+## [v3.0.8](https://github.com/chef/knife-ec-backup/tree/v3.0.8) (2026-02-26)
 
 #### Merged Pull Requests
-- Chef 26210 [#195](https://github.com/chef/knife-ec-backup/pull/195) ([sanghinitin](https://github.com/sanghinitin))
+- skip importing invitations and adding users to org [#198](https://github.com/chef/knife-ec-backup/pull/198) ([sanghinitin](https://github.com/sanghinitin))
 <!-- latest_release -->
 
 <!-- release_rollup since=3.0.5 -->
 ### Changes not yet released to rubygems.org
 
 #### Merged Pull Requests
+- skip importing invitations and adding users to org [#198](https://github.com/chef/knife-ec-backup/pull/198) ([sanghinitin](https://github.com/sanghinitin)) <!-- 3.0.8 -->
 - Chef 26210 [#195](https://github.com/chef/knife-ec-backup/pull/195) ([sanghinitin](https://github.com/sanghinitin)) <!-- 3.0.7 -->
 - [CHEF-21785][CHEF-21788] Updated the restore method to preserve the frozen cookbook status [#188](https://github.com/chef/knife-ec-backup/pull/188) ([ashiqueps](https://github.com/ashiqueps)) <!-- 3.0.6 -->
 <!-- release_rollup -->
