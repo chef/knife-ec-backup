@@ -29,7 +29,6 @@ class Chef
       FROZEN_STATUS_KEY = 'frozen?'
       ADMIN_GROUPS = ['admins', 'billing-admins'].freeze
       ADMIN_GROUP_FILES = ['billing-admins.json', 'public_key_read_access.json'].freeze
-      CONFLICT_STATUS = '409'
       NOT_FOUND_STATUS = '404'
 
       option :tenant_id_header,
@@ -59,26 +58,6 @@ class Chef
       def cookbook_url(org_name, cookbook_name, version, params = nil)
         url = org_url(org_name, 'cookbooks', cookbook_name, version)
         params ? "#{url}?#{params}" : url
-      end
-
-      # Helper method to handle HTTP calls with conflict (409) tolerance
-      def http_request_ignore_conflicts(error_message = nil)
-        yield
-      rescue Net::HTTPClientException => ex
-        if ex.response.code != CONFLICT_STATUS
-          ui.error(error_message) if error_message
-          knife_ec_error_handler.add(ex)
-        end
-      end
-
-      # Helper method to create association request
-      def create_association_request(orgname, username)
-        rest.post(org_url(orgname, 'association_requests'), { 'user' => username })
-      end
-
-      # Helper method to accept association request
-      def accept_association_request(username, association_id)
-        rest.put("users/#{username}/association_requests/#{association_id}", { 'response' => 'accept' })
       end
 
       # Helper method to check if public key read access group exists
@@ -147,8 +126,9 @@ class Chef
             next
           end
           
-          restore_open_invitations(orgname)
-          add_users_to_org(orgname)
+          # Note: We skip importing invitations and adding users to org
+          # User org membership is now managed by the platform
+          # and invites cannot be acted upon by users
           upload_org_data(orgname)
         end
 
@@ -175,33 +155,16 @@ class Chef
         end
       end
 
-      def restore_open_invitations(orgname)
-        invitations = read_json_file(org_file_path(orgname, 'invitations.json'))
-        invitations.each do |invitation|
-          http_request_ignore_conflicts("Cannot create invitation #{invitation['id']}") do
-            create_association_request(orgname, invitation['username'])
-          end
-        end
-      end
-
-      def add_users_to_org(orgname)
-        members = read_json_file(org_file_path(orgname, 'members.json'))
-        members.each do |member|
-          username = member['user']['username']
-          next if username == 'pivotal'
-          http_request_ignore_conflicts do
-            response = create_association_request(orgname, username)
-            association_id = response['uri'].split('/').last
-            accept_association_request(username, association_id)
-          end
-        end
-      end
-
       def restore_user_acls
         ui.msg 'Restoring user ACLs'
         for_each_user do |name|
-          user_acl = read_json_file(File.join(dest_dir, 'user_acls', "#{name}.json"))
-          put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
+          begin
+            user_acl = read_json_file(File.join(dest_dir, 'user_acls', "#{name}.json"))
+            put_acl(user_acl_rest, "users/#{name}/_acl", user_acl)
+          rescue Chef::Exceptions::JSON::ParseError, JSON::ParserError => ex
+            ui.warn "Failed to parse user ACL for #{name}: #{ex.message}. Skipping."
+            knife_ec_error_handler.add(ex)
+          end
         end
       end
 
@@ -265,13 +228,26 @@ class Chef
           Chef::Config.node_name = config[:skip_version] ? org_admin : 'pivotal'
 
           # Restore the entire org skipping the admin data and restoring groups and acls last
+          # Also skip:
+          #   - org.json: organization metadata is not managed by import (org must pre-exist)
+          #   - members.json, invitations.json: user-org membership is managed by the platform
+          #   - acls, groups: handled separately below in the correct order
           ui.msg 'Restoring the rest of the org'
           chef_fs_config = Chef::ChefFS::Config.new
-          top_level_paths = chef_fs_config.local_fs.children.select { |entry| entry.name != 'acls' && entry.name != 'groups' }.map { |entry| entry.path }
+          skip_entries = %w(acls groups org.json members.json invitations.json)
+          top_level_paths = chef_fs_config.local_fs.children.select { |entry| !skip_entries.include?(entry.name) }.map { |entry| entry.path }
 
           # Topologically sort groups for upload
           unsorted_groups = list_chef_fs_entries(chef_fs_config, '/groups/*', ADMIN_GROUP_FILES)
-                              .map { |entry| JSON.parse(entry.read) }
+                              .filter_map do |entry|
+                                begin
+                                  JSON.parse(entry.read)
+                                rescue JSON::ParserError, Chef::Exceptions::JSON::ParseError => e
+                                  ui.warn "Failed to parse group file #{entry.name}: #{e.message}. Skipping."
+                                  knife_ec_error_handler.add(e)
+                                  nil
+                                end
+                              end
           group_paths = sort_groups_for_upload(unsorted_groups).map { |group_name| "/groups/#{group_name}.json" }
 
           group_acl_paths = list_chef_fs_entries(chef_fs_config, '/acls/groups/*', ADMIN_GROUP_FILES)
@@ -311,7 +287,10 @@ class Chef
                                          proc { |entry| chef_fs_config.format_path(entry) })
       rescue Net::HTTPClientException,
              Chef::ChefFS::FileSystem::NotFoundError,
-             Chef::ChefFS::FileSystem::OperationFailedError => ex
+             Chef::ChefFS::FileSystem::OperationFailedError,
+             Chef::Exceptions::JSON::ParseError,
+             JSON::ParserError => ex
+        ui.error "#{pattern_str} failed to copy: #{ex.message}"
         knife_ec_error_handler.add(ex)
       end
 
@@ -361,6 +340,9 @@ class Chef
         group.write(members.to_json)
       rescue Chef::ChefFS::FileSystem::NotFoundError
         Chef::Log.warn "Could not find #{group.display_path} on disk. Will not restore."
+      rescue JSON::ParserError, Chef::Exceptions::JSON::ParseError => ex
+        ui.warn "Failed to parse group file #{group_name}.json: #{ex.message}. Skipping group restore."
+        knife_ec_error_handler.add(ex)
       end
 
       def restore_cookbook_frozen_status(org_name, chef_fs_config)
