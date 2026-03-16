@@ -66,6 +66,10 @@ class Chef
           :long => "--sql-rootcert PATH",
           :description => 'Path to root ssl cert'
 
+          option :sql_sslmode,
+          :long => "--sql-sslmode SSLMODE",
+          :description => 'PostgreSQL SSL mode (disable, allow, prefer, require, verify-ca, verify-full). Default: prefer'
+
           option :secrets_file_path,
           :long => '--secrets-file PATH',
           :description => 'Path to a valid private-chef-secrets.json file (default: /etc/opscode/private-chef-secrets.json)',
@@ -96,6 +100,7 @@ class Chef
                   query_params.push("sslcert=#{config[:sql_cert]}") if config[:sql_cert]
                   query_params.push("sslkey=#{config[:sql_key]}") if config[:sql_key]
                   query_params.push("sslrootcert=#{config[:sql_rootcert]}") if config[:sql_rootcert]
+                  query_params.push("sslmode=#{config[:sql_sslmode]}") if config[:sql_sslmode]
                   server_uri.query = query_params.join("&") if query_params.length > 0
 
                   ::Sequel.connect(server_uri.to_s, :convert_infinite_timestamps => :string)

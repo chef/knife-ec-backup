@@ -277,6 +277,7 @@ describe Chef::Knife::EcBackup do
       @knife.config[:sql_cert]     = '/path/to/client.crt'
       @knife.config[:sql_key]      = '/path/to/client.key'
       @knife.config[:sql_rootcert] = '/path/to/ca.crt'
+      @knife.config[:sql_sslmode]  = 'verify-ca'
       @knife.config[:with_key_sql] = true
 
       exported_config = {}
@@ -287,6 +288,7 @@ describe Chef::Knife::EcBackup do
       expect(exported_config[:sql_cert]).to     eq('/path/to/client.crt')
       expect(exported_config[:sql_key]).to      eq('/path/to/client.key')
       expect(exported_config[:sql_rootcert]).to eq('/path/to/ca.crt')
+      expect(exported_config[:sql_sslmode]).to  eq('verify-ca')
     end
   end
 end

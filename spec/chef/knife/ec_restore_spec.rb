@@ -381,6 +381,7 @@ describe Chef::Knife::EcRestore do
       @knife.config[:sql_cert]     = '/path/to/client.crt'
       @knife.config[:sql_key]      = '/path/to/client.key'
       @knife.config[:sql_rootcert] = '/path/to/ca.crt'
+      @knife.config[:sql_sslmode]  = 'verify-ca'
       @knife.config[:sql_host]     = '127.0.0.1'
       @knife.config[:sql_port]     = 10145
       @knife.config[:sql_user]     = 'opscode_chef'
@@ -391,6 +392,7 @@ describe Chef::Knife::EcRestore do
       expect(k.config[:sql_cert]).to     eq('/path/to/client.crt')
       expect(k.config[:sql_key]).to      eq('/path/to/client.key')
       expect(k.config[:sql_rootcert]).to eq('/path/to/ca.crt')
+      expect(k.config[:sql_sslmode]).to  eq('verify-ca')
     end
   end
 end

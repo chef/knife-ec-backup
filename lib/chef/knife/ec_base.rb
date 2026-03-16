@@ -99,6 +99,10 @@ class Chef
             :long => "--sql-rootcert PATH",
             :description => 'Path to root ssl cert'
 
+          option :sql_sslmode,
+            :long => "--sql-sslmode SSLMODE",
+            :description => 'PostgreSQL SSL mode (disable, allow, prefer, require, verify-ca, verify-full). Default: prefer'
+
           option :with_user_sql,
             :long => '--with-user-sql',
             :description => 'Try direct data base access for user export/import.  Required to properly handle passwords, keys, and USAGs'
