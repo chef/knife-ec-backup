@@ -88,7 +88,7 @@ class Chef
             :description => 'Password used to connect to the postgresql database'
 
           option :sql_cert,
-            :long => "--sql-cert ",
+            :long => "--sql-cert PATH",
             :description => 'Path to client ssl cert'
 
           option :sql_key,
@@ -96,8 +96,8 @@ class Chef
             :description => 'Path to client ssl key'
 
           option :sql_rootcert,
-          :long => "--sql-rootcert ",
-          :description => 'Path to root ssl cert'
+            :long => "--sql-rootcert PATH",
+            :description => 'Path to root ssl cert'
 
           option :with_user_sql,
             :long => '--with-user-sql',

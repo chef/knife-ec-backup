@@ -193,6 +193,9 @@ class Chef
                              k.config[:sql_db] = config[:sql_db]
                              k.config[:sql_user] = config[:sql_user]
                              k.config[:sql_password] = config[:sql_password]
+                             k.config[:sql_cert] = config[:sql_cert]
+                             k.config[:sql_key] = config[:sql_key]
+                             k.config[:sql_rootcert] = config[:sql_rootcert]
                              k
                            end
       end

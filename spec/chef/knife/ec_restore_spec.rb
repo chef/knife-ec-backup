@@ -374,4 +374,23 @@ describe Chef::Knife::EcRestore do
       end
     end
   end
+
+  describe "#ec_key_import" do
+    it "forwards ssl cert, key, and rootcert config to EcKeyImport" do
+      require 'chef/knife/ec_key_import'
+      @knife.config[:sql_cert]     = '/path/to/client.crt'
+      @knife.config[:sql_key]      = '/path/to/client.key'
+      @knife.config[:sql_rootcert] = '/path/to/ca.crt'
+      @knife.config[:sql_host]     = '127.0.0.1'
+      @knife.config[:sql_port]     = 10145
+      @knife.config[:sql_user]     = 'opscode_chef'
+      @knife.config[:sql_password] = 'secret'
+
+      k = @knife.ec_key_import
+
+      expect(k.config[:sql_cert]).to     eq('/path/to/client.crt')
+      expect(k.config[:sql_key]).to      eq('/path/to/client.key')
+      expect(k.config[:sql_rootcert]).to eq('/path/to/ca.crt')
+    end
+  end
 end

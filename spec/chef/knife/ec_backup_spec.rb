@@ -260,4 +260,33 @@ describe Chef::Knife::EcBackup do
       end
     end
   end
+
+  describe "#export_from_sql" do
+    let(:key_export) { instance_double(Chef::Knife::EcKeyExport) }
+
+    before do
+      require 'chef/knife/ec_key_export'
+      allow(Chef::Knife::EcKeyExport).to receive(:deps)
+      allow(Chef::Knife::EcKeyExport).to receive(:new).and_return(key_export)
+      allow(key_export).to receive(:name_args=)
+      allow(key_export).to receive(:config).and_return({})
+      allow(key_export).to receive(:run)
+    end
+
+    it "forwards ssl cert, key, and rootcert config to EcKeyExport" do
+      @knife.config[:sql_cert]     = '/path/to/client.crt'
+      @knife.config[:sql_key]      = '/path/to/client.key'
+      @knife.config[:sql_rootcert] = '/path/to/ca.crt'
+      @knife.config[:with_key_sql] = true
+
+      exported_config = {}
+      allow(key_export).to receive(:config).and_return(exported_config)
+
+      @knife.export_from_sql
+
+      expect(exported_config[:sql_cert]).to     eq('/path/to/client.crt')
+      expect(exported_config[:sql_key]).to      eq('/path/to/client.key')
+      expect(exported_config[:sql_rootcert]).to eq('/path/to/ca.crt')
+    end
+  end
 end
