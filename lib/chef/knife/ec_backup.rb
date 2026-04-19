@@ -1,3 +1,4 @@
+require 'chef'
 require 'chef/knife'
 require_relative 'ec_base'
 
