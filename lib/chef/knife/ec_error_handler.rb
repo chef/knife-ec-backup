@@ -21,12 +21,28 @@ class Chef
     # inside the working directory.
     class EcErrorHandler
 
-      attr_reader :err_file
+      # Errors that are transient and should be logged but not halt the process.
+      # These are connection-level or server-side failures that don't indicate
+      # a bug in the client code.
+      TRANSIENT_ERRORS = [
+        Errno::ECONNRESET,       # Connection reset by peer
+        Errno::ECONNREFUSED,     # Connection refused
+        Errno::ETIMEDOUT,        # Connection timed out
+        Errno::EHOSTUNREACH,     # No route to host
+      ].freeze
+
+      attr_reader :err_file, :error_count
 
       # Creates a new instance of the EcErrorHandler to start
       # adding errors during a backup or restore.
-      def initialize(working_dir, process)
+      #
+      # Options:
+      #   :suppress_exit - when true, skip the at_exit handler that
+      #                    forces exit 1 on errors. Useful for testing.
+      def initialize(working_dir, process, options = {})
         @err_dir = "#{working_dir}/errors"
+        @error_count = 0
+        @suppress_exit = options[:suppress_exit] || false
         FileUtils.mkdir_p(@err_dir)
 
         # Create an specific error file name depending
@@ -39,8 +55,24 @@ class Chef
                       File.join(@err_dir, "other-#{Time.now.iso8601}.json")
                     end
 
-        # exit handler
-        at_exit { display(@err_file) }
+        # exit handler - display errors and set consistent exit status
+        at_exit do
+          unless @suppress_exit
+            display(@err_file)
+            # Ensure consistent exit status: exit 1 if errors occurred,
+            # regardless of whether -VVV flag was used.
+            # Only override if the process is exiting cleanly (status 0)
+            # but errors were recorded.
+            if has_errors? && ($!.nil? || $!.is_a?(SystemExit) && $!.success?)
+              exit 1
+            end
+          end
+        end
+      end
+
+      # Returns true if any errors have been recorded.
+      def has_errors?
+        @error_count > 0
       end
 
       # Add an exception to the error file.
@@ -61,17 +93,24 @@ class Chef
       # The advantages of this schema is the ability to retry the backup or
       # restore and pick up where we left.
       def add(ex)
+        @error_count += 1
+
         msg = {
           timestamp:  Time.now,
           message:    ex.message,
           backtrace:  ex.backtrace,
-          exception:  ex.class
+          exception:  ex.class,
+          transient:  transient_error?(ex)
         }
 
         if ex.respond_to?(:chef_rest_request=) && ex.chef_rest_request
           msg.merge!(
             req_path: ex.chef_rest_request.path,
             req_method: ex.chef_rest_request.method
+          )
+        elsif ex.respond_to?(:response) && ex.response
+          msg.merge!(
+            http_code: ex.response.code
           )
         elsif ex.instance_of?(Chef::ChefFS::FileSystem::NotFoundError)
           msg.merge!(
@@ -89,6 +128,20 @@ class Chef
         lock_file(@err_file, 'a') do |f|
           f.write(Chef::JSONCompat.to_json_pretty(msg))
         end
+      end
+
+      # Determines if the error is transient (network/server issue)
+      # vs a permanent failure (client bug, bad data).
+      def transient_error?(ex)
+        return true if TRANSIENT_ERRORS.any? { |klass| ex.is_a?(klass) }
+        # Net::HTTPFatalError covers 5xx responses (Internal Server Error)
+        return true if ex.is_a?(Net::HTTPFatalError)
+        # Net::HTTPServerException with 5xx code (older Ruby net/http)
+        if ex.respond_to?(:response) && ex.response
+          code = ex.response.code.to_i
+          return true if code >= 500
+        end
+        false
       end
 
       # Why lock the error file?

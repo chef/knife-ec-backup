@@ -18,6 +18,10 @@
 
 require 'chef/knife'
 require 'chef/server_api'
+# Require digest early to prevent "Digest::Base cannot be directly inherited in Ruby"
+# errors on Ruby >= 3.2 when native gems attempt to subclass Digest::Base after
+# the C extension has been partially loaded by another require path.
+require 'digest' unless defined?(Digest)
 require 'veil' unless defined?(Veil)
 require_relative 'ec_error_handler'
 require 'ffi_yajl' unless defined?(FFI_Yajl)

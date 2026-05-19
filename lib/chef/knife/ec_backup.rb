@@ -240,6 +240,10 @@ class Chef
                                          config, ui,
                                          proc { |entry| chef_fs_config.format_path(entry) })
       rescue Net::HTTPServerException,
+             Net::HTTPFatalError,
+             Errno::ECONNRESET,
+             Errno::ECONNREFUSED,
+             Errno::ETIMEDOUT,
              Chef::ChefFS::FileSystem::NotFoundError,
              Chef::ChefFS::FileSystem::OperationFailedError => ex
         knife_ec_error_handler.add(ex)
