@@ -5,6 +5,13 @@ require 'chef/server_api'
 class Chef
   class Server
 
+    # Pre-allocated version thresholds to avoid repeated Gem::Version
+    # instantiation on every capability check (saves ~3 allocations per call).
+    VERSION_11_0_1 = Gem::Version.new("11.0.1").freeze
+    VERSION_12_1_0 = Gem::Version.new("12.1.0").freeze
+    VERSION_12_5_0 = Gem::Version.new("12.5.0").freeze
+    VERSION_12     = Gem::Version.new("12").freeze
+
     attr_accessor :root_url
     def initialize(root_url)
       @root_url = root_url
@@ -38,7 +45,7 @@ class Chef
     end
 
     def supports_user_acls?
-      version >= Gem::Version.new("11.0.1")
+      version >= VERSION_11_0_1
     end
 
     def direct_account_access?
@@ -49,11 +56,11 @@ class Chef
     end
 
     def supports_defaulting_to_pivotal?
-      version >= Gem::Version.new('12.1.0')
+      version >= VERSION_12_1_0
     end
 
     def supports_public_key_read_access?
-      version >= Gem::Version.new('12.5.0')
+      version >= VERSION_12_5_0
     end
   end
 end

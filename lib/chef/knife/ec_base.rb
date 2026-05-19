@@ -221,6 +221,7 @@ class Chef
           exit 1
         end
         @dest_dir = name_args[0]
+        @operation_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
 
       def webui_key
@@ -279,7 +280,29 @@ class Chef
       end
 
       def completion_banner
+        emit_operation_metric
         puts "#{ui.color("** Finished **", :magenta)}"
+      end
+
+      # Emits a structured JSON log line with operation metrics.
+      # Useful for external log aggregation, dashboards, and alerting.
+      # Output goes to STDERR so it doesn't interfere with piped STDOUT.
+      def emit_operation_metric
+        duration = if @operation_start
+                     Process.clock_gettime(Process::CLOCK_MONOTONIC) - @operation_start
+                   end
+
+        metric = {
+          event:        "knife_ec_operation_complete",
+          command:      self.class.name,
+          duration_sec: duration&.round(2),
+          error_count:  knife_ec_error_handler.error_count,
+          has_errors:   knife_ec_error_handler.has_errors?,
+          timestamp:    Time.now.utc.iso8601,
+          dest_dir:     dest_dir
+        }
+
+        $stderr.puts Chef::JSONCompat.to_json(metric)
       end
     end
   end

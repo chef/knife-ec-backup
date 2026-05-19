@@ -1,0 +1,82 @@
+{
+  "http_error": {
+    "required_keys": ["timestamp", "message", "backtrace", "exception", "transient", "http_code"],
+    "types": {
+      "timestamp": "string",
+      "message": "string",
+      "backtrace": ["array", "null"],
+      "exception": "string",
+      "transient": "boolean",
+      "http_code": "string"
+    },
+    "example": {
+      "timestamp": "1988-04-17 00:00:00 +0000",
+      "message": "I'm not real!",
+      "backtrace": null,
+      "exception": "Net::HTTPServerException",
+      "transient": true,
+      "http_code": "500"
+    }
+  },
+  "cheffs_not_found_error": {
+    "required_keys": ["timestamp", "message", "backtrace", "exception", "transient", "entry", "cause", "reason"],
+    "types": {
+      "timestamp": "string",
+      "message": "string",
+      "backtrace": ["array", "null"],
+      "exception": "string",
+      "transient": "boolean",
+      "entry": "string",
+      "cause": "string",
+      "reason": "string"
+    },
+    "example": {
+      "timestamp": "1988-04-17 00:00:00 +0000",
+      "message": "The exception",
+      "backtrace": null,
+      "exception": "Chef::ChefFS::FileSystem::NotFoundError",
+      "transient": false,
+      "entry": "/boop",
+      "cause": "The exception",
+      "reason": "The reason"
+    }
+  },
+  "cheffs_operation_failed_error": {
+    "required_keys": ["timestamp", "message", "backtrace", "exception", "transient", "entry", "operation"],
+    "types": {
+      "timestamp": "string",
+      "message": "string",
+      "backtrace": ["array", "null"],
+      "exception": "string",
+      "transient": "boolean",
+      "entry": "string",
+      "operation": "string"
+    },
+    "example": {
+      "timestamp": "1988-04-17 00:00:00 +0000",
+      "message": "The exception",
+      "backtrace": null,
+      "exception": "Chef::ChefFS::FileSystem::OperationFailedError",
+      "transient": false,
+      "entry": "/boop",
+      "operation": "read"
+    }
+  },
+  "connection_error": {
+    "required_keys": ["timestamp", "message", "backtrace", "exception", "transient"],
+    "types": {
+      "timestamp": "string",
+      "message": "string",
+      "backtrace": ["array", "null"],
+      "exception": "string",
+      "transient": "boolean"
+    },
+    "example": {
+      "timestamp": "1988-04-17 00:00:00 +0000",
+      "message": "Connection reset by peer - Connection reset by peer",
+      "backtrace": null,
+      "exception": "Errno::ECONNRESET",
+      "transient": true
+    }
+  }
+}

@@ -10,6 +10,70 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
+  spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+          bundler-cache: true
+      - name: Run specs (includes contract tests)
+        run: bundle exec rspec spec/ --tag '~smoke'
+        env:
+          CI: true
+      - name: Post coverage to job summary
+        if: always()
+        run: |
+          if [ -f coverage/.last_run.json ]; then
+            COV=$(ruby -rjson -e 'puts JSON.parse(File.read("coverage/.last_run.json"))["result"]["line"]')
+            EXAMPLES=$(grep -oP '\d+ examples' coverage/.resultset.json 2>/dev/null || echo 'see logs')
+            echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Line Coverage | **${COV}%** |" >> $GITHUB_STEP_SUMMARY
+            echo "| Threshold | 60% (non-blocking) |" >> $GITHUB_STEP_SUMMARY
+            echo "| Report | \`coverage/index.html\` |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            if (( $(echo "$COV < 60" | bc -l) )); then
+              echo "> ⚠️ Coverage is below 60% threshold. Please review." >> $GITHUB_STEP_SUMMARY
+            else
+              echo "> ✅ Coverage meets the 60% threshold." >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> ⚠️ No coverage data found. Specs may have failed to run." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+          bundler-cache: true
+      - name: Dependency vulnerability scan
+        run: bundle exec bundle-audit check --update
+
+  mermaid-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install mermaid-cli
+        run: npm install -g @mermaid-js/mermaid-cli
+      - name: Validate Mermaid diagrams
+        run: |
+          set -e
+          for f in ai-track-docs/*.mmd; do
+            echo "Validating $f ..."
+            mmdc -i "$f" -o /dev/null
+          done
+
   build:
     runs-on: ip-range-controlled
     steps:

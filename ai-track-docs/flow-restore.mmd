@@ -1,0 +1,26 @@
+%% Data Flow: Full Restore
+%% Entry point: bin/knife → lib/chef/knife/ec_restore.rb#run
+
+sequenceDiagram
+    participant User
+    participant Knife as bin/knife
+    participant Restore as lib/chef/knife/ec_restore.rb
+    participant TSort as lib/chef/tsorter.rb
+    participant Server as Chef Infra Server API
+    participant FS as Local Filesystem
+
+    User->>Knife: knife ec restore ./backup_dir
+    Knife->>Restore: #run
+    Restore->>FS: read users/*.json
+    Restore->>Server: POST /users (create users)
+    Restore->>FS: read organizations/*/org.json
+    loop Each organization
+        Restore->>Server: POST /organizations (create org)
+        Restore->>Server: POST /organizations/{org}/association_requests
+        Restore->>FS: read groups/*.json
+        Restore->>TSort: topological sort groups
+        TSort-->>Restore: sorted group order
+        Restore->>Server: PUT groups in dependency order
+        Restore->>Server: upload cookbooks, roles, nodes, data bags
+        Restore->>Server: PUT ACLs for all object types
+    end

@@ -1,40 +1,42 @@
 %% knife-ec-backup Architecture Diagram
 %% Render with: https://mermaid.live or VS Code Mermaid extension
+%% CI validation: .github/workflows/build.yml (mermaid-lint job)
 
 graph TD
     subgraph CLI["Knife CLI Framework (chef gem)"]
-        KNIFE[bin/knife]
+        KNIFE["bin/knife"]
     end
 
-    subgraph Commands["Knife Subcommands"]
-        BACKUP[EcBackup<br/>ec_backup.rb]
-        RESTORE[EcRestore<br/>ec_restore.rb]
-        IMPORT[EcImport<br/>ec_import.rb]
-        KEYEXP[EcKeyExport<br/>ec_key_export.rb]
-        KEYIMP[EcKeyImport<br/>ec_key_import.rb]
+    subgraph Commands["Knife Subcommands (lib/chef/knife/)"]
+        BACKUP["EcBackup<br/>lib/chef/knife/ec_backup.rb"]
+        RESTORE["EcRestore<br/>lib/chef/knife/ec_restore.rb"]
+        IMPORT["EcImport<br/>lib/chef/knife/ec_import.rb"]
+        KEYEXP["EcKeyExport<br/>lib/chef/knife/ec_key_export.rb"]
+        KEYIMP["EcKeyImport<br/>lib/chef/knife/ec_key_import.rb"]
     end
 
     subgraph Shared["Shared Modules"]
-        BASE[EcBase<br/>ec_base.rb]
-        KEYBASE[EcKeyBase<br/>ec_key_base.rb]
-        ERRH[EcErrorHandler<br/>ec_error_handler.rb]
-        SERVER[Server<br/>server.rb]
-        AUTO[Automate<br/>automate.rb]
-        TSORT[Tsorter<br/>tsorter.rb]
-        ORGCACHE[OrgIdCache<br/>org_id_cache.rb]
+        BASE["EcBase<br/>lib/chef/knife/ec_base.rb"]
+        KEYBASE["EcKeyBase<br/>lib/chef/knife/ec_key_base.rb"]
+        ERRH["EcErrorHandler<br/>lib/chef/knife/ec_error_handler.rb"]
+        SERVER["Server<br/>lib/chef/server.rb"]
+        AUTO["Automate<br/>lib/chef/automate.rb"]
+        TSORT["Tsorter<br/>lib/chef/tsorter.rb"]
+        ORGCACHE["OrgIdCache<br/>lib/chef/org_id_cache.rb"]
+        VERSION["Version<br/>lib/knife_ec_backup/version.rb"]
     end
 
     subgraph External["External Dependencies"]
-        CHEFFS[ChefFS<br/>parallel copy_to]
-        SEQUEL[Sequel<br/>PostgreSQL]
-        VEIL[Veil<br/>Secrets Store]
-        CONCURRENT[concurrent-ruby<br/>ThreadPoolExecutor]
+        CHEFFS["ChefFS<br/>parallel copy_to"]
+        SEQUEL["Sequel<br/>PostgreSQL driver"]
+        VEIL["Veil<br/>Secrets Store"]
+        CONCURRENT["concurrent-ruby<br/>ThreadPoolExecutor"]
     end
 
     subgraph Infra["Infrastructure"]
-        CHEFSERVER[Chef Infra Server<br/>REST API]
-        POSTGRES[(PostgreSQL<br/>opscode_chef DB)]
-        DISK[(Local Filesystem<br/>Backup Directory)]
+        CHEFSERVER["Chef Infra Server<br/>REST API"]
+        POSTGRES[("PostgreSQL<br/>opscode_chef DB")]
+        DISK[("Local Filesystem<br/>Backup Directory")]
     end
 
     KNIFE --> BACKUP

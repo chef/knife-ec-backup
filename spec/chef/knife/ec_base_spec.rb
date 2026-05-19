@@ -1,5 +1,7 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "spec_helper"))
 require 'chef/knife/ec_base'
+require 'chef/knife/ec_backup'
+require 'chef/knife/ec_restore'
 require 'chef/knife'
 require 'chef/config'
 require 'stringio' unless defined?(StringIO)
@@ -72,8 +74,61 @@ describe Chef::Knife::EcBase do
   end
 
   context "completion_banner" do
+    let(:dest_dir) { Dir.mktmpdir }
+    before(:each) { o.instance_variable_set(:@dest_dir, dest_dir) }
+    after(:each) { FileUtils.rm_rf(dest_dir) }
+
     it "lets the user know we're Finished" do
-      expect{o.completion_banner}.to output("** Finished **\n").to_stdout
+      expect {
+        $stderr = StringIO.new
+        o.completion_banner
+        $stderr = STDERR
+      }.to output("** Finished **\n").to_stdout
     end
   end
+
+  context "emit_operation_metric" do
+    let(:dest_dir) { Dir.mktmpdir }
+
+    before(:each) do
+      o.instance_variable_set(:@dest_dir, dest_dir)
+      o.instance_variable_set(:@operation_start,
+        Process.clock_gettime(Process::CLOCK_MONOTONIC) - 1.5)
+    end
+
+    after(:each) { FileUtils.rm_rf(dest_dir) }
+
+    it "emits a JSON metric line to STDERR" do
+      output = nil
+      expect { output = capture_stderr { o.emit_operation_metric } }.not_to raise_error
+      metric = JSON.parse(output)
+      expect(metric["event"]).to eq("knife_ec_operation_complete")
+      expect(metric["command"]).to eq("Tester")
+      expect(metric["duration_sec"]).to be_a(Numeric)
+      expect(metric["duration_sec"]).to be >= 1.0
+      expect(metric["error_count"]).to eq(0)
+      expect(metric["has_errors"]).to be false
+      expect(metric["timestamp"]).to match(/\d{4}-\d{2}-\d{2}T/)
+      expect(metric["dest_dir"]).to eq(dest_dir)
+    end
+
+    it "reports error_count when errors exist" do
+      # Add an error to the handler (use HTTP exception which is fully supported)
+      status = double("status", code: "500")
+      o.knife_ec_error_handler.add(Net::HTTPServerException.new("err", status))
+      output = capture_stderr { o.emit_operation_metric }
+      metric = JSON.parse(output)
+      expect(metric["error_count"]).to eq(1)
+      expect(metric["has_errors"]).to be true
+    end
+  end
+end
+
+def capture_stderr
+  old_stderr = $stderr
+  $stderr = StringIO.new
+  yield
+  $stderr.string
+ensure
+  $stderr = old_stderr
 end

@@ -16,6 +16,12 @@ end
 
 gem_spec = eval(File.read("knife-ec-backup.gemspec"))
 
+desc "Run dependency vulnerability scan"
+task :audit do
+  require 'bundler/audit/cli'
+  Bundler::Audit::CLI.start ['check', '--update']
+end
+
 RDoc::Task.new do |rdoc|
   rdoc.rdoc_dir = 'rdoc'
   rdoc.title = "chef_fs #{gem_spec.version}"

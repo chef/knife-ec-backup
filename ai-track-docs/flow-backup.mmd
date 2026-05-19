@@ -1,0 +1,25 @@
+%% Data Flow: Full Backup
+%% Entry point: bin/knife → lib/chef/knife/ec_backup.rb#run
+
+sequenceDiagram
+    participant User
+    participant Knife as bin/knife
+    participant Backup as lib/chef/knife/ec_backup.rb
+    participant Base as lib/chef/knife/ec_base.rb
+    participant Server as Chef Infra Server API
+    participant FS as Local Filesystem
+
+    User->>Knife: knife ec backup ./backup_dir
+    Knife->>Backup: #run
+    Backup->>Base: resolve config & server version
+    Backup->>Server: GET /users, /organizations
+    Server-->>Backup: JSON user & org lists
+    Backup->>FS: write users/*.json
+    Backup->>Server: GET /users/{name}/_acl
+    Server-->>Backup: user ACL data
+    Backup->>FS: write user_acls/*.json
+    loop Each organization
+        Backup->>Server: GET /organizations/{org}/*
+        Server-->>Backup: cookbooks, roles, nodes, data bags, ACLs
+        Backup->>FS: write JSON to backup_dir/organizations/{org}/
+    end

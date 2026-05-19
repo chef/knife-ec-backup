@@ -106,7 +106,7 @@ class Chef
           # skip any of these pre-created organizations by checking if
           # they have been assigned or not.  The Chef 12 API does not
           # return an assigned_at field.
-          if org['assigned_at'] || server.version >= Gem::Version.new("12")
+          if org['assigned_at'] || server.version >= Chef::Server::VERSION_12
             yield org
           else
             ui.msg "Skipping pre-created org #{name}"
