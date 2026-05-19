@@ -1,0 +1,77 @@
+%% knife-ec-backup Architecture Diagram
+%% Render with: https://mermaid.live or VS Code Mermaid extension
+
+graph TD
+    subgraph CLI["Knife CLI Framework (chef gem)"]
+        KNIFE[bin/knife]
+    end
+
+    subgraph Commands["Knife Subcommands"]
+        BACKUP[EcBackup<br/>ec_backup.rb]
+        RESTORE[EcRestore<br/>ec_restore.rb]
+        IMPORT[EcImport<br/>ec_import.rb]
+        KEYEXP[EcKeyExport<br/>ec_key_export.rb]
+        KEYIMP[EcKeyImport<br/>ec_key_import.rb]
+    end
+
+    subgraph Shared["Shared Modules"]
+        BASE[EcBase<br/>ec_base.rb]
+        KEYBASE[EcKeyBase<br/>ec_key_base.rb]
+        ERRH[EcErrorHandler<br/>ec_error_handler.rb]
+        SERVER[Server<br/>server.rb]
+        AUTO[Automate<br/>automate.rb]
+        TSORT[Tsorter<br/>tsorter.rb]
+        ORGCACHE[OrgIdCache<br/>org_id_cache.rb]
+    end
+
+    subgraph External["External Dependencies"]
+        CHEFFS[ChefFS<br/>parallel copy_to]
+        SEQUEL[Sequel<br/>PostgreSQL]
+        VEIL[Veil<br/>Secrets Store]
+        CONCURRENT[concurrent-ruby<br/>ThreadPoolExecutor]
+    end
+
+    subgraph Infra["Infrastructure"]
+        CHEFSERVER[Chef Infra Server<br/>REST API]
+        POSTGRES[(PostgreSQL<br/>opscode_chef DB)]
+        DISK[(Local Filesystem<br/>Backup Directory)]
+    end
+
+    KNIFE --> BACKUP
+    KNIFE --> RESTORE
+    KNIFE --> IMPORT
+    KNIFE --> KEYEXP
+    KNIFE --> KEYIMP
+
+    BACKUP --> BASE
+    RESTORE --> BASE
+    IMPORT --> BASE
+    KEYEXP --> KEYBASE
+    KEYIMP --> KEYBASE
+
+    BASE --> ERRH
+    BASE --> SERVER
+    BASE --> AUTO
+    BASE --> VEIL
+    IMPORT --> TSORT
+    RESTORE --> TSORT
+
+    KEYBASE --> SEQUEL
+    KEYBASE --> AUTO
+    KEYBASE --> ORGCACHE
+
+    BASE --> CHEFFS
+    CHEFFS --> CONCURRENT
+
+    BACKUP --> CHEFSERVER
+    BACKUP --> DISK
+    RESTORE --> CHEFSERVER
+    RESTORE --> DISK
+    IMPORT --> CHEFSERVER
+    IMPORT --> DISK
+    KEYEXP --> POSTGRES
+    KEYIMP --> POSTGRES
+
+    style ERRH fill:#90EE90,stroke:#333
+    style TSORT fill:#90EE90,stroke:#333
+    style SERVER fill:#90EE90,stroke:#333
