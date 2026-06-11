@@ -34,13 +34,11 @@ class Chef
 
           option :sql_host,
           :long => '--sql-host HOSTNAME',
-          :description => 'PostgreSQL database hostname (default: localhost)',
-          :default => "localhost"
+          :description => 'PostgreSQL database hostname (default: value from chef-server-running.json, or localhost)'
 
           option :sql_port,
           :long => '--sql-port PORT',
-          :description => 'PostgreSQL database port (default: 5432)',
-          :default => 5432
+          :description => 'PostgreSQL database port (default: value from chef-server-running.json, or 5432)'
 
           option :sql_db,
           :long => '--sql-db DBNAME',
@@ -88,8 +86,9 @@ class Chef
                   require 'sequel'
                   require 'uri'
                   server_uri = URI('postgres://')
-                  server_uri.host = config[:sql_host]
-                  server_uri.port = config[:sql_port]
+                  server_uri.host = config[:sql_host] || 'localhost'
+                  server_uri.port = config[:sql_port] || 5432
+                  server_uri.path = "/#{config[:sql_db]}" if config[:sql_db]
                   server_uri.user = URI.encode_www_form_component(config[:sql_user]) if config[:sql_user]
                   server_uri.password = URI.encode_www_form_component(config[:sql_password]) if config[:sql_password]
                   query_params = []
@@ -123,6 +122,14 @@ class Chef
             config[:sql_user] ||= running_config['private_chef'][hash_key]['sql_user']
             config[:sql_password] ||= (running_config['private_chef'][hash_key]['sql_password'] || sql_password)
             config[:sql_db] ||= 'opscode_chef'
+            # Source the PostgreSQL host/port from the running config so external
+            # PostgreSQL deployments are picked up automatically, the same way the
+            # sql_user/sql_password/sql_db are. ||= ensures an explicit --sql-host /
+            # --sql-port still wins. Embedded installs report a loopback vip, and the
+            # db method falls back to localhost:5432 when these are absent.
+            pg_config = running_config['private_chef']['postgresql'] || {}
+            config[:sql_host] ||= pg_config['vip']
+            config[:sql_port] ||= pg_config['port']
           end
         end
       end

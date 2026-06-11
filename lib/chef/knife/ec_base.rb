@@ -67,13 +67,11 @@ class Chef
 
           option :sql_host,
             :long => '--sql-host HOSTNAME',
-            :description => 'PostgreSQL database hostname (default: localhost)',
-            :default => "localhost"
+            :description => 'PostgreSQL database hostname (default: value from chef-server-running.json, or localhost)'
 
           option :sql_port,
             :long => '--sql-port PORT',
-            :description => 'PostgreSQL database port (default: 5432)',
-            :default => 5432
+            :description => 'PostgreSQL database port (default: value from chef-server-running.json, or 5432)'
 
           option :sql_db,
             :long => '--sql-db DBNAME',
