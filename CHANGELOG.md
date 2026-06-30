@@ -1,27 +1,24 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 3.0.9 -->
+<!-- latest_release -->
+<!-- latest_release -->
+
+<!-- release_rollup -->
+<!-- release_rollup -->
+
+<!-- latest_stable_release -->
 ## [v3.0.9](https://github.com/chef/knife-ec-backup/tree/v3.0.9) (2026-06-30)
 
 #### Merged Pull Requests
 - Honor --sql-host, --sql-port and --sql-db for SQL backup/restore (external PostgreSQL) [#204](https://github.com/chef/knife-ec-backup/pull/204) ([edmharlaoag](https://github.com/edmharlaoag))
-<!-- latest_release -->
-
-<!-- release_rollup since=3.0.8 -->
-### Changes not yet released to rubygems.org
-
-#### Merged Pull Requests
-- Honor --sql-host, --sql-port and --sql-db for SQL backup/restore (external PostgreSQL) [#204](https://github.com/chef/knife-ec-backup/pull/204) ([edmharlaoag](https://github.com/edmharlaoag)) <!-- 3.0.9 -->
-<!-- release_rollup -->
-
 <!-- latest_stable_release -->
+
 ## [v3.0.8](https://github.com/chef/knife-ec-backup/tree/v3.0.8) (2026-02-27)
 
 #### Merged Pull Requests
 - [CHEF-21785][CHEF-21788] Updated the restore method to preserve the frozen cookbook status [#188](https://github.com/chef/knife-ec-backup/pull/188) ([ashiqueps](https://github.com/ashiqueps))
 - Chef 26210 [#195](https://github.com/chef/knife-ec-backup/pull/195) ([sanghinitin](https://github.com/sanghinitin))
 - skip importing invitations and adding users to org [#198](https://github.com/chef/knife-ec-backup/pull/198) ([sanghinitin](https://github.com/sanghinitin))
-<!-- latest_stable_release -->
 
 ## [v3.0.5](https://github.com/chef/knife-ec-backup/tree/v3.0.5) (2025-08-19)
 
