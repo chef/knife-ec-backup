@@ -1,9 +1,17 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release -->
+<!-- latest_release 3.0.9 -->
+## [v3.0.9](https://github.com/chef/knife-ec-backup/tree/v3.0.9) (2026-06-30)
+
+#### Merged Pull Requests
+- Honor --sql-host, --sql-port and --sql-db for SQL backup/restore (external PostgreSQL) [#204](https://github.com/chef/knife-ec-backup/pull/204) ([edmharlaoag](https://github.com/edmharlaoag))
 <!-- latest_release -->
 
-<!-- release_rollup -->
+<!-- release_rollup since=3.0.8 -->
+### Changes not yet released to rubygems.org
+
+#### Merged Pull Requests
+- Honor --sql-host, --sql-port and --sql-db for SQL backup/restore (external PostgreSQL) [#204](https://github.com/chef/knife-ec-backup/pull/204) ([edmharlaoag](https://github.com/edmharlaoag)) <!-- 3.0.9 -->
 <!-- release_rollup -->
 
 <!-- latest_stable_release -->
