@@ -28,6 +28,7 @@ class Chef
       def initialize(working_dir, process)
         @err_dir = "#{working_dir}/errors"
         FileUtils.mkdir_p(@err_dir)
+        @error_count = 0
 
         # Create an specific error file name depending
         # of where the process comes from.
@@ -40,7 +41,49 @@ class Chef
                     end
 
         # exit handler
-        at_exit { display(@err_file) }
+        at_exit do
+          display(@err_file)
+          override_exit_status
+        end
+      end
+
+      # Forces a consistent, non-zero exit status when errors were recorded so
+      # that a run with a high-verbosity flag (e.g. -VVV) and one without it
+      # report the same status. Skipped under RSpec so the test suite's own
+      # exit status is not altered.
+      def override_exit_status
+        return if defined?(RSpec)
+
+        status = consistent_exit_status($!)
+        exit(status) unless status.nil?
+      end
+
+      # Decides the process exit status so it is identical regardless of
+      # verbosity. Under -VVV knife re-raises and Ruby exits 1; without it knife
+      # rescues and exits with a different code (e.g. 100). Both are error cases
+      # and must agree.
+      #
+      # +error+ is the exception propagating at exit (Ruby's $!). Returns the
+      # status to force, or nil to leave the current status untouched.
+      def consistent_exit_status(error = $!)
+        case error
+        when SystemExit
+          # Normalize any non-zero exit (e.g. knife's exit 100) to 1.
+          return 1 unless error.success?
+          has_errors? ? 1 : nil
+        when nil
+          # Normal termination: exit 1 only if errors were logged.
+          has_errors? ? 1 : nil
+        else
+          # A raw exception is propagating (typically under -VVV); Ruby already
+          # exits 1 and prints the backtrace, so leave it untouched.
+          nil
+        end
+      end
+
+      # Returns true when any error has been recorded.
+      def has_errors?
+        @error_count > 0
       end
 
       # Add an exception to the error file.
@@ -61,6 +104,7 @@ class Chef
       # The advantages of this schema is the ability to retry the backup or
       # restore and pick up where we left.
       def add(ex)
+        @error_count += 1
         msg = {
           timestamp:  Time.now,
           message:    ex.message,

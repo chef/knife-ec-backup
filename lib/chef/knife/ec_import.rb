@@ -31,6 +31,22 @@ class Chef
       ADMIN_GROUP_FILES = ['billing-admins.json', 'public_key_read_access.json'].freeze
       NOT_FOUND_STATUS = '404'
 
+      # Network/server errors that should be logged and skipped so the rest of
+      # the import can proceed instead of aborting. Covers 5xx "Internal Server
+      # Error" responses and dropped connections such as "Connection reset by
+      # peer".
+      RECOVERABLE_NETWORK_ERRORS = [
+        Net::HTTPClientException, # 4xx
+        Net::HTTPFatalError,      # 5xx, e.g. Internal Server Error
+        Errno::ECONNRESET,        # Connection reset by peer
+        Errno::ECONNREFUSED,
+        Errno::ETIMEDOUT,
+      ].freeze
+
+      # Substring of the RuntimeError some Ruby builds raise while computing
+      # cookbook checksums. It must be logged and skipped, not abort the import.
+      DIGEST_INHERITANCE_ERROR = 'Digest::Base cannot be directly inherited'.freeze
+
       option :tenant_id_header,
         :long => '--tenant-id TENANT_ID',
         :description => 'Tenant identifier added as X-Tenant-Id header for import requests'
@@ -147,12 +163,13 @@ class Chef
         rest.get(org_url(orgname))
         true
       rescue Net::HTTPClientException => ex
-        if ex.response.code == NOT_FOUND_STATUS
-          false
-        else
-          knife_ec_error_handler.add(ex)
-          false
-        end
+        return false if ex.response.code == NOT_FOUND_STATUS
+        knife_ec_error_handler.add(ex)
+        false
+      rescue *RECOVERABLE_NETWORK_ERRORS => ex
+        ui.error "Failed to verify organization #{orgname}: #{ex.message}"
+        knife_ec_error_handler.add(ex)
+        false
       end
 
       def restore_user_acls
@@ -285,11 +302,17 @@ class Chef
                                          chef_fs_config.chef_fs, nil,
                                          config, ui,
                                          proc { |entry| chef_fs_config.format_path(entry) })
-      rescue Net::HTTPClientException,
+      rescue *RECOVERABLE_NETWORK_ERRORS,
              Chef::ChefFS::FileSystem::NotFoundError,
              Chef::ChefFS::FileSystem::OperationFailedError,
              Chef::Exceptions::JSON::ParseError,
              JSON::ParserError => ex
+        ui.error "#{pattern_str} failed to copy: #{ex.message}"
+        knife_ec_error_handler.add(ex)
+      rescue RuntimeError => ex
+        # Only swallow the known Digest::Base inheritance error so the import
+        # continues; re-raise anything else.
+        raise unless ex.message.to_s.include?(DIGEST_INHERITANCE_ERROR)
         ui.error "#{pattern_str} failed to copy: #{ex.message}"
         knife_ec_error_handler.add(ex)
       end
@@ -399,7 +422,7 @@ class Chef
 
         rest.put(cookbook_url(org_name, cookbook_name, version, 'freeze=true'), 
                  manifest.tap { |h| h[FROZEN_STATUS_KEY] = true })
-      rescue Net::HTTPClientException => ex
+      rescue *RECOVERABLE_NETWORK_ERRORS => ex
         ui.warn "Failed to freeze cookbook #{cookbook_name} #{version}: #{ex.message}"
         knife_ec_error_handler.add(ex)
       end
@@ -414,7 +437,7 @@ class Chef
             rest.put("#{url}/#{permission}", { permission => acls[permission] })
           end
         end
-      rescue Net::HTTPClientException => ex
+      rescue *RECOVERABLE_NETWORK_ERRORS => ex
         knife_ec_error_handler.add(ex)
       end
     end

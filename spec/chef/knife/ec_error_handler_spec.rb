@@ -115,4 +115,47 @@ EOF
     @knife_ec_error_handler.add(cheffs_filesystem_exception('OperationFailedError'))
     expect(File.read(err_file)).to match mock_content.strip
   end
+
+  describe "#has_errors?" do
+    it "is false before any error is added" do
+      expect(@knife_ec_error_handler.has_errors?).to be false
+    end
+
+    it "is true after an error is added" do
+      @knife_ec_error_handler.add(net_exception(500))
+      expect(@knife_ec_error_handler.has_errors?).to be true
+    end
+  end
+
+  describe "#consistent_exit_status" do
+    context "when no error was recorded" do
+      it "leaves a clean exit untouched" do
+        expect(@knife_ec_error_handler.consistent_exit_status(nil)).to be_nil
+      end
+
+      it "normalizes knife's non-zero exit (e.g. 100) to 1" do
+        expect(@knife_ec_error_handler.consistent_exit_status(SystemExit.new(100))).to eq 1
+      end
+
+      it "leaves a clean SystemExit untouched" do
+        expect(@knife_ec_error_handler.consistent_exit_status(SystemExit.new(0))).to be_nil
+      end
+
+      it "leaves a raw exception (e.g. under -VVV) untouched" do
+        expect(@knife_ec_error_handler.consistent_exit_status(RuntimeError.new('boom'))).to be_nil
+      end
+    end
+
+    context "when an error was recorded" do
+      before(:each) { @knife_ec_error_handler.add(net_exception(500)) }
+
+      it "forces exit 1 on an otherwise clean exit" do
+        expect(@knife_ec_error_handler.consistent_exit_status(nil)).to eq 1
+      end
+
+      it "normalizes knife's exit 100 to 1" do
+        expect(@knife_ec_error_handler.consistent_exit_status(SystemExit.new(100))).to eq 1
+      end
+    end
+  end
 end
