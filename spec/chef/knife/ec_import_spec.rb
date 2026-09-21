@@ -562,7 +562,7 @@ describe Chef::Knife::EcImport do
     it HANDLES_ERRORS do
       allow(@rest).to receive(:get).and_raise(import_net_exception(500))
       expect(@error_handler).to receive(:add)
-      expect(@knife.ui).to receive(:warn).with(/Failed to freeze cookbook/)
+      expect(@knife.ui).to receive(:error).with(/Failed to freeze cookbook/)
       @knife.freeze_cookbook("mycb", "1.0.0", "foo")
     end
   end

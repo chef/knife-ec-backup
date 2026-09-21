@@ -162,11 +162,8 @@ class Chef
       def organization_exists?(orgname)
         rest.get(org_url(orgname))
         true
-      rescue Net::HTTPClientException => ex
-        return false if ex.response.code == NOT_FOUND_STATUS
-        knife_ec_error_handler.add(ex)
-        false
       rescue *RECOVERABLE_NETWORK_ERRORS => ex
+        return false if ex.is_a?(Net::HTTPClientException) && ex.response.code == NOT_FOUND_STATUS
         ui.error "Failed to verify organization #{orgname}: #{ex.message}"
         knife_ec_error_handler.add(ex)
         false
@@ -423,7 +420,7 @@ class Chef
         rest.put(cookbook_url(org_name, cookbook_name, version, 'freeze=true'), 
                  manifest.tap { |h| h[FROZEN_STATUS_KEY] = true })
       rescue *RECOVERABLE_NETWORK_ERRORS => ex
-        ui.warn "Failed to freeze cookbook #{cookbook_name} #{version}: #{ex.message}"
+        ui.error "Failed to freeze cookbook #{cookbook_name} #{version}: #{ex.message}"
         knife_ec_error_handler.add(ex)
       end
 
