@@ -435,6 +435,7 @@ class Chef
           end
         end
       rescue *RECOVERABLE_NETWORK_ERRORS => ex
+        ui.error "Failed to update ACL #{url}: #{ex.message}"
         knife_ec_error_handler.add(ex)
       end
     end
