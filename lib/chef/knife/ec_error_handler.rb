@@ -29,6 +29,7 @@ class Chef
         @err_dir = "#{working_dir}/errors"
         FileUtils.mkdir_p(@err_dir)
         @error_count = 0
+        @process = process
 
         # Create an specific error file name depending
         # of where the process comes from.
@@ -49,10 +50,12 @@ class Chef
 
       # Forces a consistent, non-zero exit status when errors were recorded so
       # that a run with a high-verbosity flag (e.g. -VVV) and one without it
-      # report the same status. Skipped under RSpec so the test suite's own
-      # exit status is not altered.
+      # report the same status. Only applies to `knife ec import`; other
+      # commands keep their original exit status. Skipped under RSpec so the
+      # test suite's own exit status is not altered.
       def override_exit_status
         return if defined?(RSpec)
+        return unless @process == Chef::Knife::EcImport
 
         status = consistent_exit_status($!)
         exit(status) unless status.nil?
