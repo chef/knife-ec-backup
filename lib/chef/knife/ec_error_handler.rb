@@ -55,7 +55,7 @@ class Chef
       # test suite's own exit status is not altered.
       def override_exit_status
         return if defined?(RSpec)
-        return unless @process == Chef::Knife::EcImport
+        return unless defined?(Chef::Knife::EcImport) && @process == Chef::Knife::EcImport
 
         status = maybe_exit_status($!)
         exit(status) unless status.nil?
