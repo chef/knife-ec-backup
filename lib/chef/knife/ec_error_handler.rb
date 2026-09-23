@@ -57,7 +57,7 @@ class Chef
         return if defined?(RSpec)
         return unless @process == Chef::Knife::EcImport
 
-        status = consistent_exit_status($!)
+        status = maybe_exit_status($!)
         exit(status) unless status.nil?
       end
 
@@ -68,7 +68,7 @@ class Chef
       #
       # +error+ is the exception propagating at exit (Ruby's $!). Returns the
       # status to force, or nil to leave the current status untouched.
-      def consistent_exit_status(error = $!)
+      def maybe_exit_status(error = $!)
         case error
         when SystemExit
           # Normalize any non-zero exit (e.g. knife's exit 100) to 1.
