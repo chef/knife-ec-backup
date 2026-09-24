@@ -463,6 +463,7 @@ describe Chef::Knife::EcImport do
     it HANDLES_ERRORS do
       allow(@rest).to receive(:get).and_raise(import_net_exception(500))
       expect(@error_handler).to receive(:add)
+      expect(@knife.ui).to receive(:error).with(/Failed to update ACL/)
       @knife.put_acl(@rest, "url", {})
     end
   end
@@ -562,7 +563,7 @@ describe Chef::Knife::EcImport do
     it HANDLES_ERRORS do
       allow(@rest).to receive(:get).and_raise(import_net_exception(500))
       expect(@error_handler).to receive(:add)
-      expect(@knife.ui).to receive(:warn).with(/Failed to freeze cookbook/)
+      expect(@knife.ui).to receive(:error).with(/Failed to freeze cookbook/)
       @knife.freeze_cookbook("mycb", "1.0.0", "foo")
     end
   end
@@ -597,6 +598,16 @@ describe Chef::Knife::EcImport do
       expect(@knife.ui).to receive(:error).with(/\/foo failed to copy:.*lexical error/)
       expect(@error_handler).to receive(:add)
       @knife.chef_fs_copy_pattern("/foo", chef_fs_config)
+    end
+
+    [Errno::ECONNRESET, Errno::ECONNREFUSED, Errno::ETIMEDOUT].each do |socket_error|
+      it "recovers from #{socket_error} socket failures" do
+        chef_fs_config = double("config", :local_fs => double, :chef_fs => double)
+        allow(Chef::ChefFS::FileSystem).to receive(:copy_to).and_raise(socket_error)
+        expect(@knife.ui).to receive(:error).with(/\/foo failed to copy:/)
+        expect(@error_handler).to receive(:add)
+        @knife.chef_fs_copy_pattern("/foo", chef_fs_config)
+      end
     end
   end
 
