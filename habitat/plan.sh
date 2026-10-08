@@ -8,8 +8,8 @@ pkg_bin_dirs=(bin)
 pkg_lib_dirs=(lib)
 pkg_svc_user=root
 pkg_svc_group=${pkg_svc_user}
-ruby_pkg=$([ "$HAB_BLDR_CHANNEL" == "LTS-2024" ] && echo core/ruby3_1 || echo core/ruby31)
-postgresql_package=$([ "$HAB_BLDR_CHANNEL" == "LTS-2024" ] && echo core/postgresql13-client || echo core/postgresql-client)
+ruby_pkg=core/ruby3_1
+postgresql_package=core/postgresql13-client
 echo "Using Ruby package: $ruby_pkg"
 
 pkg_build_deps=(
