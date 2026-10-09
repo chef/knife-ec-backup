@@ -1,26 +1,23 @@
 # knife-ec-backup Change Log
 
-<!-- latest_release 3.0.11 -->
-## [v3.0.11](https://github.com/chef/knife-ec-backup/tree/v3.0.11) (2026-10-09)
-
-#### Merged Pull Requests
-- Habitat pkg fixed Due to LTS 2024 deps are getting duplicate [#207](https://github.com/chef/knife-ec-backup/pull/207) ([sanghinitin](https://github.com/sanghinitin))
+<!-- latest_release -->
 <!-- latest_release -->
 
-<!-- release_rollup since=3.0.9 -->
-### Changes not yet released to rubygems.org
-
-#### Merged Pull Requests
-- Habitat pkg fixed Due to LTS 2024 deps are getting duplicate [#207](https://github.com/chef/knife-ec-backup/pull/207) ([sanghinitin](https://github.com/sanghinitin)) <!-- 3.0.11 -->
-- CHEF-33330: Make knife ec import resilient to recoverable errors and normalize exit status [#206](https://github.com/chef/knife-ec-backup/pull/206) ([sanghinitin](https://github.com/sanghinitin)) <!-- 3.0.10 -->
+<!-- release_rollup -->
 <!-- release_rollup -->
 
 <!-- latest_stable_release -->
+## [v3.0.11](https://github.com/chef/knife-ec-backup/tree/v3.0.11) (2026-10-09)
+
+#### Merged Pull Requests
+- CHEF-33330: Make knife ec import resilient to recoverable errors and normalize exit status [#206](https://github.com/chef/knife-ec-backup/pull/206) ([sanghinitin](https://github.com/sanghinitin))
+- Habitat pkg fixed Due to LTS 2024 deps are getting duplicate [#207](https://github.com/chef/knife-ec-backup/pull/207) ([sanghinitin](https://github.com/sanghinitin))
+<!-- latest_stable_release -->
+
 ## [v3.0.9](https://github.com/chef/knife-ec-backup/tree/v3.0.9) (2026-06-30)
 
 #### Merged Pull Requests
 - Honor --sql-host, --sql-port and --sql-db for SQL backup/restore (external PostgreSQL) [#204](https://github.com/chef/knife-ec-backup/pull/204) ([edmharlaoag](https://github.com/edmharlaoag))
-<!-- latest_stable_release -->
 
 ## [v3.0.8](https://github.com/chef/knife-ec-backup/tree/v3.0.8) (2026-02-27)
 
