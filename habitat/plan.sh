@@ -12,6 +12,7 @@ pkg_svc_user=root
 pkg_svc_group=${pkg_svc_user}
 ruby_pkg=core/ruby3_1
 postgresql_package=core/postgresql13-client
+
 echo "Using Ruby package: $ruby_pkg"
 
 pkg_build_deps=(
