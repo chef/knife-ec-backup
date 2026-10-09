@@ -1,3 +1,5 @@
+export HAB_BLDR_CHANNEL="base-2025"
+export HAB_REFRESH_CHANNEL="base-2025"
 pkg_name=knife-ec-backup
 pkg_origin=chef
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
